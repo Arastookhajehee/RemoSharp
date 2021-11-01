@@ -1,0 +1,7 @@
+How to use:
+1. Run the Local WebSocket Server.exe file from the Local WebSocket Server folder (make sure both dll files are beside the .exe file)
+2. Open the Grasshopper Example file
+3. connect the two points beside the generated C# component on the Top-Left Corner of the GH Canvas
+
+The Created Polyline is being generated from the direct inputs of the C# component, and the values being sent 
+via WS communication to the local server and received by the WS listener.
