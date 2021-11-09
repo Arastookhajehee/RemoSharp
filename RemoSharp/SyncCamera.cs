@@ -74,7 +74,8 @@ namespace RemoSharp
             try
             {
                 string camName;
-                double[] camPose = ParseCameraPose(TargetCamera, out camName);
+                int projectionMode = 1;
+                double[] camPose = ParseCameraPose(TargetCamera, out camName, out projectionMode);
                 Point3d camPos = new Point3d(camPose[0], camPose[1], camPose[2]);
                 Vector3d camDir = new Vector3d(camPose[3], camPose[4], camPose[5]);
                 double focalLength = camPose[6];
@@ -108,6 +109,18 @@ namespace RemoSharp
                     tgtCam.ActiveViewport.Camera35mmLensLength = focalLength;
                     tgtCam.ActiveViewport.SetCameraLocation(camPos, true);
                     tgtCam.ActiveViewport.SetCameraDirection(camDir, false);
+
+                    // setting the projection Mode
+                    if (projectionMode == 0) { tgtCam.ActiveViewport.ChangeToParallelProjection(true); }
+                    else if (projectionMode == 1) { tgtCam.ActiveViewport.ChangeToPerspectiveProjection(true, focalLength); }
+                    else if (projectionMode == 2) {
+                        this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Plan View Not Yet Implemented.");
+                        /*tgtCam.ActiveViewport.SetToPlanView(camPos, Vector3d.XAxis, Vector3d.YAxis, false);*/ }
+                    else if (projectionMode == 3) {
+                        this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "TwoPointPerspective View Not Yet Implemented.");
+                        /*tgtCam.ActiveViewport.ChangeToTwoPointPerspectiveProjection(focalLength);*/ }
+                    else { tgtCam.ActiveViewport.ChangeToPerspectiveProjection(true, focalLength); }
+
                     state = "Camera Location Being Updated!";
                 }
             }
@@ -119,15 +132,16 @@ namespace RemoSharp
             DA.SetData(0, state);
         }
 
-        public double[] ParseCameraPose(string targetCamPose, out string camName)
+        public double[] ParseCameraPose(string targetCamPose, out string camName, out int cameraType)
         {
-            double[] camPose = new double[7];
+            double[] camPose = new double[8];
             string[] poseString = targetCamPose.Split(',');
             for (int i = 1; i < camPose.Length + 1; i++)
             {
                 camPose[i - 1] = Convert.ToDouble(poseString[i]);
             }
             camName = poseString[0];
+            cameraType = Convert.ToInt32(camPose[7]);
             return camPose;
         }
         /// <summary>

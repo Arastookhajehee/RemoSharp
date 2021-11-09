@@ -123,6 +123,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon Script_Checker {
+            get {
+                object obj = ResourceManager.GetObject("Script_Checker", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Sync_Camera {
             get {
                 object obj = ResourceManager.GetObject("Sync_Camera", resourceCulture);
@@ -146,6 +156,16 @@ namespace RemoSharp.Properties {
         internal static System.Drawing.Icon Text_Point {
             get {
                 object obj = ResourceManager.GetObject("Text_Point", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon WS_BFF {
+            get {
+                object obj = ResourceManager.GetObject("WS_BFF", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }

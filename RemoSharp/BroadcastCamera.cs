@@ -38,9 +38,7 @@ namespace RemoSharp
         {
             pManager.AddTextParameter("ReferenceView", "RefView", "The viewport to be broadcasted.", GH_ParamAccess.item, "Perspective");
             pManager.AddTextParameter("TargetView", "TgtView", "The target viewport to be synced.", GH_ParamAccess.item, "");
-            pManager.AddBooleanParameter("Update", "update", "Single update of the viewports", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Realtime", "RT_update", "Realtime update of the viewports", GH_ParamAccess.item, false);
-            pManager.AddIntegerParameter("UpdateFrequency", "RT_Fq", "Realtime update frequency in ms.", GH_ParamAccess.item, 200);
+            pManager.AddBooleanParameter("Update", "Update", "Single update of the viewports", GH_ParamAccess.item, false);
         }
 
         /// <summary>
@@ -64,8 +62,6 @@ namespace RemoSharp
             string refrenceView = "";
             string targetView = "";
             bool update = false;
-            bool RT_Update = false;
-            int interval = 200;
 
             // defining the outputs
             string refrenceCam = "";
@@ -74,9 +70,9 @@ namespace RemoSharp
             DA.GetData(0, ref refrenceView);
             DA.GetData(1, ref targetView);
             DA.GetData(2, ref update);
-            DA.GetData(3, ref RT_Update);
-            DA.GetData(4, ref interval);
 
+            this.Component.Message = "Need a Trigger for RT";
+            
 
             int refIndex = -1;
             
@@ -100,25 +96,19 @@ namespace RemoSharp
                 double focalLength = refCam.ActiveViewport.Camera35mmLensLength;
                 Point3d camPos = camPlane.Origin;
                 Vector3d camDir = refCam.ActiveViewport.CameraDirection;
+
+                // making sure the projectionMode is the same
+                int projectionMode = 0;
+                if (refCam.ActiveViewport.IsParallelProjection) { projectionMode = 0; }
+                if (refCam.ActiveViewport.IsPerspectiveProjection) { projectionMode = 1; }
+                if (refCam.ActiveViewport.IsPlanView) { projectionMode = 2; }
+                if (refCam.ActiveViewport.IsTwoPointPerspectiveProjection) { projectionMode = 3; }
                 string camLocationPntVec = Rounder(camPos.X) + "," + Rounder(camPos.Y) + "," + Rounder(camPos.Z) + "," + Rounder(camDir.X) + "," + Rounder(camDir.Y) + "," + Rounder(camDir.Z) + "," + Rounder(focalLength);
-                string camLocation = targetView + "," + camLocationPntVec;
-                if (update && !RT_Update)
+                string camLocation = targetView + "," + camLocationPntVec + "," + projectionMode;
+                if (update)
                 {
                     refrenceCam = camLocation;
                     state = "Camera Location Updated!";
-                }
-                if (RT_Update)
-                {
-                    if (interval < 10)
-                    {
-                        state = "Interval Too Low. Consider Increasing It!";
-                    }
-                    else
-                    {
-                        this.Component.OnPingDocument().ScheduleSolution(interval, doc => { this.Component.ExpireSolution(false); });
-                        state = ("Real Time Camera Sync!");
-                        refrenceCam = camLocation;
-                    }
                 }
 
             }
@@ -135,6 +125,7 @@ namespace RemoSharp
             DA.SetData(1, refrenceCam);
 
         }
+
         public string Rounder(double number)
         {
             double roundNum = Math.Round(number, 3);

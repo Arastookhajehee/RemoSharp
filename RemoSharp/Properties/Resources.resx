@@ -136,6 +136,9 @@
   <data name="RemoSharp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSharp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Script_Checker" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Script_Checker.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Sync_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Sync Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -144,5 +147,8 @@
   </data>
   <data name="Text_Point" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Text_Point.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="WS_BFF" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\WS_BFF.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>
