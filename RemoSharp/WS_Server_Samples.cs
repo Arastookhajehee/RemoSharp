@@ -80,13 +80,16 @@ namespace RemoSharp
 
             // server list
             var serverList = new List<string>();
-            for (int i = 1; i < 9; i++) 
+            for (int i = 1; i < 10; i++) 
             {
                 serverList.Add("wss://remosharp-public-server0"+ i +".glitch.me/");
             }
             serverList.Add("wss://remosharp-public-server10.glitch.me/");
 
-
+            if (index < 1 || index > 10) { 
+                this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please input a number form 1 to 10");
+                return;
+            }
             string serverAddress = serverList[index - 1];
             string serverTemplate = "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git";
             DA.SetData(0, serverAddress);
@@ -109,7 +112,7 @@ namespace RemoSharp
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.s;
+                return RemoSharp.Properties.Resources.Server_Samples.ToBitmap();
             }
         }
 
