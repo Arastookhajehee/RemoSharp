@@ -20,7 +20,6 @@ namespace RemoSharp
     public class SyncCamera : GH_Component
     {
         IGH_Component Component;
-        Rhino.RhinoDoc rhinoDoc;
         /// <summary>
         /// Initializes a new instance of the SyncCamera class.
         /// </summary>

@@ -58,9 +58,14 @@
       <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="WindowsInput">
+      <HintPath>..\..\dlls\WindowsInput.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BroadcastCamera.cs" />
+    <Compile Include="Distributor.cs" />
+    <Compile Include="DistributorCommands.cs" />
     <Compile Include="EavesDrop.cs" />
     <Compile Include="Output_Grip.cs" />
     <Compile Include="Output_Grip_List.cs" />
@@ -70,6 +75,9 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RemoCompExecutor.cs" />
+    <Compile Include="RemoCompSource.cs" />
+    <Compile Include="RemoCompTarget.cs" />
     <Compile Include="RemoSharpComponent.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
