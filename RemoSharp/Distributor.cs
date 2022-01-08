@@ -183,7 +183,7 @@ namespace RemoSharp
             Component = this;
             GrasshopperDocument = this.OnPingDocument();
             // checks and boolean buttons
-            
+
 
             //DA.GetData(0, ref selectorAdd);
             //DA.GetData(1, ref selectorRemove);
@@ -191,7 +191,11 @@ namespace RemoSharp
             //DA.GetData(3, ref pushCopy);
             //DA.GetData(4, ref delete);
 
-            if (!selectorAdd && !selectorRemove && !pullCopy && !pushCopy && !delete) return;
+            if (!selectorAdd && !selectorRemove && !pullCopy && !pushCopy && !delete)
+            {
+                DA.SetData(0, "");
+                return;
+            }
 
             // Setting the output string variable
             string cmd = "";
@@ -269,7 +273,6 @@ namespace RemoSharp
             }
 
 
-            DA.SetData(0, "");
         }
 
         /// <summary>

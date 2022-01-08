@@ -64,8 +64,8 @@ namespace RemoSharp
      "Move the closest component in the same direction of the target RemoConnector Component.", "-->>");
             pushButton3 = new PushButton("Connect", "Connects components remotely.", ">--<");
             pushButton4 = new PushButton("Disconnect", "Disconnects components remotely.", ">  <");
-            outputSlider = new HorizontalSliderInteger("Output", "The output index of the source component", 0, 0, 15, "", false);
-            inputSlider = new HorizontalSliderInteger("Input", "The input index of the target component", 0, 0, 15, "", false);
+            outputSlider = new HorizontalSliderInteger("Output", "The output index of the source component", 0, 0, 10, "", false);
+            inputSlider = new HorizontalSliderInteger("Input", "The input index of the target component", 0, 0, 10, "", false);
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
                 pushButton1, pushButton2, pushButton3, pushButton4
                 );
@@ -196,8 +196,11 @@ namespace RemoSharp
 
             //setting the output command string
             string cmd = "";
-            if (!create && !move && !connect && !disconnect) return;
-
+            if (!create && !move && !connect && !disconnect)
+            {
+                DA.SetData(0, "");
+                return;
+            }
             if (create) { 
                 try
                 {
