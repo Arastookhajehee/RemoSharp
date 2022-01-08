@@ -118,8 +118,23 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="BroadcastCanvas" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\BroadcastCanvas.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Broadcast_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Broadcast Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="CanvasBounds" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\CanvasBounds.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="CanvasBoundsIPAddress" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\CanvasBoundsIPAddress.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="CMD" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\CMD.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Distributor" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Distributor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="EavesDropIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\EavesDropIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -133,8 +148,23 @@
   <data name="Output_Icons_Tree" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Output Icons Tree.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RemoButton" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoButton.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoColor" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoColor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoPanel" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoPanel.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoSharp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSharp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSlider" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSlider.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoToggle" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoToggle.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Script_Checker" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Script_Checker.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -142,8 +172,14 @@
   <data name="Server_Samples" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Server Samples.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="SourceComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\SourceComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Sync_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Sync Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="TargetComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\TargetComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Text_Number" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Text_Number.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

@@ -147,6 +147,42 @@
   <ItemGroup>
     <None Include="images\Server Samples.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="images\CMD.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Distributor.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoButton.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoColor.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoPanel.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSlider.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoToggle.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\SourceComp.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\TargetComp.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\BroadcastCanvas.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\CanvasBounds.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\CanvasBoundsIPAddress.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
