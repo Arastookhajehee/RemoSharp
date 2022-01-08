@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="GHCustomControls">
+      <HintPath>..\..\dlls\GHCustomControls.dll</HintPath>
+    </Reference>
     <Reference Include="ScriptComponents">
       <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\ScriptComponents.dll</HintPath>
     </Reference>
@@ -61,12 +64,18 @@
     <Reference Include="WindowsInput">
       <HintPath>..\..\dlls\WindowsInput.dll</HintPath>
     </Reference>
+    <Reference Include="WPFNumericUpDown">
+      <HintPath>..\..\dlls\WPFNumericUpDown.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BroadcastCamera.cs" />
+    <Compile Include="BroadcastCanvasScreen.cs" />
+    <Compile Include="ClientCanvasBounds.cs" />
     <Compile Include="Distributor.cs" />
     <Compile Include="DistributorCommands.cs" />
     <Compile Include="EavesDrop.cs" />
+    <Compile Include="GH_CanvasBoundsLocalWSaddress.cs" />
     <Compile Include="Output_Grip.cs" />
     <Compile Include="Output_Grip_List.cs" />
     <Compile Include="Output_Grip_Tree.cs" />
@@ -75,12 +84,17 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RemoButton.cs" />
+    <Compile Include="RemoColorSwatch.cs" />
     <Compile Include="RemoCompExecutor.cs" />
     <Compile Include="RemoCompSource.cs" />
     <Compile Include="RemoCompTarget.cs" />
+    <Compile Include="RemoPanel.cs" />
     <Compile Include="RemoSharpComponent.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RemoSlider.cs" />
+    <Compile Include="RemoToggle.cs" />
     <Compile Include="Script_Checker.cs" />
     <Compile Include="SyncCamera.cs" />
     <Compile Include="TextNumber.cs" />

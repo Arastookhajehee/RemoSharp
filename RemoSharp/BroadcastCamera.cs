@@ -25,9 +25,9 @@ namespace RemoSharp
         /// Initializes a new instance of the BroadcastCamera class.
         /// </summary>
         public BroadcastCamera()
-          : base("Broadcast Camera", "Cam_Broadcast",
-              "Retrieves info from a Viewport in Rhino and broadcasts it as a string.",
-              "RemoSharp", "CameraTools")
+          : base("Client Camera", "Client_Cam",
+              "Retrieves info from a viewport in the client's Rhino and broadcasts it as a string.",
+              "RemoSharp", "BroadcastTools")
         {
         }
 

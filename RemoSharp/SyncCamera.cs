@@ -26,7 +26,7 @@ namespace RemoSharp
         public SyncCamera()
           : base("SyncCamera", "SyncCam",
               "Syncs a viewport based on the string input",
-              "RemoSharp", "CameraTools")
+              "RemoSharp", "BroadcastTools")
         {
         }
 

@@ -1,4 +1,8 @@
-﻿using Grasshopper.Kernel;
+﻿/*
+ * This component is not neccessary
+ * All it's commands and functions have been combined with the DitributorCommands Component
+ * 
+using Grasshopper.Kernel;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
@@ -14,6 +18,8 @@ namespace RemoSharp
         public int tgtComp = -1;
         public int srcCompOutputIndex = -1;
         public int tgtCompInputIndex = -1;
+
+
 
         /// <summary>
         /// Initializes a new instance of the RemoCompExecutor class.
@@ -206,7 +212,7 @@ namespace RemoSharp
             get { return new Guid("a9e03f06-3649-41c5-b96c-864f64360687"); }
         }
 
-        int MoveCompFindComponentOnCanvasByCoordinates(int compX, int compY)
+        private int MoveCompFindComponentOnCanvasByCoordinates(int compX, int compY)
         {
             // getting the active instances of the GH document and current component
             // also we need the list of all of the objects on the canvas
@@ -432,3 +438,4 @@ namespace RemoSharp
 
     }
 }
+*/
