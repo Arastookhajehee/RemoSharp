@@ -3,12 +3,43 @@ using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
 
+using GHCustomControls;
+using WPFNumericUpDown;
+
 namespace RemoSharp
 {
-    public class RemoCompSource : GH_Component
+    public class RemoCompSource : GHCustomComponent
     {
         GH_Document GrasshopperDocument;
         IGH_Component Component;
+
+        #region Custom Visual Controls
+
+        PushButton pushButton1;
+        PushButton pushButton2;
+        PushButton pushButton3;
+        PushButton pushButton4;
+
+        HorizontalSliderInteger inputSlider;
+        HorizontalSliderInteger outputSlider;
+
+        ToggleSwitch toggleSwitch;
+
+        StackPanel stackPanel;
+        //StackPanel stackPane2;
+        //StackPanel stackPane3;
+        StackPanel stackPane4;
+
+        #endregion
+
+
+        // having all the inputs as public values accecable from the whole script
+        bool create = false;
+        bool move = false;
+        int sourceOutput = 0;
+        int targetInput = 0;
+        bool connect = false;
+        bool disconnect = false;
 
         /// <summary>
         /// Initializes a new instance of the RemoCompSource class.
@@ -25,23 +56,110 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("Create", "Create",
-                "Create a new instance of the close component on the main remote GH_Canvas",
-                GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Move", "Mve",
-                "Move the closest component in the same direction of the target RemoConnector Component.",
-                GH_ParamAccess.item,false);
-            pManager.AddIntegerParameter("SourceComp Output", "SrcOut", "The output index of the source component",
-                GH_ParamAccess.item, 0); 
-            pManager.AddIntegerParameter("TargetComp Input", "TrgtIn", "The input index of the target component",
-                 GH_ParamAccess.item, 0);
-            pManager.AddBooleanParameter("Connect", "Cnct",
-                "Connects components remotely.",
-                GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Disconnect", "DsCnct",
-                "Disconnects components remotely.",
-                GH_ParamAccess.item, false);
+            #region Custom Visual Controls
 
+            pushButton1 = new PushButton("Create",
+                "Create a new instance of the close component on the main remote GH_Canvas.", "((+))");
+            pushButton2 = new PushButton("Move",
+     "Move the closest component in the same direction of the target RemoConnector Component.", "-->>");
+            pushButton3 = new PushButton("Connect", "Connects components remotely.", ">--<");
+            pushButton4 = new PushButton("Disconnect", "Disconnects components remotely.", ">  <");
+            outputSlider = new HorizontalSliderInteger("Output", "The output index of the source component", 0, 0, 15, "", false);
+            inputSlider = new HorizontalSliderInteger("Input", "The input index of the target component", 0, 0, 15, "", false);
+            stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
+                pushButton1, pushButton2, pushButton3, pushButton4
+                );
+
+            toggleSwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
+
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            pushButton2.OnValueChanged += PushButton2_OnValueChanged;
+            pushButton3.OnValueChanged += PushButton3_OnValueChanged;
+            pushButton4.OnValueChanged += PushButton4_OnValueChanged;
+            toggleSwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
+            
+            AddCustomControl(stackPanel);
+            AddCustomControl(outputSlider);
+            AddCustomControl(inputSlider);
+            AddCustomControl(toggleSwitch);
+
+            #endregion
+
+            //pManager.AddBooleanParameter("Create", "Create",
+            //    "Create a new instance of the close component on the main remote GH_Canvas",
+            //    GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("Move", "Mve",
+            //    "Move the closest component in the same direction of the target RemoConnector Component.",
+            //    GH_ParamAccess.item,false);
+            //pManager.AddIntegerParameter("SourceComp Output", "SrcOut", "The output index of the source component",
+            //    GH_ParamAccess.item, 0); 
+            //pManager.AddIntegerParameter("TargetComp Input", "TrgtIn", "The input index of the target component",
+            //     GH_ParamAccess.item, 0);
+            //pManager.AddBooleanParameter("Connect", "Cnct",
+            //    "Connects components remotely.",
+            //    GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("Disconnect", "DsCnct",
+            //    "Disconnects components remotely.",
+            //    GH_ParamAccess.item, false);
+
+        }
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                create = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+
+        private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                move = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+
+        private void PushButton3_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                connect = currentValue;
+                sourceOutput = Convert.ToInt32(outputSlider.CurrentValue);
+                targetInput = Convert.ToInt32(inputSlider.CurrentValue);
+                this.ExpireSolution(true);
+            }
+        }
+
+        private void PushButton4_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                disconnect = currentValue;
+                sourceOutput = Convert.ToInt32(outputSlider.CurrentValue);
+                targetInput = Convert.ToInt32(inputSlider.CurrentValue);
+                this.ExpireSolution(true);
+            }
+        }
+
+        private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool toggleChangeVal = Convert.ToBoolean(e.Value);
+            var ghDoc = Grasshopper.Instances.DocumentEditor;
+            if (toggleChangeVal)
+            {
+                ghDoc.Opacity = 0.66;
+            }
+            else
+            {
+                ghDoc.Opacity = 1;
+            }
         }
 
         /// <summary>
@@ -49,9 +167,12 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Command", "Cmd",
+            pManager.AddTextParameter(
+                ">⚫<         Command",
+                ">⚫<         Command",
                 "Command to be executed to make, connect, and disconnect components on the main remote GH_Canvas.",
-                GH_ParamAccess.item);
+                GH_ParamAccess.item
+                );
         }
 
         /// <summary>
@@ -64,19 +185,14 @@ namespace RemoSharp
             GrasshopperDocument = this.OnPingDocument();
 
             // defining all the trigger variables
-            bool create = false;
-            bool move = false;
-            int sourceOutput = 0;
-            int targetInput = 0;
-            bool connect = false;
-            bool disconnect = false;
+            
 
-            DA.GetData(0, ref create);
-            DA.GetData(1, ref move);
-            DA.GetData(2, ref sourceOutput);
-            DA.GetData(3, ref targetInput);
-            DA.GetData(4, ref connect);
-            DA.GetData(5, ref disconnect);
+            //DA.GetData(0, ref create);
+            //DA.GetData(1, ref move);
+            //DA.GetData(2, ref sourceOutput);
+            //DA.GetData(3, ref targetInput);
+            //DA.GetData(4, ref connect);
+            //DA.GetData(5, ref disconnect);
 
             //setting the output command string
             string cmd = "";
@@ -114,6 +230,7 @@ namespace RemoSharp
 
                     cmd = "RemoCreate," + type + "," + newPivot.X + "," + newPivot.Y;
                     DA.SetData(0, cmd);
+                    create = false;
                     return;
                 }
                 catch (Exception e)
@@ -130,6 +247,7 @@ namespace RemoSharp
 
                 cmd = "MoveComp," + otherCompX + "," + otherCompY;
                 DA.SetData(0, cmd);
+                move = false;
                 return;
             }
 
@@ -138,12 +256,14 @@ namespace RemoSharp
                 var thisPivot = this.Component.Attributes.Pivot;
                 cmd = "RemoConnect," + connect + "," + disconnect + "," + thisPivot.X + "," + thisPivot.Y + "," + sourceOutput + "," + targetInput;
                 DA.SetData(0, cmd);
+                connect = false;
+                disconnect = false;
                 return;
             }
 
 
 
-
+            DA.SetData(0, "");
         }
 
         /// <summary>

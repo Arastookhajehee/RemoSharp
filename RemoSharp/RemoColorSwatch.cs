@@ -61,7 +61,10 @@ namespace RemoSharp
                     + Convert.ToInt32(this.Component.Attributes.Pivot.Y) + ","
                     + "ColorSwatchChange," + color.R + "," + color.G + "," + color.B + "," + color.A;
                 DA.SetData(0, outputData);
+                return;
             }
+
+            DA.SetData(0, "");
         }
 
         /// <summary>

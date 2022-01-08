@@ -59,7 +59,10 @@ namespace RemoSharp
                     + Convert.ToInt32(this.Component.Attributes.Pivot.Y) + ","
                     + "AddValueToSlider," + value;
                 DA.SetData(0, outputData);
+                return;
             }
+
+            DA.SetData(0, "");
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ using System.Threading;
 
 namespace RemoSharp
 {
-    public class DistributorCommands : GH_Component
+    public class RemoCommands : GH_Component
     {
 
         GH_Document GrasshopperDocument;
@@ -41,9 +41,9 @@ namespace RemoSharp
         public int tgtCompInputIndex = -1;
 
         /// <summary>
-        /// Initializes a new instance of the DistributorCommands class.
+        /// Initializes a new instance of the RemoCommands class.
         /// </summary>
-        public DistributorCommands()
+        public RemoCommands()
           : base("RemoCommands", "RemoCmds",
               "Excecution of Remote Commands for all manipulations from the client side remotely.",
               "RemoSharp", "RemoMakers")
@@ -73,7 +73,7 @@ namespace RemoSharp
         {
             List<string> commandList = new List<string>();
             string command = "";
-            DA.GetDataList<string>(0, commandList);
+            if(!DA.GetDataList<string>(0, commandList)) return;
 
             if (commandList.Count > 1)
             {

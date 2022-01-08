@@ -8,12 +8,32 @@ using WindowsInput;
 using System.Windows.Forms;
 using System.Threading;
 
+using GHCustomControls;
+using WPFNumericUpDown;
+
 namespace RemoSharp
 {
-    public class Distributor : GH_Component
+    public class Distributor : GHCustomComponent
     {
         GH_Document GrasshopperDocument;
         IGH_Component Component;
+
+        public bool selectorAdd = false;
+        public bool selectorRemove = false;
+        bool pushCopy = false;
+        bool pullCopy = false;
+        bool delete = false;
+
+        PushButton pushButton1;
+        PushButton pushButton2;
+        PushButton pushButton3;
+        PushButton pushButton4;
+        PushButton pushButton5;
+
+        StackPanel stackPanel1;
+        StackPanel stackPanel2;
+
+        ToggleSwitch toggleSwitch;
 
         /// <summary>
         /// Initializes a new instance of the Distributor class.
@@ -30,19 +50,127 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("SelectAdd", "SelAdd", "Add to selection", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("SelectRemove", "SelRmv", "Remove from selection", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("PullCopy", "PullCp", "Copy and paste selection FROM Remote Main GH_Canvas", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("PushCopy", "PushCp", "Copy and paste selection TO Remote Main GH_Canvas", GH_ParamAccess.item, false);
-            pManager.AddBooleanParameter("Delete", "Del", "Delete from REMOTE MAIN GH_Canvas", GH_ParamAccess.item, false);
+
+            #region Adding Custom Visual Controls
+
+            pushButton1 = new PushButton("Selection_Add",
+                "Add to selection.", "+◭+");
+            pushButton2 = new PushButton("Selection_Remove",
+                "Remove from selection.", "−◭−");
+            pushButton3 = new PushButton("Delete",
+                "Delete from REMOTE MAIN GH_Canvas.", "−✖−");
+            pushButton4 = new PushButton("Push_Copy",
+                "Copy and paste selection TO Remote Main GH_Canvas.", "Push_Copy");
+            pushButton5 = new PushButton("Pull_Copy",
+                "Copy and paste selection FROM Remote Main GH_Canvas.", "Pull_Copy");
+
+            stackPanel1 = new StackPanel("Selections", GHCustomControls.Orientation.Horizontal, true,
+                pushButton1, pushButton2, pushButton3);
+            stackPanel2 = new StackPanel("pullPush", GHCustomControls.Orientation.Horizontal, true,
+                pushButton4, pushButton5);
+
+            toggleSwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
+            toggleSwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
+
+            
+
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            pushButton2.OnValueChanged += PushButton2_OnValueChanged;
+            pushButton3.OnValueChanged += PushButton3_OnValueChanged;
+            pushButton4.OnValueChanged += PushButton4_OnValueChanged;
+            pushButton5.OnValueChanged += PushButton5_OnValueChanged;
+            toggleSwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
+
+            AddCustomControl(stackPanel1);
+            AddCustomControl(stackPanel2);
+            AddCustomControl(toggleSwitch);
+
+            #endregion
+
+
+
+            //pManager.AddBooleanParameter("SelectAdd", "SelAdd", "Add to selection", GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("SelectRemove", "SelRmv", "Remove from selection", GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("PullCopy", "PullCp", "Copy and paste selection FROM Remote Main GH_Canvas", GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("PushCopy", "PushCp", "Copy and paste selection TO Remote Main GH_Canvas", GH_ParamAccess.item, false);
+            //pManager.AddBooleanParameter("Delete", "Del", "Delete from REMOTE MAIN GH_Canvas", GH_ParamAccess.item, false);
         }
+
+        
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                selectorAdd = currentValue;
+                this.ExpireSolution(true);
+            }
+            
+        }
+        private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                selectorRemove = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+        private void PushButton3_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                delete = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+        private void PushButton4_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                pushCopy = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+        private void PushButton5_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                pullCopy = currentValue;
+                this.ExpireSolution(true);
+            }
+        }
+
+        private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool toggleChangeVal = Convert.ToBoolean(e.Value);
+            var ghDoc = Grasshopper.Instances.DocumentEditor;
+            if (toggleChangeVal)
+            {
+                ghDoc.Opacity = 0.66;
+            }
+            else
+            {
+                ghDoc.Opacity = 1;
+            }
+        }
+
+    
+        
 
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Command", "Cmd", "The command to be executed on the destination GH_Canvas.", GH_ParamAccess.item);
+            pManager.AddTextParameter(">⚫<     Command",
+                                      ">⚫<     Command",
+                                      "The command to be executed on the destination GH_Canvas.",
+                                      GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -55,17 +183,13 @@ namespace RemoSharp
             Component = this;
             GrasshopperDocument = this.OnPingDocument();
             // checks and boolean buttons
-            bool selectorAdd = false;
-            bool selectorRemove = false;
-            bool pullCopy = false;
-            bool pushCopy = false;
-            bool delete = false;
+            
 
-            DA.GetData(0, ref selectorAdd);
-            DA.GetData(1, ref selectorRemove);
-            DA.GetData(2, ref pullCopy);
-            DA.GetData(3, ref pushCopy);
-            DA.GetData(4, ref delete);
+            //DA.GetData(0, ref selectorAdd);
+            //DA.GetData(1, ref selectorRemove);
+            //DA.GetData(2, ref pullCopy);
+            //DA.GetData(3, ref pushCopy);
+            //DA.GetData(4, ref delete);
 
             if (!selectorAdd && !selectorRemove && !pullCopy && !pushCopy && !delete) return;
 
@@ -81,6 +205,8 @@ namespace RemoSharp
                 int otherCompY = Convert.ToInt32(otherComp.Attributes.Pivot.Y);
                 cmd = "Selection," + selectorAdd + "," + selectorRemove + "," + otherCompX + "," + otherCompY;
                 DA.SetData(0, cmd);
+                selectorAdd = false;
+                selectorRemove = false;
                 return;
             }
 
@@ -90,6 +216,7 @@ namespace RemoSharp
                 {
                     cmd = "pullCopyRequest";
                     DA.SetData(0, cmd);
+                    pullCopy = false;
                     return;
                 }
 
@@ -122,6 +249,7 @@ namespace RemoSharp
                 staThread.Join();
 
                 DA.SetData(0, cmd);
+                pushCopy = false;
                 return;
             }
 
@@ -136,9 +264,12 @@ namespace RemoSharp
                 string otherCompCoords = coordX + "," + coordY;
                 cmd = "Deletion," + delete + "," + otherCompCoords;
                 DA.SetData(0, cmd);
+                delete = false;
                 return;
             }
 
+
+            DA.SetData(0, "");
         }
 
         /// <summary>

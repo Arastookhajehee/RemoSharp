@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RemoSharp</RootNamespace>
     <AssemblyName>RemoSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkProfile />
@@ -73,7 +73,7 @@
     <Compile Include="BroadcastCanvasScreen.cs" />
     <Compile Include="ClientCanvasBounds.cs" />
     <Compile Include="Distributor.cs" />
-    <Compile Include="DistributorCommands.cs" />
+    <Compile Include="RemoCommands.cs" />
     <Compile Include="EavesDrop.cs" />
     <Compile Include="GH_CanvasBoundsLocalWSaddress.cs" />
     <Compile Include="Output_Grip.cs" />
