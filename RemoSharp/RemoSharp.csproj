@@ -69,38 +69,38 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BroadcastCamera.cs" />
-    <Compile Include="BroadcastCanvasScreen.cs" />
-    <Compile Include="ClientCanvasBounds.cs" />
-    <Compile Include="Distributor.cs" />
-    <Compile Include="RemoCommands.cs" />
-    <Compile Include="EavesDrop.cs" />
-    <Compile Include="GH_CanvasBoundsLocalWSaddress.cs" />
-    <Compile Include="Output_Grip.cs" />
-    <Compile Include="Output_Grip_List.cs" />
-    <Compile Include="Output_Grip_Tree.cs" />
+    <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
+    <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreen.cs" />
+    <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
+    <Compile Include="Distributors\Distributor.cs" />
+    <Compile Include="Distributors\RemoCommands.cs" />
+    <Compile Include="RemoCSharp\EavesDrop.cs" />
+    <Compile Include="Canvas-Cam Sync\GH_CanvasBoundsLocalWSaddress.cs" />
+    <Compile Include="RemoCSharp\Output_Grip.cs" />
+    <Compile Include="RemoCSharp\Output_Grip_List.cs" />
+    <Compile Include="RemoCSharp\Output_Grip_Tree.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="RemoButton.cs" />
-    <Compile Include="RemoColorSwatch.cs" />
-    <Compile Include="RemoCompExecutor.cs" />
-    <Compile Include="RemoCompSource.cs" />
-    <Compile Include="RemoCompTarget.cs" />
-    <Compile Include="RemoPanel.cs" />
-    <Compile Include="RemoSharpComponent.cs" />
+    <Compile Include="Parameters\RemoButton.cs" />
+    <Compile Include="Parameters\RemoColorSwatch.cs" />
+    <Compile Include="Distributors\RemoCompSource.cs" />
+    <Compile Include="Distributors\RemoCompTarget.cs" />
+    <Compile Include="Parameters\RemoPanel.cs" />
+    <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RemoSlider.cs" />
-    <Compile Include="RemoToggle.cs" />
-    <Compile Include="Script_Checker.cs" />
-    <Compile Include="SyncCamera.cs" />
-    <Compile Include="TextNumber.cs" />
-    <Compile Include="TextPoint.cs" />
-    <Compile Include="WebSocket BFF.cs" />
-    <Compile Include="WS_Server_Samples.cs" />
+    <Compile Include="Parameters\RemoSlider.cs" />
+    <Compile Include="Parameters\RemoToggle.cs" />
+    <Compile Include="RemoCSharp\Script_Checker.cs" />
+    <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
+    <Compile Include="RemoCSharp\TextNumber.cs" />
+    <Compile Include="RemoCSharp\TextPoint.cs" />
+    <Compile Include="RemoCSharp\WebSocket BFF.cs" />
+    <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
+    <Compile Include="Canvas-Cam Sync\ZoomCheck.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -183,6 +183,10 @@
   <ItemGroup>
     <None Include="images\CanvasBoundsIPAddress.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="images\1-1.ico" />
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
