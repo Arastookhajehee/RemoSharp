@@ -1,5 +1,6 @@
 ﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
+using Grasshopper.GUI.Base;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
@@ -134,7 +135,7 @@ namespace RemoSharp
                     grip.CreateObjectData(otherComp);
                     this.OnPingDocument().Select(grip);
 
-                    Size vec = new Size(trsX, trsY);
+                    Size vec = new Size(trsX/3, trsY/3);
 
                     this.OnPingDocument().TranslateObjects(vec, true);
                     this.OnPingDocument().DeselectAll();
@@ -150,7 +151,30 @@ namespace RemoSharp
 
                     try
                     {
-                        RecognizeAndMake(typeName, pivotX, pivotY);
+                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
+                        {
+
+                            decimal minBound = Convert.ToDecimal(cmds[4]); 
+                            decimal maxBound = Convert.ToDecimal(cmds[5]); 
+                            decimal currentValue = Convert.ToDecimal(cmds[6]); 
+                            int accuracy = Convert.ToInt32(cmds[7]);
+                            GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+                            GH_NumberSlider sliderComponent = new GH_NumberSlider();
+                            sliderComponent.CreateAttributes();
+                            sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
+                            sliderComponent.Slider.Minimum = minBound;
+                            sliderComponent.Slider.Maximum = maxBound;
+                            sliderComponent.Slider.Value = currentValue;
+                            sliderComponent.Slider.DecimalPlaces = accuracy;
+                            sliderComponent.Slider.Type = acc;
+
+                            this.OnPingDocument().AddObject(sliderComponent,false);
+
+                        }
+                        else
+                        {
+                            RecognizeAndMake(typeName, pivotX, pivotY);
+                        }
                     }
                     catch (Exception e)
                     {

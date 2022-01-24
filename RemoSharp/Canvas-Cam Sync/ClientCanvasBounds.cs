@@ -45,6 +45,46 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            #region Checking for GH_Canvas Zoom
+            // Checking for the Zoom Level of GH
+            var textList = new List<string>();
+            var GH_Objects = this.OnPingDocument().Objects;
+            for (int i = 0; i < GH_Objects.Count; i++)
+            {
+                try
+                {
+                    IGH_Component comp = (IGH_Component)GH_Objects[i];
+                    string componentType = comp.GetType().ToString();
+                    if (componentType.Equals("RemoSharp.RemoCompSource"))
+                    {
+                        string zoomOutMessage = "Zoom Out Please";
+                        string zoomInMessage = "Zoom in Please";
+                        var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
+                        if (zoomLevel > 1)
+                        {
+                            comp.Message = zoomOutMessage;
+                            comp.ClearRuntimeMessages();
+                            comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomOutMessage);
+
+                        }
+                        else if (zoomLevel < 1)
+                        {
+                            comp.ClearRuntimeMessages();
+                            comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomInMessage);
+                            comp.Message = zoomInMessage;
+                        }
+                        else
+                        {
+                            comp.ClearRuntimeMessages();
+                            comp.Message = "";
+                        }
+                    }
+                    textList.Add(componentType);
+                }
+                catch { }
+            }
+            #endregion
+
             this.Message = "Need a Trigger for RT";
             int x = 0;
             int y = 0;

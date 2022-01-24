@@ -17,7 +17,9 @@ namespace RemoSharp
         PushButton pushButton2;
         PushButton pushButton3;
         PushButton pushButton4;
+        PushButton pushButton5;
         StackPanel stackPanel;
+        StackPanel stackPanel01;
 
         bool create = false;
         bool hide = false;
@@ -27,6 +29,7 @@ namespace RemoSharp
         // remoParam public variables
         public string componentType = "";
         public int RemoMakeindex = -1;
+        public int DeleteThisComp = -1;
         public int GHbuttonComp = -1;
         public int remoButtonComp = -1;
         public int wsButtonComp = -1;
@@ -53,26 +56,33 @@ namespace RemoSharp
                 "Hides a component on the main remote GH_Canvas.", "Hide");
             pushButton3 = new PushButton("Unhide",
                             "Unhides a component on the main remote GH_Canvas.", "Unhide");
-            pushButton4 = new PushButton("RP",
-                            "Creates the necessary remote parameter components", "RP");
+            pushButton4 = new PushButton("RemoPram",
+                            "Creates the necessary remote parameter components", "RemoPram");
+            pushButton5 = new PushButton("DelThis",
+                "Deletes the component on the top on THIS GH_Canvas", "DelThis");
+
 
             pushButton1.OnValueChanged += PushButton1_OnValueChanged;
             pushButton2.OnValueChanged += PushButton2_OnValueChanged;
             pushButton3.OnValueChanged += PushButton3_OnValueChanged;
             pushButton4.OnValueChanged += PushButton4_OnValueChanged;
+            pushButton5.OnValueChanged += PushButton5_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                pushButton1, pushButton2, pushButton3, pushButton4
+                pushButton1, pushButton2, pushButton3
                 );
-
+            stackPanel01 = new StackPanel("C2", Orientation.Horizontal, true,
+                pushButton4, pushButton5
+                );
             AddCustomControl(stackPanel);
+            AddCustomControl(stackPanel01);
 
             pManager.AddTextParameter("SourceCommand", "SrcCmd",
                 "Command from RemoCompSource regarding creation, connection, disconnection, and movement of components on the main remote GH_Canvas",
-                GH_ParamAccess.item,"");
+                GH_ParamAccess.item, "");
         }
 
-        
+
 
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -113,12 +123,23 @@ namespace RemoSharp
             }
         }
 
+        private void PushButton5_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                System.Drawing.PointF newPivot;
+                FindClosestObjectTypeOnCanvas(out newPivot, out DeleteThisComp);
+
+                this.OnPingDocument().ScheduleSolution(0, DeleteObjectAbove);
+            }
+        }
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter(">⚫<         Command", ">⚫<         Command",
+            pManager.AddTextParameter(">⚫<       Command", ">⚫<       Command",
                 "Complete command from RemoCompSource and RemoCompTarget regarding creation, connection, disconnection, and movement of components on the main remote GH_Canvas",
                 GH_ParamAccess.item);
         }
@@ -151,7 +172,8 @@ namespace RemoSharp
                     // getting the type of the closest component on the canvas in string format
                     // getting its location too
                     System.Drawing.PointF newPivot;
-                    string typeName = FindClosestObjectTypeOnCanvas(out newPivot);
+                    int currentComponentIndex = -1;
+                    string typeName = FindClosestObjectTypeOnCanvas(out newPivot, out currentComponentIndex);
                     int otherCompX = Convert.ToInt32(newPivot.X);
                     int otherCompY = Convert.ToInt32(newPivot.Y);
                     // converting the string format of the closest component to an actual type
@@ -174,6 +196,18 @@ namespace RemoSharp
                     }
 
                     cmd = "RemoCreate," + type + "," + otherCompX + "," + otherCompY;
+
+                    if (type.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
+                    {
+                        Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider)this.OnPingDocument().Objects[currentComponentIndex];
+                        decimal minBound = sliderComponent.Slider.Minimum;
+                        decimal maxBound = sliderComponent.Slider.Maximum;
+                        decimal currentValue = sliderComponent.Slider.Value;
+                        int accuracy = sliderComponent.Slider.DecimalPlaces;
+                        var sliderType = sliderComponent.Slider.Type;
+                        cmd += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
+                    }
+
                     DA.SetData(0, cmd);
                     create = false;
                     return;
@@ -295,82 +329,8 @@ namespace RemoSharp
             get { return new Guid("243dfe88-8c61-451c-996a-2f8f77c9409b"); }
         }
 
-        private string FindClosestObjectTypeOnCanvas(out System.Drawing.PointF compPivot)
-        {
 
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.GrasshopperDocument;
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = this.Component.Attributes.Pivot;
 
-            // finding the closest component
-            string componentType = "";
-            double minDistance = double.MaxValue;
-            System.Drawing.PointF newPivot = new System.Drawing.PointF(0, 0);
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X) * (thisCompLoc.X - pivot.X) + (thisCompLoc.Y - pivot.Y) * (thisCompLoc.Y - pivot.Y));
-
-                    if (distance < minDistance)
-                    {
-                        if (distance > 0)
-                        {
-                            // getting the type of the component via the ToString() method
-                            // later the ToString() method is better to be changed to something more reliable
-                            minDistance = distance;
-                            componentType = component.ToString();
-                            newPivot = component.Attributes.Pivot;
-                        }
-                    }
-                }
-            }
-            catch { }
-            compPivot = newPivot;
-            return componentType;
-        }
-        private int MoveCompFindComponentOnCanvasByCoordinates(int compX, int compY)
-        {
-
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.OnPingDocument();
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = new System.Drawing.PointF(compX, compY);
-
-            // finding the closest component
-            double minDistance = double.MaxValue;
-            int objIndex = -1;
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X) * (thisCompLoc.X - pivot.X) + (thisCompLoc.Y - pivot.Y) * (thisCompLoc.Y - pivot.Y));
-
-                    
-                    if (distance < minDistance)
-                    {
-
-                        // getting the type of the component via the ToString() method
-                        // later the ToString() method is better to be changed to something more reliable
-                        minDistance = distance;
-                        objIndex = i;
-
-                    }
-                    
-                }
-            }
-            catch { }
-            return objIndex;
-        }
 
         private string FindClosestObjectTypeOnCanvas(out System.Drawing.PointF compPivot, out int compIndex)
         {
@@ -558,6 +518,12 @@ namespace RemoSharp
             RecognizeAndMake("RemoSharp.RemoSlider", pivotX + 39, pivotY + 39);
             RecognizeAndMake("Bengesht.WsClientCat.WsClientSend", pivotX + 200, pivotY + 27);
 
+        }
+
+        private void DeleteObjectAbove(GH_Document doc)
+        {
+            var obj = this.OnPingDocument().Objects[DeleteThisComp];
+            this.OnPingDocument().RemoveObject(obj, true);
         }
     }
 }
