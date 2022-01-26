@@ -100,7 +100,6 @@
     <Compile Include="RemoCSharp\TextPoint.cs" />
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
-    <Compile Include="Canvas-Cam Sync\ZoomCheck.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

@@ -135,7 +135,7 @@ namespace RemoSharp
                     grip.CreateObjectData(otherComp);
                     this.OnPingDocument().Select(grip);
 
-                    Size vec = new Size(trsX/3, trsY/3);
+                    Size vec = new Size(trsX, trsY);
 
                     this.OnPingDocument().TranslateObjects(vec, true);
                     this.OnPingDocument().DeselectAll();
@@ -171,6 +171,27 @@ namespace RemoSharp
                             this.OnPingDocument().AddObject(sliderComponent,false);
 
                         }
+                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
+                        {
+
+                            bool multiLine = Convert.ToBoolean(cmds[4]);
+                            bool drawIndicies = Convert.ToBoolean(cmds[5]);
+                            bool drawPaths = Convert.ToBoolean(cmds[6]);
+                            bool wrap = Convert.ToBoolean(cmds[7]);
+
+                            GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[8]);
+                            GH_Panel panelComponent = new GH_Panel();
+                            panelComponent.CreateAttributes();
+                            panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
+                            panelComponent.Properties.Multiline = multiLine;
+                            panelComponent.Properties.DrawIndices = drawIndicies;
+                            panelComponent.Properties.DrawPaths = drawPaths;
+                            panelComponent.Properties.Wrap = wrap;
+                            panelComponent.Properties.Alignment = alignment;
+
+                            this.OnPingDocument().AddObject(panelComponent, false);
+
+                        }
                         else
                         {
                             RecognizeAndMake(typeName, pivotX, pivotY);
@@ -184,25 +205,23 @@ namespace RemoSharp
                     return;
                 }
 
-                if (cmds[0] == "RemoHide")
+                if (cmds[0] == "RemoHide" || cmds[0] == "RemoUnhide")
                 {
                     int pivotX = Convert.ToInt32(cmds[1]);
                     int pivotY = Convert.ToInt32(cmds[2]);
 
                     int compIndex =  FindComponentOnCanvasByCoordinates(pivotX, pivotY);
                     var otherComp = (IGH_Component) this.OnPingDocument().Objects[compIndex];
-                    otherComp.Hidden = true;
-                    return;
-                }
+                    
+                    if (otherComp.Hidden == true)
+                    {
+                        otherComp.Hidden = false;
+                    }
+                    else if (otherComp.Hidden == false)
+                    {
+                        otherComp.Hidden = true;
+                    }
 
-                if (cmds[0] == "RemoUnhide")
-                {
-                    int pivotX = Convert.ToInt32(cmds[1]);
-                    int pivotY = Convert.ToInt32(cmds[2]);
-
-                    int compIndex = FindComponentOnCanvasByCoordinates(pivotX, pivotY);
-                    var otherComp = (IGH_Component)this.OnPingDocument().Objects[compIndex];
-                    otherComp.Hidden = false;
                     return;
                 }
 
@@ -240,6 +259,7 @@ namespace RemoSharp
                     {
                         if (connect)
                         {
+                            if (srcComp == tgtComp) return;
                             if (tgtIsSpecialType)
                             {
                                 this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
@@ -740,7 +760,6 @@ namespace RemoSharp
         // 4 SpecialToSpecial
         public void SpecialToSpecial(GH_Document doc)
         {
-
             var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
             var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
 

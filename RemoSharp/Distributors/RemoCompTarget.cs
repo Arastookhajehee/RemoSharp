@@ -208,6 +208,20 @@ namespace RemoSharp
                         cmd += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
                     }
 
+                    if (type.ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
+                    {
+                        Grasshopper.Kernel.Special.GH_Panel panelComponent = (Grasshopper.Kernel.Special.GH_Panel) this.OnPingDocument().Objects[currentComponentIndex];
+                        bool multiLine = panelComponent.Properties.Multiline;
+                        bool drawIndicies = panelComponent.Properties.DrawIndices;
+                        bool drawPaths = panelComponent.Properties.DrawPaths;
+                        bool wrap = panelComponent.Properties.Wrap;
+                        Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
+                        
+                        cmd += "," + multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString();
+                    }
+
+
+
                     DA.SetData(0, cmd);
                     create = false;
                     return;
@@ -221,7 +235,7 @@ namespace RemoSharp
             if (hide)
             {
                 var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 1;
+                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
                 int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
 
                 cmd = "RemoHide," + thisCompX + "," + thisCompY;
@@ -233,7 +247,7 @@ namespace RemoSharp
             if (unhide)
             {
                 var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 1;
+                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
                 int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
 
                 cmd = "RemoUnhide," + thisCompX + "," + thisCompY;
@@ -272,30 +286,12 @@ namespace RemoSharp
 
             if (cmds[0] == "RemoConnect")
             {
-
-                var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 1;
-                int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
-
-                cmd += "," + thisCompX + "," + thisCompY;
                 DA.SetData(0, cmd);
                 return;
             }
 
             if (cmds[0] == "MoveComp")
             {
-
-                int compX = Convert.ToInt32(cmds[1]);
-                int compY = Convert.ToInt32(cmds[2]);
-
-                var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 1;
-                int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
-
-                int translationX = thisCompX - compX;
-                int translationY = thisCompY - compY;
-
-                cmd += "," + translationX + "," + translationY;
                 DA.SetData(0, cmd);
                 return;
             }

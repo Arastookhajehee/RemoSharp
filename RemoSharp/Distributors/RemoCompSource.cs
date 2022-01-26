@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 using GHCustomControls;
 using WPFNumericUpDown;
+using Grasshopper.GUI;
 
 namespace RemoSharp
 {
@@ -16,9 +17,8 @@ namespace RemoSharp
         #region Custom Visual Controls
 
         
-        PushButton pushButton2;
-        PushButton pushButton3;
-        PushButton pushButton4;
+        ToggleSwitch movingModeToggle;
+        ToggleSwitch connectionModeToggle;
 
         HorizontalSliderInteger inputSlider;
         HorizontalSliderInteger outputSlider;
@@ -31,13 +31,22 @@ namespace RemoSharp
 
         #endregion
 
-
+        // Checking if a trigger has been correctly setup for the component
+        public int componentProperSetup = 0;
         // having all the inputs as public values accecable from the whole script
-        bool move = false;
         int sourceOutput = 0;
         int targetInput = 0;
+
+        // Mouse Interaction variables
+        bool movingMode = false;
+        bool connectingMode = false;
         bool connect = false;
         bool disconnect = false;
+        bool clickedDown = false;
+        bool clickedUP = false;
+        Point3d pnt = new Point3d(0, 0, 0);
+        Point3d downPnt = new Point3d(0, 0, 0);
+        Point3d upPnt = new Point3d(0, 0, 0);
 
         /// <summary>
         /// Initializes a new instance of the RemoCompSource class.
@@ -57,27 +66,33 @@ namespace RemoSharp
             #region Custom Visual Controls
 
             
-            pushButton2 = new PushButton("Move",
-     "Move the closest component in the same direction of the target RemoConnector Component.", "Move");
-            pushButton3 = new PushButton("Connect", "Connects components remotely.", "Connect");
-            pushButton4 = new PushButton("Disconnect", "Disconnects components remotely.", "Disconnect");
+
+            connectionModeToggle = new ToggleSwitch("ConnectingMode"
+                , "Turning On/Off Remote ConnectingMode. If On, moves the closest component in the same direction of the mouse."
+                , false
+                );
+            movingModeToggle = new ToggleSwitch("MovingMode"
+                , "Turning On/Off Remote ConnectingMode. If On, we can connect/disconnect components remotely."
+                , false
+                );
             outputSlider = new HorizontalSliderInteger("Output", "The output index of the source component", 0, 0, 10, "", false);
             inputSlider = new HorizontalSliderInteger("Input", "The input index of the target component", 0, 0, 10, "", false);
-            stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                pushButton2, pushButton3, pushButton4
-                );
+            
 
             toggleSwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
 
-            pushButton2.OnValueChanged += PushButton2_OnValueChanged;
-            pushButton3.OnValueChanged += PushButton3_OnValueChanged;
-            pushButton4.OnValueChanged += PushButton4_OnValueChanged;
+            outputSlider.OnValueChanged += OutputSlider_OnValueChanged;
+            inputSlider.OnValueChanged += InputSlider_OnValueChanged;
+            connectionModeToggle.OnValueChanged += ConnectionMode_OnValueChanged;
+            movingModeToggle.OnValueChanged += MovingModeToggle_OnValueChanged;
             toggleSwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
-            
+
+            stackPanel = new StackPanel("C1", Orientation.Vecrtical, true,
+                connectionModeToggle, movingModeToggle, toggleSwitch
+                );
             AddCustomControl(stackPanel);
             AddCustomControl(outputSlider);
             AddCustomControl(inputSlider);
-            AddCustomControl(toggleSwitch);
 
             #endregion
 
@@ -103,41 +118,32 @@ namespace RemoSharp
 
         }
 
-        
+       
 
-        private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void InputSlider_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                move = currentValue;
-                this.ExpireSolution(true);
-            }
+            targetInput = Convert.ToInt32(e.Value);
         }
 
-        private void PushButton3_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void OutputSlider_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                connect = currentValue;
-                sourceOutput = Convert.ToInt32(outputSlider.CurrentValue);
-                targetInput = Convert.ToInt32(inputSlider.CurrentValue);
-                this.ExpireSolution(true);
-            }
+            sourceOutput = Convert.ToInt32(e.Value);
         }
 
-        private void PushButton4_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void ConnectionMode_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                disconnect = currentValue;
-                sourceOutput = Convert.ToInt32(outputSlider.CurrentValue);
-                targetInput = Convert.ToInt32(inputSlider.CurrentValue);
-                this.ExpireSolution(true);
-            }
+            connectingMode = currentValue;
+            //this.ExpireSolution(true);
         }
+        private void MovingModeToggle_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            movingMode = currentValue;
+        }
+
+
+
 
         private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -175,6 +181,91 @@ namespace RemoSharp
             Component = this;
             GrasshopperDocument = this.OnPingDocument();
 
+            componentProperSetup++;
+            if (componentProperSetup < 15) {
+                this.Message = "Please Connect a Trigger";
+                DA.SetData(0, "");
+                return;
+            }
+            if (componentProperSetup == 15)
+            {
+                this.Message = "";
+            }
+            else if (componentProperSetup == 300)
+            {
+                componentProperSetup = 20;
+            }
+
+
+            #region Event Handeling for Mouse Interaction -> Connect/Disconnect/Move
+            Grasshopper.Instances.ActiveCanvas.KeyDown += (object sender, System.Windows.Forms.KeyEventArgs e) =>
+            {
+                if (System.Windows.Forms.Keys.ControlKey == e.KeyCode && componentProperSetup > 15)
+                {
+                    disconnect = true;
+                };
+            };
+            Grasshopper.Instances.ActiveCanvas.KeyUp += (object sender, System.Windows.Forms.KeyEventArgs e) =>
+            {
+                if (System.Windows.Forms.Keys.ControlKey == e.KeyCode && componentProperSetup > 15)
+                {
+                    disconnect = false;
+                };
+            };
+            Grasshopper.Instances.ActiveCanvas.KeyDown += (object sender, System.Windows.Forms.KeyEventArgs e) =>
+            {
+                if (System.Windows.Forms.Keys.ShiftKey == e.KeyCode && componentProperSetup > 15)
+                {
+                    connect = true;
+                };
+            };
+            Grasshopper.Instances.ActiveCanvas.KeyUp += (object sender, System.Windows.Forms.KeyEventArgs e) =>
+            {
+                if (System.Windows.Forms.Keys.ShiftKey == e.KeyCode && componentProperSetup > 15)
+                {
+                    connect = false;
+                };
+            };
+            Grasshopper.Instances.ActiveCanvas.MouseDown += (object sender, System.Windows.Forms.MouseEventArgs e) =>
+            {
+                var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
+                Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(vp, e);
+                float x = mouseEvent.CanvasX;
+                float y = mouseEvent.CanvasY;
+                double dbX = Convert.ToDouble(x);
+                double dbY = Convert.ToDouble(y);
+                if (mouseEvent.Button == System.Windows.Forms.MouseButtons.Left)
+                {
+                    if (connect || disconnect || movingMode && componentProperSetup > 15)
+                    {
+                        clickedDown = true;
+                        downPnt.X = dbX;
+                        downPnt.Y = dbY;
+                    }
+                }
+            };
+            Grasshopper.Instances.ActiveCanvas.MouseUp += (object sender, System.Windows.Forms.MouseEventArgs e) =>
+            {
+                var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
+                Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(vp, e);
+                float x = mouseEvent.CanvasX;
+                float y = mouseEvent.CanvasY;
+                double dbX = Convert.ToDouble(x);
+                double dbY = Convert.ToDouble(y);
+                if (mouseEvent.Button == System.Windows.Forms.MouseButtons.Left)
+                {
+                    if (connect || disconnect || movingMode && componentProperSetup > 15)
+                    {
+                        clickedUP = true;
+                        upPnt.X = dbX;
+                        upPnt.Y = dbY;
+                    }
+                }
+            };
+
+            #endregion
+
+
             // defining all the trigger variables
 
             // For calibrating the components
@@ -193,43 +284,72 @@ namespace RemoSharp
 
             //setting the output command string
             string cmd = "";
-            if (!move && !connect && !disconnect)
+
+            if (!movingMode && !connect && !disconnect)
             {
                 DA.SetData(0, "");
                 return;
             }
-            
 
-            if (move) {
+            if (clickedDown && clickedUP && movingMode)
+            {
 
-                var pivot = this.Component.Attributes.Pivot;
-                int otherCompX = Convert.ToInt32(pivot.X) + 72;
-                int otherCompY = Convert.ToInt32(pivot.Y) - 27;
 
-                cmd = "MoveComp," + otherCompX + "," + otherCompY;
+                int downPntX = Convert.ToInt32(downPnt.X);
+                int downPntY = Convert.ToInt32(downPnt.Y);
+                int upPntX = Convert.ToInt32(upPnt.X);
+                int upPntY = Convert.ToInt32(upPnt.Y);
+
+                int moveX = upPntX - downPntX;
+                int moveY = upPntY - downPntY;
+
+                if (downPntX != upPntX && downPntY != upPntY)
+                {
+                    cmd = "MoveComp," + downPntX + "," + downPntY + "," + moveX + "," + moveY;
+                }
                 DA.SetData(0, cmd);
-                move = false;
+                clickedDown = false;
+                clickedUP = false;
                 return;
             }
 
-            if (connect || disconnect) 
-            { 
-                var thisPivot = this.Component.Attributes.Pivot;
-                int otherCompX = Convert.ToInt32(thisPivot.X) + 72;
-                int otherCompY = Convert.ToInt32(thisPivot.Y) - 27;
-                cmd = "RemoConnect," + connect + "," + disconnect + "," + otherCompX + "," + otherCompY + "," + sourceOutput + "," + targetInput;
+            if (clickedDown && clickedUP && connectingMode)
+            {
+                if (connect || disconnect)
+                {
 
-                //// coordinateChecker
-                //cmd = cmd + "," + shiftX;
-                //cmd = cmd + "," + shiftY;
+                    int downPntX = Convert.ToInt32(downPnt.X);
+                    int downPntY = Convert.ToInt32(downPnt.Y);
+                    int upPntX = Convert.ToInt32(upPnt.X);
+                    int upPntY = Convert.ToInt32(upPnt.Y);
+                    if (downPntX != upPntX && downPntY != upPntY)
+                    {
+                        cmd = "RemoConnect," + connect + "," + disconnect + "," + downPntX + "," + downPntY + "," + sourceOutput + "," + targetInput + "," + upPntX + "," + upPntY;
+                    }
 
-                DA.SetData(0, cmd);
-                connect = false;
-                disconnect = false;
-                return;
+                    //// coordinateChecker
+                    //cmd = cmd + "," + shiftX;
+                    //cmd = cmd + "," + shiftY;
+
+                    DA.SetData(0, cmd);
+                    connect = false;
+                    disconnect = false;
+                    clickedDown = false;
+                    clickedUP = false;
+                    return;
+                }
+                else
+                {
+                    cmd = "";
+                    DA.SetData(0, cmd);
+                    connect = false;
+                    disconnect = false;
+                    clickedDown = false;
+                    clickedUP = false;
+                    return;
+                }
+
             }
-
-
 
             DA.SetData(0, "");
         }

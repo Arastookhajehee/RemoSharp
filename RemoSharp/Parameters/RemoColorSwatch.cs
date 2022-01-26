@@ -27,7 +27,7 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("Set", "Set", "Trigger a Colour Swatch value change on the main remote GH_Canvas", GH_ParamAccess.item, false);
+            pManager.AddBooleanParameter("Set", "Set", "Trigger a Colour Swatch value change on the main remote GH_Canvas", GH_ParamAccess.item, true);
             pManager.AddColourParameter("ColourSwatch", "Color", "Changing a Colour Swatch a panel on the main remote GH_Canvas", GH_ParamAccess.item, Color.White);
         }
 

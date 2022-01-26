@@ -62,21 +62,30 @@ namespace RemoSharp
                         var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
                         if (zoomLevel > 1)
                         {
-                            comp.Message = zoomOutMessage;
-                            comp.ClearRuntimeMessages();
-                            comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomOutMessage);
-
+                            if (comp.Message != "Please Connect a Trigger")
+                            {
+                                comp.Message = zoomOutMessage;
+                                comp.ClearRuntimeMessages();
+                                comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomOutMessage);
+                            }
                         }
                         else if (zoomLevel < 1)
                         {
-                            comp.ClearRuntimeMessages();
-                            comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomInMessage);
-                            comp.Message = zoomInMessage;
+                            if (comp.Message != "Please Connect a Trigger")
+                            {
+                                comp.ClearRuntimeMessages();
+                                comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomInMessage);
+                                comp.Message = zoomInMessage;
+                            }
                         }
                         else
                         {
-                            comp.ClearRuntimeMessages();
-                            comp.Message = "";
+                            if (comp.Message != "Please Connect a Trigger")
+                            {
+                                comp.ClearRuntimeMessages();
+                                comp.Message = "";
+                            }
+                            
                         }
                     }
                     textList.Add(componentType);

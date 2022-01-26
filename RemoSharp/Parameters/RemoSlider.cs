@@ -25,7 +25,7 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddBooleanParameter("Set", "Set", "Trigger a Slider value change on the main remote GH_Canvas", GH_ParamAccess.item, false);
+            pManager.AddBooleanParameter("Set", "Set", "Trigger a Slider value change on the main remote GH_Canvas", GH_ParamAccess.item, true);
             pManager.AddNumberParameter("Slider", "Sldr", "Changing the value of a Slider on the main remote GH_Canvas", GH_ParamAccess.item, 0);
 
         }
