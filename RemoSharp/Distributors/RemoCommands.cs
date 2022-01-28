@@ -169,7 +169,7 @@ namespace RemoSharp
                             sliderComponent.Slider.Type = acc;
 
                             this.OnPingDocument().AddObject(sliderComponent,false);
-
+                            return;
                         }
                         if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
                         {
@@ -190,7 +190,7 @@ namespace RemoSharp
                             panelComponent.Properties.Alignment = alignment;
 
                             this.OnPingDocument().AddObject(panelComponent, false);
-
+                            return;
                         }
                         else
                         {
