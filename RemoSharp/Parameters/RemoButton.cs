@@ -7,8 +7,7 @@ namespace RemoSharp
 {
     public class RemoButton : GH_Component
     {
-        GH_Document GrasshopperDocument;
-        IGH_Component Component;
+        
         /// <summary>
         /// Initializes a new instance of the RemoButton class.
         /// </summary>
@@ -41,14 +40,13 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            Component = this;
-            GrasshopperDocument = this.OnPingDocument();
+            
 
             bool buttonPushed = false;
             DA.GetData(0, ref buttonPushed);
 
-            int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -30;
-            int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 27;
+            int coordX = Convert.ToInt32(this.Attributes.Pivot.X) -30;
+            int coordY = Convert.ToInt32(this.Attributes.Pivot.Y) - 27;
             string outputData = "RemoParam," 
                 + coordX + ","
                 + coordY + ","

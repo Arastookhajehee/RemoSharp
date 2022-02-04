@@ -72,6 +72,7 @@
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreen.cs" />
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
+    <Compile Include="Connecting_Test.cs" />
     <Compile Include="Distributors\Distributor.cs" />
     <Compile Include="Distributors\RemoCommands.cs" />
     <Compile Include="RemoCSharp\EavesDrop.cs" />

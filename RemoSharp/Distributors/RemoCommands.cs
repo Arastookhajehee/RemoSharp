@@ -17,8 +17,7 @@ namespace RemoSharp
     public class RemoCommands : GH_Component
     {
 
-        GH_Document GrasshopperDocument;
-        IGH_Component Component;
+        
         private string currentXMLString = "";
         private int otherCompInx = -1;
         public int deletionIndex = -1;
@@ -40,8 +39,12 @@ namespace RemoSharp
         public int tgtComp = -1;
         public int srcCompOutputIndex = -1;
         public int tgtCompInputIndex = -1;
+        public int connectionMouseDownX = -1;
+        public int connectionMouseDownY = -1;
+        public int connectionMouseUpX = -1;
+        public int connectionMouseUpY = -1;
 
-        private string[] xmlText = { "" };
+        
 
         /// <summary>
         /// Initializes a new instance of the RemoCommands class.
@@ -128,6 +131,21 @@ namespace RemoSharp
                     int trsY = Convert.ToInt32(cmds[4]);
 
                     int otherCompInx = MoveCompFindComponentOnCanvasByCoordinates(compX, compY);
+
+
+                    for (int i = 0; i < 21; i++)
+                    {
+                        double ratio = (double)i / 20.0;
+                        int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(compX - Convert.ToInt32(200 * ratio), compY);
+                        var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
+                        bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
+                        bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
+                        if (inputIsSlider || inputIsDigitScroller)
+                        {
+                            otherCompInx = offsetSrcComp;
+                        }
+                    }
+
                     var otherComp = this.OnPingDocument().Objects[otherCompInx];
 
                     GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
@@ -199,7 +217,7 @@ namespace RemoSharp
                     }
                     catch (Exception e)
                     {
-                        this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                        this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                     }
 
                     return;
@@ -237,11 +255,30 @@ namespace RemoSharp
                     int tgtPivotY = Convert.ToInt32(cmds[8]);
                     tgtCompInputIndex = Convert.ToInt32(cmds[6]);
 
+                    connectionMouseDownX = srcPivotX;
+                    connectionMouseDownY = srcPivotY;
+                    connectionMouseUpX = tgtPivotX;
+                    connectionMouseUpY = tgtPivotY;
+
                     var ghDocument = this.OnPingDocument();
                     var ghObjectsList = ghDocument.Objects;
 
                     srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
                     tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
+
+                    for (int i = 0; i < 21; i++)
+                    {
+                        double ratio = (double)i / 20.0;
+                        int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
+                        var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
+                        bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
+                        bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
+                        if (inputIsSlider || inputIsDigitScroller)
+                        {
+                            srcComp = offsetSrcComp;
+                        }
+                    }
+
                     var srcObject = ghObjectsList[srcComp];
                     var tgtObject = ghObjectsList[tgtComp];
 
@@ -250,6 +287,10 @@ namespace RemoSharp
 
                     bool srcIsSpecialType = CheckforSpecialCase(srcType);
                     bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
+
+                    //if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
+                    //if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
+
                     string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
                     bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
                     if (tgtGradientComponent) { tgtIsSpecialType = false; }
@@ -506,7 +547,7 @@ namespace RemoSharp
                 this.OnPingDocument().RemoveObject(otherComp, true);
             }
             catch (Exception e){
-                this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
             }
             
 
@@ -728,10 +769,40 @@ namespace RemoSharp
         public void CompToComp(GH_Document doc)
         {
 
-            var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
+            //public int connectionMouseDownX = -1;
+            //public int connectionMouseDownY = -1;
+            //public int connectionMouseUpX = -1;
+            //public int connectionMouseUpY = -1;
 
-            closeComponent.Params.Input[tgtCompInputIndex].AddSource((IGH_Param)sourceComponent.Params.Output[srcCompOutputIndex]);
+            //var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
+            //var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
+
+            
+
+            
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX -30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+
+
+            foundIn.AddSource((IGH_Param)foundOut);
+            
+
+            
 
         }
 
@@ -739,71 +810,222 @@ namespace RemoSharp
         public void CompToSpecial(GH_Document doc)
         {
 
-            var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.AddSource((IGH_Param)sourceComponent.Params.Output[srcCompOutputIndex]);
 
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.AddSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+                closeComponent.AddSource((IGH_Param)foundOut);
+            }
         }
 
         // 3 SpecialToComp
         public void SpecialToComp(GH_Document doc)
         {
 
-            var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.Params.Input[tgtCompInputIndex].AddSource(sourceComponent);
 
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.AddSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
+
+                foundIn.AddSource(sourceComponent);
+            }
         }
 
         // 4 SpecialToSpecial
         public void SpecialToSpecial(GH_Document doc)
         {
-            var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
 
-            closeComponent.AddSource((IGH_Param)sourceComponent);
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.AddSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
+                var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+
+                closeComponent.AddSource((IGH_Param)sourceComponent);
+            }
         }
 
         // 5 CompFromComp
         public void DisCompFromComp(GH_Document doc)
         {
 
-            var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.Params.Input[tgtCompInputIndex].RemoveSource((IGH_Param)sourceComponent.Params.Output[srcCompOutputIndex]);
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+
+            foundIn.RemoveSource((IGH_Param)foundOut);
+
         }
 
         // 6 CompFromSpecial
         public void DisCompFromSpecial(GH_Document doc)
         {
 
-            var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.RemoveSource((IGH_Param)sourceComponent.Params.Output[srcCompOutputIndex]);
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.RemoveSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+
+                closeComponent.RemoveSource((IGH_Param)foundOut);
+            }
 
         }
 
         // 7 SpecialFromComp
         public void DisSpecialFromComp(GH_Document doc)
         {
-            var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.Params.Input[tgtCompInputIndex].RemoveSource(sourceComponent);
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.RemoveSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
+
+                foundIn.RemoveSource(sourceComponent);
+            }
         }
 
         // 8 SpecialFromSpecial
         public void DisSpecialFromSpecial(GH_Document doc)
         {
-            var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
-            var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            closeComponent.RemoveSource(sourceComponent);
+
+            for (int i = -10; i < 11; i++)
+            {
+                int offset = Convert.ToInt32(60 * (double)i / 10.0);
+                if (foundOut == null || foundOut.ToString().Equals(""))
+                {
+                    foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX + offset, connectionMouseDownY));
+                }
+                if (foundIn == null || foundIn.ToString().Equals(""))
+                {
+                    foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + offset, connectionMouseUpY));
+                }
+            }
+
+            if (foundOut != null && foundIn != null)
+            {
+                foundIn.RemoveSource((IGH_Param)foundOut);
+            }
+            else
+            {
+                var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
+                var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+
+                closeComponent.RemoveSource(sourceComponent);
+            }
         }
 
     }

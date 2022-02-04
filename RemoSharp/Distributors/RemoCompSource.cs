@@ -11,8 +11,7 @@ namespace RemoSharp
 {
     public class RemoCompSource : GHCustomComponent
     {
-        GH_Document GrasshopperDocument;
-        IGH_Component Component;
+        
 
         #region Custom Visual Controls
 
@@ -44,7 +43,6 @@ namespace RemoSharp
         bool disconnect = false;
         bool clickedDown = false;
         bool clickedUP = false;
-        Point3d pnt = new Point3d(0, 0, 0);
         Point3d downPnt = new Point3d(0, 0, 0);
         Point3d upPnt = new Point3d(0, 0, 0);
 
@@ -91,8 +89,8 @@ namespace RemoSharp
                 connectionModeToggle, movingModeToggle, toggleSwitch
                 );
             AddCustomControl(stackPanel);
-            AddCustomControl(outputSlider);
-            AddCustomControl(inputSlider);
+            //AddCustomControl(outputSlider);
+            //AddCustomControl(inputSlider);
 
             #endregion
 
@@ -178,8 +176,7 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            Component = this;
-            GrasshopperDocument = this.OnPingDocument();
+            
 
             componentProperSetup++;
             if (componentProperSetup < 15) {
@@ -375,86 +372,9 @@ namespace RemoSharp
             get { return new Guid("9a3a9712-9b99-409d-9c02-f6b338305f5b"); }
         }
 
-        private int MoveFromFindComponentOnCanvasByCoordinates(float compX, float compY)
-        {
+        
 
-            int compCoordX = Convert.ToInt32(compX);
-            int compCoordY = Convert.ToInt32(compY);
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.OnPingDocument();
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = new System.Drawing.PointF(compCoordX, compCoordY);
-
-            // finding the closest component
-            double minDistance = double.MaxValue;
-            int objIndex = -1;
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X)
-                                              * (thisCompLoc.X - pivot.X)
-                                              + (thisCompLoc.Y - pivot.Y)
-                                              * (thisCompLoc.Y - pivot.Y));
-                    if (distance < minDistance)
-                    {
-
-                        // getting the type of the component via the ToString() method
-                        // later the ToString() method is better to be changed to something more reliable
-                        minDistance = distance;
-                        objIndex = i;
-
-                    }
-                }
-            }
-
-            catch { }
-            return objIndex;
-        }
-
-        private string FindClosestObjectTypeOnCanvas(out System.Drawing.PointF compPivot)
-        {
-
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.GrasshopperDocument;
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = this.Component.Attributes.Pivot;
-
-            // finding the closest component
-            string componentType = "";
-            double minDistance = double.MaxValue;
-            System.Drawing.PointF newPivot = new System.Drawing.PointF(0, 0);
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X) * (thisCompLoc.X - pivot.X) + (thisCompLoc.Y - pivot.Y) * (thisCompLoc.Y - pivot.Y));
-
-                    if (distance < minDistance)
-                    {
-                        if (distance > 0)
-                        {
-                            // getting the type of the component via the ToString() method
-                            // later the ToString() method is better to be changed to something more reliable
-                            minDistance = distance;
-                            componentType = component.ToString();
-                            newPivot = component.Attributes.Pivot;
-                        }
-                    }
-                }
-            }
-            catch { }
-            compPivot = newPivot;
-            return componentType;
-        }
+        
 
     }
 }
