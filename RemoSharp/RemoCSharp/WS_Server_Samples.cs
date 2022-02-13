@@ -9,9 +9,15 @@ using Grasshopper.GUI;
 using Grasshopper.GUI.Canvas;
 using Grasshopper.Kernel.Types;
 
+using GHCustomControls;
+using WPFNumericUpDown;
+
+using System.Net.NetworkInformation;
+
+
 namespace RemoSharp
 {
-    public class WS_Server_Samples : GH_Component
+    public class WS_Server_Samples : GHCustomComponent
     {
         /// <summary>
         /// Initializes a new instance of the WS_Server_Samples class.
@@ -19,6 +25,9 @@ namespace RemoSharp
         ToolStripDropDown menu;
         GH_Document GrasshopperDocument;
         IGH_Component Component;
+
+        PushButton pushButton1;
+        PushButton pushButton2;
 
         public WS_Server_Samples()
           : base("WS_Server_Samples", "WS_S_Samples",
@@ -29,23 +38,7 @@ namespace RemoSharp
         {
         }
 
-        //public override bool AppendMenuItems(ToolStripDropDown menu)
-        //{
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 01");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 02");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 03");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 04");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 05");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 06");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 07");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 08");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 09");
-        //    Menu_AppendGenericMenuItem(this.menu, "Glitch.Com Server 10");
-
-
-
-        //    return true;
-        //}
+        
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -53,6 +46,69 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddIntegerParameter("Select Server", "Srv_Sel", "The index of the public server to use. (1 - 10)", GH_ParamAccess.item, 1);
+
+            pushButton1 = new PushButton("Wi-Fi IP Panel", "Adding a panel with wi-fi server address information");
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            pushButton2 = new PushButton("WS Cliet Template", "Adding the neccessary components for starting a WS Client");
+            pushButton2.OnValueChanged += PushButton2_OnValueChanged;
+            AddCustomControl(pushButton1);
+            AddCustomControl(pushButton2);
+        }
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentVal = Convert.ToBoolean(e.Value);
+            if (currentVal)
+            {
+                this.OnPingDocument().ScheduleSolution(0, CreatePanel);
+
+            }
+        }
+
+        private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentVal = Convert.ToBoolean(e.Value);
+            if (currentVal)
+            {
+                var pivot = this.Attributes.Pivot;
+                int pivotX = Convert.ToInt32(pivot.X) + 50;
+                int pivotY = Convert.ToInt32(pivot.Y) + 40;
+
+                RecognizeAndMake("Grasshopper.Kernel.Special.GH_ButtonObject", pivotX - 50, pivotY + 150);
+                RecognizeAndMake("Bengesht.WsClientCat.WsClientStart", pivotX + 150, pivotY + 142);
+                RecognizeAndMake("Bengesht.WsClientCat.WsClientSend", pivotX + 295, pivotY + 155);
+                RecognizeAndMake("Bengesht.WsClientCat.WsClientRecv", pivotX + 295, pivotY + 100);
+            }
+        }
+
+        void CreatePanel(GH_Document doc)
+        {
+            string ipAddress = "127.0.0.1";
+
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 || ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                {
+                    string wifi_name = ni.Name;
+
+                    foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            ipAddress = ip.Address.ToString();
+                        }
+                    }
+                }
+            }
+
+            var pivot = this.Attributes.Pivot;
+            var newPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y + 85);
+
+            var panel = new Grasshopper.Kernel.Special.GH_Panel();
+            panel.CreateAttributes();
+            panel.Attributes.Pivot = newPivot;
+            panel.SetUserText("ws://" + ipAddress + ":PORT/RemoSharp");
+            this.OnPingDocument().AddObject((IGH_DocumentObject)panel, true);
         }
 
         /// <summary>
@@ -122,6 +178,43 @@ namespace RemoSharp
         public override Guid ComponentGuid
         {
             get { return new Guid("912d4842-27bc-4605-9912-d5c85dc21b82"); }
+        }
+
+        private void RecognizeAndMake(string typeName, int pivotX, int pivotY)
+        {
+            var thisDoc = this.OnPingDocument();
+            // converting the string format of the closest component to an actual type
+            var type = Type.GetType(typeName);
+            // most probable the type is going to return null
+            // for that we search through all the loaded dlls in Grasshopper and Rhino's application
+            // to find out which one matches that of the closest component
+            if (type == null)
+            {
+                // going through the loaded components
+                foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    // trying for all dll types unless one would return an actual type
+                    // since almost all of them give us null we check for this condition
+                    if (type == null)
+                    {
+                        type = a.GetType(typeName);
+                    }
+                }
+            }
+            // we can instantiate a class with this line based on the type we found in string format
+            // we have to cast it into an (IGH_DocumentObject) format so that we can access the methods
+            // that we need to add it to the grasshopper document
+            // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
+            var myObject = (IGH_DocumentObject)Activator.CreateInstance(type);
+            // creating atts to create the pivot point
+            // this pivot point can be anywhere
+            myObject.CreateAttributes();
+            //        myObject.Attributes.Pivot = new System.Drawing.PointF(200, 600);
+            var currentPivot = new System.Drawing.PointF(pivotX, pivotY);
+
+            myObject.Attributes.Pivot = currentPivot;
+            // making sure the update argument is false to prevent GH crashes
+            thisDoc.AddObject(myObject, false);
         }
     }
 }

@@ -35,6 +35,9 @@ namespace RemoSharp
         public int wsButtonComp = -1;
         public System.Drawing.PointF compPivot;
 
+        public string currentConnectString = "";
+        int con_DisConCounter = 0;
+
         /// <summary>
         /// Initializes a new instance of the RemoCompTarget class.
         /// </summary>
@@ -216,8 +219,12 @@ namespace RemoSharp
                         bool drawPaths = panelComponent.Properties.DrawPaths;
                         bool wrap = panelComponent.Properties.Wrap;
                         Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
+                        float panelSizeX = panelComponent.Attributes.Bounds.Width;
+                        float panelSizeY = panelComponent.Attributes.Bounds.Height;
+
+                        string content = panelComponent.UserText;
                         
-                        cmd += "," + multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString();
+                        cmd += "," + multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
                     }
 
 
@@ -286,9 +293,19 @@ namespace RemoSharp
 
             if (cmds[0] == "RemoConnect")
             {
-                DA.SetData(0, cmd);
-                return;
+                con_DisConCounter = 0;
+                currentConnectString = cmd ;
             }
+            if (con_DisConCounter < 7)
+            {
+                //this.Component.OnPingDocument().ScheduleSolution(15, doc =>
+                //{
+                //    this.Component.ExpireSolution(false);
+                //});
+                DA.SetData(0, currentConnectString);
+            }
+            else currentConnectString = "";
+            con_DisConCounter++;
 
             if (cmds[0] == "MoveComp")
             {

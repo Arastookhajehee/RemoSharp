@@ -2,7 +2,7 @@
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
-
+using Grasshopper.Kernel.Special;
 namespace RemoSharp
 {
     public class RemoPanel : GH_Component
@@ -48,6 +48,15 @@ namespace RemoSharp
             
             DA.GetDataList<string>(0, stringList);
 
+            GH_Panel panel = (GH_Panel)this.Params.Input[0].Sources[0];
+            bool multiLine = panel.Properties.Multiline;
+            bool drawIndicies = panel.Properties.DrawIndices;
+            bool drawPaths = panel.Properties.DrawPaths;
+            bool wrap = panel.Properties.Wrap;
+            GH_Panel.Alignment alignment = panel.Properties.Alignment;
+            float panelSizeX = panel.Attributes.Bounds.Width;
+            float panelSizeY = panel.Attributes.Bounds.Height;
+
             string panelString = "";
             if (stringList.Count == 1) { panelString = stringList[0]; }
             else
@@ -60,11 +69,13 @@ namespace RemoSharp
             }
             int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -20;
             int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 40;
+            //  command Index -->     4                  5                   6               7               8                          9                  10
+            string panelOptions = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY;
 
             string outputData = "RemoParam,"
                 + coordX + ","
                 + coordY + ","
-                + "WriteToPanel," + panelString;
+                + "WriteToPanel," + panelOptions + "," + panelString;
             DA.SetData(0, outputData);
         }
 

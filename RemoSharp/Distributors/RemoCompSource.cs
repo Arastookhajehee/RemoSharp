@@ -223,6 +223,7 @@ namespace RemoSharp
                     connect = false;
                 };
             };
+
             Grasshopper.Instances.ActiveCanvas.MouseDown += (object sender, System.Windows.Forms.MouseEventArgs e) =>
             {
                 var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
