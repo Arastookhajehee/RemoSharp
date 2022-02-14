@@ -1,6 +1,6 @@
 # RemoSharp
 
-A Tool for Remote Collaboration in Architecture and Computational Design
+A Tool for Remote Collaboration in Architecture and Computational Design.
 RemoSharp is a Tool for Remote/Local Real-Time Collaboration.
 It is made out of two major parts:
 1. programming in GH from text inputs that can come from anywhere in the world
