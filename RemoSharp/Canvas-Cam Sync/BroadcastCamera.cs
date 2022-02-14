@@ -14,13 +14,16 @@ using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Parameters.Hints;
 using Grasshopper.Kernel.Special;
 using ScriptComponents;
+using GHCustomControls;
+using WPFNumericUpDown;
 
 namespace RemoSharp
 {
-    public class BroadcastCamera : GH_Component
+    public class BroadcastCamera : GHCustomComponent
     {
         IGH_Component Component;
         Rhino.RhinoDoc rhinoDoc;
+        PushButton pushButton1;
         /// <summary>
         /// Initializes a new instance of the BroadcastCamera class.
         /// </summary>
@@ -36,9 +39,87 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pushButton1 = new PushButton("WS_Client",
+                "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            AddCustomControl(pushButton1);
+
             pManager.AddTextParameter("ReferenceView", "RefView", "The viewport to be broadcasted.", GH_ParamAccess.item, "Perspective");
             pManager.AddTextParameter("TargetView", "TgtView", "The target viewport to be synced.", GH_ParamAccess.item, "");
             pManager.AddBooleanParameter("Update", "Update", "Single update of the viewports", GH_ParamAccess.item, false);
+        }
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                System.Drawing.PointF pivot = this.Attributes.Pivot;
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 48);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y - 90);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 189, pivot.Y - 99);
+                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 353, pivot.Y - 2);
+
+                System.Drawing.PointF panelSourcePivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
+                System.Drawing.PointF panelTargetPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
+
+
+                Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                panel.CreateAttributes();
+                panel.Attributes.Pivot = panelPivot;
+                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+
+                Grasshopper.Kernel.Special.GH_Panel panelSource = new Grasshopper.Kernel.Special.GH_Panel();
+                panelSource.CreateAttributes();
+                panelSource.Attributes.Pivot = panelPivot;
+                panelSource.Attributes.Bounds = new System.Drawing.RectangleF(panelSourcePivot.X, panelSourcePivot.Y, 300, 20);
+                panelSource.SetUserText("Perspective");
+
+                Grasshopper.Kernel.Special.GH_Panel panelTarget = new Grasshopper.Kernel.Special.GH_Panel();
+                panelTarget.CreateAttributes();
+                panelTarget.Attributes.Pivot = panelPivot;
+                panelTarget.Attributes.Bounds = new System.Drawing.RectangleF(panelTargetPivot.X, panelTargetPivot.Y, 300, 20);
+                panelTarget.SetUserText("Top");
+
+
+                Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                toggle.CreateAttributes();
+                toggle.Attributes.Pivot = togglePivot;
+
+                Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                button.CreateAttributes();
+                button.Attributes.Pivot = buttnPivot;
+
+                RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+                wss.CreateAttributes();
+                wss.Attributes.Pivot = wssPivot;
+
+                RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
+                wsSend.CreateAttributes();
+                wsSend.Attributes.Pivot = wsSendPivot;
+
+
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(toggle, true);
+                    this.OnPingDocument().AddObject(button, true);
+                    this.OnPingDocument().AddObject(wss, true);
+                    this.OnPingDocument().AddObject(wsSend, true);
+                    this.OnPingDocument().AddObject(panelSource, true);
+                    this.OnPingDocument().AddObject(panelTarget, true);
+
+                    wss.Params.Input[2].AddSource((IGH_Param)button);
+                    wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                    wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[1]);
+                    this.Params.Input[0].AddSource((IGH_Param)panelSource);
+                    this.Params.Input[1].AddSource((IGH_Param)panelTarget);
+                    this.Params.Input[2].AddSource((IGH_Param)toggle);
+                });
+
+            }
         }
 
         /// <summary>
