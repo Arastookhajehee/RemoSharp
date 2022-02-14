@@ -2,11 +2,16 @@
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using GHCustomControls;
+using WPFNumericUpDown;
 
 namespace RemoSharp
 {
-    public class ClientCanvasBounds : GH_Component
+    public class ClientCanvasBounds : GHCustomComponent
     {
+
+        PushButton pushButton1;
+
         /// <summary>
         /// Initializes a new instance of the ClientCanvasBounds class.
         /// </summary>
@@ -22,12 +27,63 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pushButton1 = new PushButton("WS_Client",
+                "Creates The Required WS Client Components To Broadcast Canvas Bounds Coordinates", "WS_Client");
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            AddCustomControl(pushButton1);
+
             pManager.AddIntegerParameter("ShiftX", "X", "Shift the X coordinate of the GH_Canvas", GH_ParamAccess.item, 0);
             pManager.AddIntegerParameter("ShiftY", "Y", "Shift the Y coordinate of the GH_Canvas", GH_ParamAccess.item, 0);
             pManager.AddBooleanParameter("HighResolution", "HighRes", "If True, it will map a 1:1 scale GH_Canvas bounds. " +
                 "Note that High-Res means that the screen image will take longer to generate and may result in performance and latency issues.",
                 GH_ParamAccess.item,
                 false);
+        }
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                System.Drawing.PointF pivot = this.Attributes.Pivot;
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y - 113);
+                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 2);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 16, pivot.Y - 75);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 196, pivot.Y - 84);
+                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 346, pivot.Y - 16);
+
+                Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                panel.CreateAttributes();
+                panel.Attributes.Pivot = panelPivot;
+                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+                panel.SetUserText("ws://127.0.0.1:6999/RemoSharpCanvasBounds");
+
+                Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                button.CreateAttributes();
+                button.Attributes.Pivot = buttnPivot;
+
+                RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+                wss.CreateAttributes();
+                wss.Attributes.Pivot = wssPivot;
+
+                RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
+                wsSend.CreateAttributes();
+                wsSend.Attributes.Pivot = wsSendPivot;
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(button, true);
+                    this.OnPingDocument().AddObject(wss, true);
+                    this.OnPingDocument().AddObject(wsSend, true);
+
+                    wss.Params.Input[2].AddSource((IGH_Param)button);
+                    wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                    wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
+                    wss.Params.Input[0].AddSource((IGH_Param)panel);
+                });
+
+            }
         }
 
         /// <summary>

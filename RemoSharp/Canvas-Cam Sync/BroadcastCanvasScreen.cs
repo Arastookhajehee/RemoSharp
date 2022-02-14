@@ -5,13 +5,16 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Threading;
+using GHCustomControls;
+using WPFNumericUpDown;
 
 namespace RemoSharp
 {
-    public class BroadcastCanvasScreen : GH_Component
+    public class BroadcastCanvasScreen : GHCustomComponent
     {
         GH_Document GrasshopperDocument;
         IGH_Component Component;
+        PushButton pushButton1;
 
         /// <summary>
         /// Initializes a new instance of the BroadcastCanvasScreen class.
@@ -28,6 +31,11 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pushButton1 = new PushButton("WS_Client",
+                "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            AddCustomControl(pushButton1);
+
             pManager.AddBooleanParameter("Broadcast", "BrdCst",
                 "Creates and broadcasts the current GH_Canvas screenshot in a text format.",
                 GH_ParamAccess.item, false);
@@ -49,6 +57,55 @@ namespace RemoSharp
                 false);
         }
 
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                System.Drawing.PointF pivot = this.Attributes.Pivot;
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y -53);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y - 90);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 189, pivot.Y - 99);
+                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 353, pivot.Y - 2);
+
+                Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                panel.CreateAttributes();
+                panel.Attributes.Pivot = panelPivot;
+                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+
+                Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                toggle.CreateAttributes();
+                toggle.Attributes.Pivot = togglePivot;
+
+                Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                button.CreateAttributes();
+                button.Attributes.Pivot = buttnPivot;
+
+                RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+                wss.CreateAttributes();
+                wss.Attributes.Pivot = wssPivot;
+
+                RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
+                wsSend.CreateAttributes();
+                wsSend.Attributes.Pivot = wsSendPivot;
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(toggle, true);
+                    this.OnPingDocument().AddObject(button, true);
+                    this.OnPingDocument().AddObject(wss, true);
+                    this.OnPingDocument().AddObject(wsSend, true);
+
+                    wss.Params.Input[2].AddSource((IGH_Param)button);
+                    wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                    wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
+                    this.Params.Input[0].AddSource((IGH_Param)toggle);
+                });
+
+            }
+        }
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
