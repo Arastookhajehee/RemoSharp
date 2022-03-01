@@ -78,7 +78,6 @@
     <Compile Include="Distributors\Distributor.cs" />
     <Compile Include="Distributors\RemoCommands.cs" />
     <Compile Include="RemoCSharp\EavesDrop.cs" />
-    <Compile Include="Canvas-Cam Sync\GH_CanvasBoundsLocalWSaddress.cs" />
     <Compile Include="RemoCSharp\Output_Grip.cs" />
     <Compile Include="RemoCSharp\Output_Grip_List.cs" />
     <Compile Include="RemoCSharp\Output_Grip_Tree.cs" />
@@ -103,7 +102,6 @@
     <Compile Include="RemoCSharp\TextPoint.cs" />
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
-    <Compile Include="tesstComp.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
@@ -196,7 +194,15 @@
   <ItemGroup>
     <None Include="images\1-1.ico" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="images\receive.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\WSC.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\send.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

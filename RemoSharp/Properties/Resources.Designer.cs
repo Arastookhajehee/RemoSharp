@@ -173,6 +173,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon receive {
+            get {
+                object obj = ResourceManager.GetObject("receive", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon RemoButton {
             get {
                 object obj = ResourceManager.GetObject("RemoButton", resourceCulture);
@@ -243,6 +253,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon send {
+            get {
+                object obj = ResourceManager.GetObject("send", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Server_Samples {
             get {
                 object obj = ResourceManager.GetObject("Server_Samples", resourceCulture);
@@ -306,6 +326,16 @@ namespace RemoSharp.Properties {
         internal static System.Drawing.Icon WS_BFF {
             get {
                 object obj = ResourceManager.GetObject("WS_BFF", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon WSC {
+            get {
+                object obj = ResourceManager.GetObject("WSC", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }

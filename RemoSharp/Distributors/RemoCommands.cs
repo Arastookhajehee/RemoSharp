@@ -474,6 +474,19 @@ namespace RemoSharp
 
                         RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_NumberSlider");
                         val = Convert.ToDecimal(cmds[4]);
+
+                        decimal minBound = Convert.ToDecimal(cmds[4]);
+                        decimal maxBound = Convert.ToDecimal(cmds[5]);
+                        val = Convert.ToDecimal(cmds[6]);
+                        int accuracy = Convert.ToInt32(cmds[7]);
+                        GH_SliderAccuracy sliderType = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+
+                        GH_NumberSlider panelComponent = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
+                        panelComponent.Slider.Minimum = minBound;
+                        panelComponent.Slider.Maximum = maxBound;
+                        panelComponent.Slider.DecimalPlaces = accuracy;
+                        panelComponent.Slider.Type = sliderType;
+
                         this.OnPingDocument().ScheduleSolution(0, AddValueToSlider);
                         return;
                     }

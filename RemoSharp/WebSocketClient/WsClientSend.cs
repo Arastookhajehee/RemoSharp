@@ -81,7 +81,7 @@ public class WsClientSend : WsClientComponent
     /// </summary>
 	protected override System.Drawing.Bitmap Icon
 	{
-		get{return null;}
+		get{return RemoSharp.Properties.Resources.send.ToBitmap(); }
 	}//eof
 
 

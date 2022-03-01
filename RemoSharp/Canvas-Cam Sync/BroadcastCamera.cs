@@ -56,13 +56,13 @@ namespace RemoSharp
             {
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
                 System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
-                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 48);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 15);
                 System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y - 90);
                 System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 189, pivot.Y - 99);
                 System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 353, pivot.Y - 2);
 
-                System.Drawing.PointF panelSourcePivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
-                System.Drawing.PointF panelTargetPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
+                System.Drawing.PointF panelSourcePivot = new System.Drawing.PointF(pivot.X - 404, pivot.Y - 30);
+                System.Drawing.PointF panelTargetPivot = new System.Drawing.PointF(pivot.X - 404, pivot.Y - 7);
 
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
@@ -72,13 +72,13 @@ namespace RemoSharp
 
                 Grasshopper.Kernel.Special.GH_Panel panelSource = new Grasshopper.Kernel.Special.GH_Panel();
                 panelSource.CreateAttributes();
-                panelSource.Attributes.Pivot = panelPivot;
+                panelSource.Attributes.Pivot = panelSourcePivot;
                 panelSource.Attributes.Bounds = new System.Drawing.RectangleF(panelSourcePivot.X, panelSourcePivot.Y, 300, 20);
                 panelSource.SetUserText("Perspective");
 
                 Grasshopper.Kernel.Special.GH_Panel panelTarget = new Grasshopper.Kernel.Special.GH_Panel();
                 panelTarget.CreateAttributes();
-                panelTarget.Attributes.Pivot = panelPivot;
+                panelTarget.Attributes.Pivot = panelTargetPivot;
                 panelTarget.Attributes.Bounds = new System.Drawing.RectangleF(panelTargetPivot.X, panelTargetPivot.Y, 300, 20);
                 panelTarget.SetUserText("Top");
 

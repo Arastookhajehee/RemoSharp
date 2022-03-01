@@ -57,8 +57,8 @@ namespace RemoSharp
                 System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 700, pivot.Y - 23);
                 System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 504, pivot.Y + 13);
                 System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 293, pivot.Y + 4);
-                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 135, pivot.Y + 14);
-                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 135, pivot.Y - 5);
+                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 150, pivot.Y + 14);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 200, pivot.Y - 30);
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();

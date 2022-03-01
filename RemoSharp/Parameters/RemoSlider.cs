@@ -57,10 +57,21 @@ namespace RemoSharp
 
             if (RUNComp)
             {
+
+                Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider)this.Params.Input[1].Sources[0];
+                decimal minBound = sliderComponent.Slider.Minimum;
+                decimal maxBound = sliderComponent.Slider.Maximum;
+                decimal currentValue = sliderComponent.Slider.Value;
+                int accuracy = sliderComponent.Slider.DecimalPlaces;
+                var sliderType = sliderComponent.Slider.Type;
+
                 string outputData = "RemoParam,"
                     + coordX + ","
                     + coordY + ","
-                    + "AddValueToSlider," + value;
+                    + "AddValueToSlider";
+                //  command Index -->   4               5                  6                  7                 8   
+                outputData += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
+
                 DA.SetData(0, outputData);
                 return;
             }

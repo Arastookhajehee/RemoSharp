@@ -178,7 +178,7 @@ public class WsClientRecv : WsClientComponent
     /// </summary>
 	protected override System.Drawing.Bitmap Icon
 	{
-		get{return null;}
+		get{return RemoSharp.Properties.Resources.receive.ToBitmap();}
 	}//eof
 
 

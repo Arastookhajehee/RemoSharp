@@ -194,7 +194,7 @@ public class WsClientStart : WsClientComponent
 
 	protected override System.Drawing.Bitmap Icon
 	{
-		get{return null;}
+		get{return RemoSharp.Properties.Resources.WSC.ToBitmap(); }
 	}//eof
 
 
