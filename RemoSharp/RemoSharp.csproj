@@ -36,6 +36,21 @@
     <Reference Include="GHCustomControls">
       <HintPath>..\..\dlls\GHCustomControls.dll</HintPath>
     </Reference>
+    <Reference Include="GH_IO">
+      <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Grasshopper">
+      <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RhinoCommon">
+      <HintPath>C:\Program Files\Rhino 7\System\RhinoCommon.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="ScriptComponents">
       <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\ScriptComponents.dll</HintPath>
     </Reference>
@@ -46,21 +61,6 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="RhinoCommon">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\System\rhinocommon.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Grasshopper">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="GH_IO">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="websocket-sharp, Version=1.0.2.32519, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
       <HintPath>..\packages\WebSocketSharp-NonPreRelease.1.0.0\lib\net35\websocket-sharp.dll</HintPath>
     </Reference>
@@ -92,6 +92,9 @@
     <Compile Include="Distributors\RemoCompTarget.cs" />
     <Compile Include="Parameters\RemoPanel.cs" />
     <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
+    <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
+    <Compile Include="RemoGeom\RemoGeomParser.cs" />
+    <Compile Include="RemoGeom\RemoGeomStreamer.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Parameters\RemoSlider.cs" />
@@ -202,6 +205,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\send.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoGeomParser.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoGeomStream.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -203,6 +203,26 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon RemoGeomParser {
+            get {
+                object obj = ResourceManager.GetObject("RemoGeomParser", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon RemoGeomStream {
+            get {
+                object obj = ResourceManager.GetObject("RemoGeomStream", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon RemoPanel {
             get {
                 object obj = ResourceManager.GetObject("RemoPanel", resourceCulture);
