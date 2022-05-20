@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading;
 using GHCustomControls;
 using WPFNumericUpDown;
+using Newtonsoft.Json;
 
 namespace RemoSharp
 {
@@ -51,6 +52,10 @@ namespace RemoSharp
             pManager.AddIntegerParameter("OriginShiftY", "ShiftY", "Shifts the origin point of the image for calibration purposes.",
                 GH_ParamAccess.item,
                 100);
+            pManager.AddBooleanParameter("LowResolution", "LowRes", "If True, it will generates a low res and light image. " +
+                "Note that Low-Res means that the screen image will take less time to generate but will be less legible.",
+                GH_ParamAccess.item,
+                false);
             pManager.AddBooleanParameter("HighResolution", "HighRes", "If True, it will generates a 1:1 scale image of the canvas. " +
                 "Note that High-Res means that the screen image will take longer to generate and may result in performance and latency issues.",
                 GH_ParamAccess.item,
@@ -63,16 +68,18 @@ namespace RemoSharp
             if (currentValue)
             {
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126);
-                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y -60);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y - 90);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 189, pivot.Y - 99);
-                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 353, pivot.Y - 4);
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 215, pivot.Y - 126-10);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y -60 - 10);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y - 90 - 10);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 189, pivot.Y - 99 - 10);
+                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 353, pivot.Y - 4 - 10);
+                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 80);
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
                 panel.Attributes.Pivot = panelPivot;
                 panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+                panel.SetUserText("");
 
                 Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
                 toggle.CreateAttributes();
@@ -90,6 +97,12 @@ namespace RemoSharp
                 wsSend.CreateAttributes();
                 wsSend.Attributes.Pivot = wsSendPivot;
 
+                var guid = this.InstanceGuid;
+                Grasshopper.Kernel.Special.GH_Timer trigger = new Grasshopper.Kernel.Special.GH_Timer();
+                trigger.CreateAttributes();
+                trigger.Attributes.Pivot = triggerPivot;
+                trigger.Interval = 100;
+
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
                     this.OnPingDocument().AddObject(panel, true);
@@ -97,7 +110,10 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(button, true);
                     this.OnPingDocument().AddObject(wss, true);
                     this.OnPingDocument().AddObject(wsSend, true);
+                    this.OnPingDocument().AddObject(trigger, true);
 
+                    trigger.AddTarget(guid);
+                    wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wss.Params.Input[2].AddSource((IGH_Param)button);
                     wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
                     wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
@@ -131,6 +147,7 @@ namespace RemoSharp
             string path = "";
             int shiftX = 0;
             int shiftY = 0;
+            bool lowRes = false;
             bool highRes = false;
 
             DA.GetData(0, ref broadcast);
@@ -138,7 +155,8 @@ namespace RemoSharp
             DA.GetData(2, ref path);
             DA.GetData(3, ref shiftX);
             DA.GetData(4, ref shiftY);
-            DA.GetData(5, ref highRes);
+            DA.GetData(5, ref lowRes);
+            DA.GetData(6, ref highRes);
 
 
             if (!broadcast) return;
@@ -151,12 +169,18 @@ namespace RemoSharp
             var thisCanvas = Grasshopper.Instances.ActiveCanvas;
 
             // settings for the GenerateHiResImage() method
-            var ghSet = new Grasshopper.GUI.Canvas.GH_Canvas.GH_ImageSettings(path);
+            var ghSet = new Grasshopper.GUI.Canvas.GH_Canvas.GH_ImageSettings(
+              Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+              );
             ghSet.Folder = "Imgages";
             ghSet.Extension = "png";
             ghSet.FileName = "testFile";
-            ghSet.BackColour = Color.FromArgb(80, 80, 80);
-            if (!highRes)
+            ghSet.BackColour = Color.FromArgb(200, 200, 200);
+            if (lowRes)
+            {
+                ghSet.Zoom = 0.15f;
+            }
+            else if (!highRes)
             {
                 ghSet.Zoom = 0.5f;
             }
@@ -171,88 +195,26 @@ namespace RemoSharp
             var imagePaths = thisCanvas.GenerateHiResImage(rec, ghSet, out size);
             tempFileDirs.AddRange(imagePaths);
 
-            // understanding how big the final image is going to be
-            int xCount = size.Width / 1000 + 1;
-            int yCount = size.Height / 1000 + 1;
 
-            // generating a string array that has the temporary images in a correct format
-            // the temporary images are saved with a name like 0;0 0;1 0;2 1;0 1;1 1;2
-            string tmepRoot = "";
-            string[,] strings = new string[xCount, yCount];
-            for (int i = 0; i < imagePaths.Count; i++)
+            string[] imagesStrings = new string[imagePaths.Count];
+            System.Threading.Tasks.Parallel.For(0, imagePaths.Count, i =>
             {
+                //    for (int i = 0; i < imagePaths.Count; i++) {
 
-                // splitting the name of the files using ';' to add them to the string array
-                string[] imagePathName = imagePaths[i].Split(';');
-                if (i == 0)
-                {
-                    string tempFileDir = System.IO.Path.GetDirectoryName(imagePaths[i]);
-                    tmepRoot = tempFileDir;
-                }
-                string xAddress = imagePathName[0].Substring(imagePathName[0].Length - 1);
-                string yAddress = imagePathName[1].Substring(0, 1);
-                int xIntAdd = Convert.ToInt32(xAddress);
-                int yIntAdd = Convert.ToInt32(yAddress);
-                strings[xIntAdd, yIntAdd] = imagePaths[i];
-            }
+                string imagePath = imagePaths[i];
+                string imagePartBase64 = ImageToBase64Converter(imagePath);
+                ImagePartBase64 imagePart = new ImagePartBase64(imagePath, imagePartBase64);
+                string singleJsonString = JsonConvert.SerializeObject(imagePart);
+                imagesStrings[i] = singleJsonString;
+                //    }
+            });
 
-            // creating a base64 string to act as the Real Time canvas image stream
-            string base64String = "";
-            // 1000x1000 pixels is the default temporary image size that the GenerateHiResImage() creates
-            int imageDim = 1000;
-
-            // combining the temporary images into one big image
-            using (Bitmap result = new Bitmap(xCount * imageDim, yCount * imageDim))
-            {
-
-                // unfortunatley the multi-threaded for loop overrides the imagag in the same place
-                // resulting in incorrect final images. So I had to revert back to single threaded usual for loops
-                //      System.Threading.Tasks.Parallel.For(0, xCount, x => {
-                for (int x = 0; x < xCount; x++)
-                {
-                    //        System.Threading.Tasks.Parallel.For(0, yCount, y => {
-                    for (int y = 0; y < yCount; y++)
-                    {
-                        // we create a Graphics object to combine all the images together.
-                        using (Graphics g = Graphics.FromImage(result))
-                        {
-                            Image image = Image.FromFile(strings[x, y]);
-                            // for each iteration one part of the image is added to the rest of it
-                            // this seems to be the part that is most time consuming.
-                            // unfortunately, we can't multi-thread it either as it would rewrite data on the image
-                            // on the same spot
-                            g.DrawImage(image, x * imageDim, y * imageDim);
-
-                            if (x == xCount - 1 && y == yCount - 1)
-                            {
-                                // converting the image to a base64 stirng that can be broadcasted
-                                using (var stream = new MemoryStream())
-                                {
-                                    result.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-                                    var bytes = stream.ToArray();
-                                    var str = Convert.ToBase64String(bytes);
-                                    base64String = str;
-                                }
-                            }
-                        }
-                        //          });
-                        //        });
-                    }
-                }
-
-                if (saveToFile) result.Save(path + @"\GH_Canvas.png");
-                result.Dispose();
-            }
-
-            // after finishing the creation of the final image we have to delete the temporary files
-            // otherwise they will slowly accumulate.
-            // I tried to delete the files on the main thread, however, it would give the error: "Files are in use"
-            // so I made another thread to deal with the files. This way the temporary images would be released by the
-            // main thread and we can delete them instantly
             Thread tr = new Thread(DeleteTemporaryFiles);
             tr.Start();
 
-            DA.SetData(0, base64String);
+            string entireImageJson = JsonConvert.SerializeObject(imagesStrings);
+
+            DA.SetData(0, entireImageJson);
         }
 
         /// <summary>
@@ -264,16 +226,24 @@ namespace RemoSharp
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.BroadcastCanvas.ToBitmap(); ;
+                return RemoSharp.Properties.Resources.BroadcastCanvas.ToBitmap();
             }
         }
-
+        
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
         /// </summary>
         public override Guid ComponentGuid
         {
             get { return new Guid("e6aea055-343c-4959-b896-27fbece0a246"); }
+        }
+
+        string ImageToBase64Converter(string filePath)
+        {
+            // https://stackoverflow.com/questions/21325661/convert-an-image-selected-by-path-to-base64-string
+            byte[] imageArray = System.IO.File.ReadAllBytes(filePath);
+            string base64ImageRepresentation = Convert.ToBase64String(imageArray);
+            return base64ImageRepresentation;
         }
 
         int[] FindCanvasExtents()

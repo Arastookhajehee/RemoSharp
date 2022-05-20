@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
 
-namespace RemoSharp.RemoGeom
+namespace RemoSharp
 {
     public class RemoGeomParser : GH_Component
     {

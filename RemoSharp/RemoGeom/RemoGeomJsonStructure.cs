@@ -33,6 +33,18 @@ namespace RemoSharp
 
 
     }
-    
+
+    class ImagePartBase64
+    {
+        public string imagePath;
+        public string imageBase64;
+
+        public ImagePartBase64(string imagePath, string imageBase64)
+        {
+            this.imagePath = imagePath;
+            this.imageBase64 = imageBase64;
+        }
+    }
+
 
 }

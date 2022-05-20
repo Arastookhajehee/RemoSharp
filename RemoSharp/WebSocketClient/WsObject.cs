@@ -118,8 +118,15 @@ namespace RemoSharp.WsClient
 
 		public void send(string msg)
 		{
-			if(webSocket != null && webSocket.IsAlive)
-				webSocket.Send(msg);
+
+            try
+            {
+                if (webSocket != null) webSocket.Send(msg);
+            }
+            catch (Exception)
+            {
+
+            }
 		}
 	}
 

@@ -45,6 +45,8 @@ namespace RemoSharp
         public int connectionMouseUpX = -1;
         public int connectionMouseUpY = -1;
 
+        public string currentStringCommand = "";
+
         
 
         /// <summary>
@@ -75,19 +77,22 @@ namespace RemoSharp
             if (currentValue)
             {
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 700, pivot.Y - 23);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 504, pivot.Y + 13);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 293, pivot.Y + 4);
-                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X -135, pivot.Y +14);
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 663, pivot.Y - 40);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 490, pivot.Y + 9);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 280, pivot.Y);
+                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X -150, pivot.Y +10);
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
+                panel.NickName = "RemoSharp";
+                panel.SetUserText("");
                 panel.Attributes.Pivot = panelPivot;
                 panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
 
                 Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
                 button.CreateAttributes();
                 button.Attributes.Pivot = buttnPivot;
+                button.NickName = "RemoSharp";
 
                 RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
                 wss.CreateAttributes();
@@ -97,6 +102,7 @@ namespace RemoSharp
                 wsRecv.CreateAttributes();
                 wsRecv.Attributes.Pivot = wsRecvPivot;
 
+
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
                     this.OnPingDocument().AddObject(panel, true);
@@ -105,8 +111,9 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(wsRecv, true);
 
                     wss.Params.Input[2].AddSource((IGH_Param)button);
+                    wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                    this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+                    //this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
             }
@@ -126,7 +133,7 @@ namespace RemoSharp
         {
             List<string> commandList = new List<string>();
             string command = "";
-            if(!DA.GetDataList<string>(0, commandList)) return;
+            if (!DA.GetDataList<string>(0, commandList)) return;
 
             if (commandList.Count > 1)
             {
@@ -138,291 +145,99 @@ namespace RemoSharp
                 command = commandList[0];
             }
 
-            if (command == null || command == "") return;
-            string substring = command.Substring(0, 5);
-            if (substring.Equals("<?xml"))
+            if (command == null || command == "" || command == "Hello World") return;
+
+            try
             {
-                if (command.Equals(currentXMLString)) return;
-                Exception threadEx = null;
-                Thread staThread = new Thread(
-                  delegate ()
-                  {
-                      try
-                      {
-                          System.Windows.Forms.Clipboard.SetText(command);
-                      }
-                      catch (Exception ex)
-                      {
-                          threadEx = ex;
-                      }
-                  });
-                staThread.SetApartmentState(ApartmentState.STA);
-                staThread.Start();
-                staThread.Join();
-                InputSimulator sim = new InputSimulator();
-                sim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, new[] { VirtualKeyCode.VK_V });
-                currentXMLString = command;
+                if (currentStringCommand.Equals(command)) return;
+                else currentStringCommand = command;
+            }
+            catch { }
+
+            string substring = command.Substring(0, 5);
+            //if (substring.Equals("<?xml"))
+            //{
+            //    if (command.Equals(currentXMLString)) return;
+            //    Exception threadEx = null;
+            //    Thread staThread = new Thread(
+            //      delegate ()
+            //      {
+            //          try
+            //          {
+            //              System.Windows.Forms.Clipboard.SetText(command);
+            //          }
+            //          catch (Exception ex)
+            //          {
+            //              threadEx = ex;
+            //          }
+            //      });
+            //    staThread.SetApartmentState(ApartmentState.STA);
+            //    staThread.Start();
+            //    staThread.Join();
+            //    InputSimulator sim = new InputSimulator();
+            //    sim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, new[] { VirtualKeyCode.VK_V });
+            //    currentXMLString = command;
+            //    return;
+            //}
+            //else
+            //{
+            string[] cmds = command.Split(',');
+
+
+
+            if (cmds[0] == "MoveComp")
+            {
+                int compX = Convert.ToInt32(cmds[1]);
+                int compY = Convert.ToInt32(cmds[2]);
+                int trsX = Convert.ToInt32(cmds[3]);
+                int trsY = Convert.ToInt32(cmds[4]);
+
+                int otherCompInx = MoveCompFindComponentOnCanvasByCoordinates(compX, compY);
+                var otherComp = this.OnPingDocument().Objects[otherCompInx];
+
+                GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+
+                grip.CreateObjectData(otherComp);
+                this.OnPingDocument().Select(grip);
+
+                Size vec = new Size(trsX, trsY);
+
+                this.OnPingDocument().TranslateObjects(vec, true);
+                this.OnPingDocument().DeselectAll();
                 return;
             }
-            else
+
+            if (cmds[0] == "RemoCreate")
             {
-                string[] cmds = command.Split(',');
 
+                string typeName = cmds[1];
+                int pivotX = Convert.ToInt32(cmds[2]);
+                int pivotY = Convert.ToInt32(cmds[3]);
 
-
-                if (cmds[0] == "MoveComp")
+                try
                 {
-                    int compX = Convert.ToInt32(cmds[1]);
-                    int compY = Convert.ToInt32(cmds[2]);
-                    int trsX = Convert.ToInt32(cmds[3]);
-                    int trsY = Convert.ToInt32(cmds[4]);
-
-                    int otherCompInx = MoveCompFindComponentOnCanvasByCoordinates(compX, compY);
-                    var otherComp = this.OnPingDocument().Objects[otherCompInx];
-
-                    GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
-
-                    grip.CreateObjectData(otherComp);
-                    this.OnPingDocument().Select(grip);
-
-                    Size vec = new Size(trsX, trsY);
-
-                    this.OnPingDocument().TranslateObjects(vec, true);
-                    this.OnPingDocument().DeselectAll();
-                    return;
-                }
-
-                if (cmds[0] == "RemoCreate")
-                {
-
-                    string typeName = cmds[1];
-                    int pivotX = Convert.ToInt32(cmds[2]);
-                    int pivotY = Convert.ToInt32(cmds[3]);
-
-                    try
+                    if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
                     {
-                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
-                        {
 
-                            decimal minBound = Convert.ToDecimal(cmds[4]); 
-                            decimal maxBound = Convert.ToDecimal(cmds[5]); 
-                            decimal currentValue = Convert.ToDecimal(cmds[6]); 
-                            int accuracy = Convert.ToInt32(cmds[7]);
-                            GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
-                            GH_NumberSlider sliderComponent = new GH_NumberSlider();
-                            sliderComponent.CreateAttributes();
-                            sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
-                            sliderComponent.Slider.Minimum = minBound;
-                            sliderComponent.Slider.Maximum = maxBound;
-                            sliderComponent.Slider.Value = currentValue;
-                            sliderComponent.Slider.DecimalPlaces = accuracy;
-                            sliderComponent.Slider.Type = acc;
+                        decimal minBound = Convert.ToDecimal(cmds[4]);
+                        decimal maxBound = Convert.ToDecimal(cmds[5]);
+                        decimal currentValue = Convert.ToDecimal(cmds[6]);
+                        int accuracy = Convert.ToInt32(cmds[7]);
+                        GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+                        GH_NumberSlider sliderComponent = new GH_NumberSlider();
+                        sliderComponent.CreateAttributes();
+                        sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
+                        sliderComponent.Slider.Minimum = minBound;
+                        sliderComponent.Slider.Maximum = maxBound;
+                        sliderComponent.Slider.Value = currentValue;
+                        sliderComponent.Slider.DecimalPlaces = accuracy;
+                        sliderComponent.Slider.Type = acc;
 
-                            this.OnPingDocument().AddObject(sliderComponent,false);
-                            return;
-                        }
-                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                        {
-
-                            bool multiLine = Convert.ToBoolean(cmds[4]);
-                            bool drawIndicies = Convert.ToBoolean(cmds[5]);
-                            bool drawPaths = Convert.ToBoolean(cmds[6]);
-                            bool wrap = Convert.ToBoolean(cmds[7]);
-                            GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[8]);
-                            int boundSizeX = Convert.ToInt32(cmds[9]);
-                            int boundSizeY = Convert.ToInt32(cmds[10]);
-
-                            string contentText = "";
-                            for (int i = 11; i < cmds.Length; i++)
-                            {
-                                if (i < cmds.Length - 1)
-                                {
-                                    contentText += cmds[i] + ",";
-                                }
-                                else
-                                {
-                                    contentText += cmds[i];
-                                }
-                            }
-
-                            GH_Panel panelComponent = new GH_Panel();
-                            panelComponent.CreateAttributes();
-                            panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
-                            panelComponent.Properties.Multiline = multiLine;
-                            panelComponent.Properties.DrawIndices = drawIndicies;
-                            panelComponent.Properties.DrawPaths = drawPaths;
-                            panelComponent.Properties.Wrap = wrap;
-                            panelComponent.Properties.Alignment = alignment;
-                            panelComponent.SetUserText(contentText);
-                            panelComponent.Attributes.Bounds = new RectangleF(pivotX, pivotY, boundSizeX, boundSizeY);
-
-                            this.OnPingDocument().AddObject(panelComponent, false);
-                            return;
-                        }
-                        else
-                        {
-                            RecognizeAndMake(typeName, pivotX, pivotY);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
-                    }
-
-                    return;
-                }
-
-                if (cmds[0] == "RemoHide" || cmds[0] == "RemoUnhide")
-                {
-                    int pivotX = Convert.ToInt32(cmds[1]);
-                    int pivotY = Convert.ToInt32(cmds[2]);
-
-                    int compIndex =  FindComponentOnCanvasByCoordinates(pivotX, pivotY);
-                    var otherComp = (IGH_Component) this.OnPingDocument().Objects[compIndex];
-                    
-                    if (otherComp.Hidden == true)
-                    {
-                        otherComp.Hidden = false;
-                    }
-                    else if (otherComp.Hidden == false)
-                    {
-                        otherComp.Hidden = true;
-                    }
-
-                    return;
-                }
-
-                if (cmds[0] == "RemoConnect")
-                {
-
-                    bool connect = Convert.ToBoolean(cmds[1]);
-                    bool disconnect = Convert.ToBoolean(cmds[2]);
-                    int srcPivotX = Convert.ToInt32(cmds[3]);
-                    int srcPivotY = Convert.ToInt32(cmds[4]);
-                    srcCompOutputIndex = Convert.ToInt32(cmds[5]);
-                    int tgtPivotX = Convert.ToInt32(cmds[7]);
-                    int tgtPivotY = Convert.ToInt32(cmds[8]);
-                    tgtCompInputIndex = Convert.ToInt32(cmds[6]);
-
-                    connectionMouseDownX = srcPivotX;
-                    connectionMouseDownY = srcPivotY;
-                    connectionMouseUpX = tgtPivotX;
-                    connectionMouseUpY = tgtPivotY;
-
-                    var ghDocument = this.OnPingDocument();
-                    var ghObjectsList = ghDocument.Objects;
-
-                    srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
-                    tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
-
-                    for (int i = 0; i < 21; i++)
-                    {
-                        double ratio = (double)i / 20.0;
-                        int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
-                        var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
-                        bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
-                        bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
-                        if (inputIsSlider || inputIsDigitScroller)
-                        {
-                            srcComp = offsetSrcComp;
-                        }
-                    }
-
-                    var srcObject = ghObjectsList[srcComp];
-                    var tgtObject = ghObjectsList[tgtComp];
-
-                    string srcType = CategoryString(srcComp);
-                    string tgtType = CategoryString(tgtComp);
-
-                    bool srcIsSpecialType = CheckforSpecialCase(srcType);
-                    bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
-
-                    //if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
-                    //if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
-
-                    string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
-                    bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
-                    if (tgtGradientComponent) { tgtIsSpecialType = false; }
-
-
-                    if (srcIsSpecialType)
-                    {
-                        if (connect)
-                        {
-                            if (srcComp == tgtComp) return;
-                            if (tgtIsSpecialType)
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
-                            }
-                            else
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, SpecialToComp);
-                            }
-                        }
-                        else if (disconnect)
-                        {
-                            if (tgtIsSpecialType)
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, DisSpecialFromSpecial);
-                            }
-                            else
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, DisSpecialFromComp);
-                            }
-
-                        }
-                    }
-                    else
-                    {
-                        if (connect)
-                        {
-                            if (tgtIsSpecialType)
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, CompToSpecial);
-                            }
-                            else
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, CompToComp);
-                            }
-                        }
-                        else if (disconnect)
-                        {
-                            if (tgtIsSpecialType)
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, DisCompFromSpecial);
-                            }
-                            else
-                            {
-                                this.OnPingDocument().ScheduleSolution(0, DisCompFromComp);
-                            }
-                        }
-                    }
-                }
-
-
-                if (cmds[0].Equals("RemoParam"))
-                {
-                    int compLocX = Convert.ToInt32(cmds[1]);
-                    int compLocY = Convert.ToInt32(cmds[2]);
-
-                    if (cmds[3].Equals("PushTheButton"))
-                    {
-                        RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ButtonObject");
-                        buttonVal = Convert.ToBoolean(cmds[4]);
-                        this.OnPingDocument().ScheduleSolution(0, PushTheButton);
+                        this.OnPingDocument().AddObject(sliderComponent, false);
                         return;
                     }
-                    if (cmds[3].Equals("ToggleBooleanToggle"))
+                    if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
                     {
-                        RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_BooleanToggle");
-                        toggleVal = Convert.ToBoolean(cmds[4]);
-                        this.OnPingDocument().ScheduleSolution(0, ToggleBooleanToggle);
-                        return;
-                    }
-                    if (cmds[3].Equals("WriteToPanel"))
-                    {
-                        RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_Panel");
-                        text = "";
 
                         bool multiLine = Convert.ToBoolean(cmds[4]);
                         bool drawIndicies = Convert.ToBoolean(cmds[5]);
@@ -432,103 +247,445 @@ namespace RemoSharp
                         int boundSizeX = Convert.ToInt32(cmds[9]);
                         int boundSizeY = Convert.ToInt32(cmds[10]);
 
-                        GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
+                        string contentText = "";
+                        for (int i = 11; i < cmds.Length; i++)
+                        {
+                            if (i < cmds.Length - 1)
+                            {
+                                contentText += cmds[i] + ",";
+                            }
+                            else
+                            {
+                                contentText += cmds[i];
+                            }
+                        }
 
+                        GH_Panel panelComponent = new GH_Panel();
                         panelComponent.CreateAttributes();
-                        panelComponent.Attributes.Pivot = new PointF(compLocX+10, compLocY+5);
+                        panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
                         panelComponent.Properties.Multiline = multiLine;
                         panelComponent.Properties.DrawIndices = drawIndicies;
                         panelComponent.Properties.DrawPaths = drawPaths;
                         panelComponent.Properties.Wrap = wrap;
                         panelComponent.Properties.Alignment = alignment;
-                        panelComponent.Attributes.Bounds = new RectangleF(compLocX+10, compLocY+5, boundSizeX, boundSizeY);
+                        panelComponent.SetUserText(contentText);
+                        panelComponent.Attributes.Bounds = new RectangleF(pivotX, pivotY, boundSizeX, boundSizeY);
 
-                        for (int i = 11; i < cmds.Length; i++)
+                        this.OnPingDocument().AddObject(panelComponent, false);
+                        return;
+                    }
+                    else if (typeName.Equals("RemoSharp.RemoGeomStreamer"))
+                    {
+                        string address = cmds[cmds.Length - 1];
+                        System.Drawing.PointF pivot = new System.Drawing.PointF(pivotX, pivotY);
+                        System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 75, pivot.Y - 80);
+                        System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 100, pivot.Y - 40);
+                        System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 34, pivot.Y + 50);
+                        System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X + 36, pivot.Y + 40);
+
+                        Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                        panel.CreateAttributes();
+                        panel.Attributes.Pivot = panelPivot;
+                        panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 55, 20);
+                        panel.SetUserText(address);
+
+                        Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                        button.CreateAttributes();
+                        button.Attributes.Pivot = buttnPivot;
+
+                        RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+                        wss.CreateAttributes();
+                        wss.Attributes.Pivot = wssPivot;
+
+                        RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
+                        wsRecv.CreateAttributes();
+                        wsRecv.Attributes.Pivot = wsRecvPivot;
+
+                        RemoSharp.RemoGeomParser remoGeomParser = new RemoGeomParser();
+                        remoGeomParser.CreateAttributes();
+                        remoGeomParser.Attributes.Pivot = pivot;
+
+                        this.OnPingDocument().ScheduleSolution(1, doc =>
                         {
-                            if (i < cmds.Length - 1)
-                            {
-                                text += cmds[i] + ",";
-                            }
-                            else
-                            {
-                                text += cmds[i];
-                            }
+                            this.OnPingDocument().AddObject(panel, true);
+                            this.OnPingDocument().AddObject(button, true);
+                            this.OnPingDocument().AddObject(wss, true);
+                            this.OnPingDocument().AddObject(wsRecv, true);
+                            this.OnPingDocument().AddObject(remoGeomParser, true);
+
+                            wss.Params.Input[2].AddSource((IGH_Param)button);
+                            wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                            remoGeomParser.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+                            wss.Params.Input[0].AddSource((IGH_Param)panel);
+                        });
+                    }
+                    else if (typeName.Equals("RemoSharp.RemoGeomParser"))
+                    {
+                        string address = cmds[cmds.Length - 1];
+                        System.Drawing.PointF pivot = new System.Drawing.PointF(pivotX, pivotY);
+                        System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 375, pivot.Y - 121);
+                        System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 290, pivot.Y - 85);
+                        System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 42, pivot.Y - 92);
+                        System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 226, pivot.Y - 14);
+
+                        Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                        panel.CreateAttributes();
+                        panel.Attributes.Pivot = panelPivot;
+                        panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+                        panel.SetUserText(address);
+
+                        Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                        button.CreateAttributes();
+                        button.Attributes.Pivot = buttnPivot;
+
+                        RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+                        wss.CreateAttributes();
+                        wss.Attributes.Pivot = wssPivot;
+
+                        RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
+                        wsSend.CreateAttributes();
+                        wsSend.Attributes.Pivot = wsSendPivot;
+
+                        RemoSharp.RemoGeomStreamer remoGeom = new RemoGeomStreamer();
+                        remoGeom.CreateAttributes();
+                        remoGeom.Attributes.Pivot = pivot;
+
+                        this.OnPingDocument().ScheduleSolution(1, doc =>
+                        {
+                            this.OnPingDocument().AddObject(panel, true);
+                            this.OnPingDocument().AddObject(button, true);
+                            this.OnPingDocument().AddObject(wss, true);
+                            this.OnPingDocument().AddObject(wsSend, true);
+                            this.OnPingDocument().AddObject(remoGeom, true);
+
+                            wss.Params.Input[2].AddSource((IGH_Param)button);
+                            wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                            wsSend.Params.Input[1].AddSource((IGH_Param)remoGeom.Params.Output[0]);
+                            wss.Params.Input[0].AddSource((IGH_Param)panel);
+                        });
+                    }
+                    else
+                    {
+                        RecognizeAndMake(typeName, pivotX, pivotY);
+                    }
+                }
+                catch (Exception e)
+                {
+                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                }
+
+                return;
+            }
+
+            if (cmds[0] == "RemoHide" || cmds[0] == "RemoUnhide")
+            {
+                int pivotX = Convert.ToInt32(cmds[1]);
+                int pivotY = Convert.ToInt32(cmds[2]);
+
+                try
+                {
+
+                    int compIndex = FindComponentOnCanvasByCoordinates(pivotX, pivotY);
+                    var otherComp = (IGH_Component)this.OnPingDocument().Objects[compIndex];
+
+                    if (otherComp.Hidden == true)
+                    {
+                        otherComp.Hidden = false;
+                    }
+                    else if (otherComp.Hidden == false)
+                    {
+                        otherComp.Hidden = true;
+                    }
+                }
+                catch
+                {
+
+                }
+
+                return;
+            }
+
+            if (cmds[0] == "RemoLock")
+            {
+                int pivotX = Convert.ToInt32(cmds[1]);
+                int pivotY = Convert.ToInt32(cmds[2]);
+
+                int compIndex = FindComponentOnCanvasByCoordinates(pivotX, pivotY);
+
+
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    try
+                    {
+                        var otherComp = (IGH_Component)this.OnPingDocument().Objects[compIndex];
+                        if (otherComp.Locked == true)
+                        {
+                            otherComp.Locked = false;
+                            otherComp.ExpireSolution(false);
+                        }
+                        else if (otherComp.Locked == false)
+                        {
+                            otherComp.Locked = true;
+                            otherComp.ExpireSolution(false);
+                        }
+                    }
+                    catch
+                    {
+                        var otherComp = (IGH_Param)this.OnPingDocument().Objects[compIndex];
+                        if (otherComp.Locked == true)
+                        {
+                            otherComp.Locked = false;
+                            otherComp.ExpireSolution(false);
+                        }
+                        else if (otherComp.Locked == false)
+                        {
+                            otherComp.Locked = true;
+                            otherComp.ExpireSolution(false);
+                        }
+                    }
+
+                });
+                return;
+            }
+
+            if (cmds[0] == "RemoConnect")
+            {
+
+                bool connect = Convert.ToBoolean(cmds[1]);
+                bool disconnect = Convert.ToBoolean(cmds[2]);
+                int srcPivotX = Convert.ToInt32(cmds[3]);
+                int srcPivotY = Convert.ToInt32(cmds[4]);
+                srcCompOutputIndex = Convert.ToInt32(cmds[5]);
+                int tgtPivotX = Convert.ToInt32(cmds[7]);
+                int tgtPivotY = Convert.ToInt32(cmds[8]);
+                tgtCompInputIndex = Convert.ToInt32(cmds[6]);
+
+                connectionMouseDownX = srcPivotX;
+                connectionMouseDownY = srcPivotY;
+                connectionMouseUpX = tgtPivotX;
+                connectionMouseUpY = tgtPivotY;
+
+                var ghDocument = this.OnPingDocument();
+                var ghObjectsList = ghDocument.Objects;
+
+                srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
+                tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
+
+                for (int i = 0; i < 21; i++)
+                {
+                    double ratio = (double)i / 20.0;
+                    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
+                    var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
+                    bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
+                    bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
+                    if (inputIsSlider || inputIsDigitScroller)
+                    {
+                        srcComp = offsetSrcComp;
+                    }
+                }
+
+                var srcObject = ghObjectsList[srcComp];
+                var tgtObject = ghObjectsList[tgtComp];
+
+                string srcType = CategoryString(srcComp);
+                string tgtType = CategoryString(tgtComp);
+
+                bool srcIsSpecialType = CheckforSpecialCase(srcType);
+                bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
+
+                //if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
+                //if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
+
+                string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
+                bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
+                if (tgtGradientComponent) { tgtIsSpecialType = false; }
+
+
+                if (srcIsSpecialType)
+                {
+                    if (connect)
+                    {
+                        if (srcComp == tgtComp) return;
+                        if (tgtIsSpecialType)
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
+                        }
+                        else
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, SpecialToComp);
+                        }
+                    }
+                    else if (disconnect)
+                    {
+                        if (tgtIsSpecialType)
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromSpecial);
+                        }
+                        else
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromComp);
                         }
 
-                        this.OnPingDocument().ScheduleSolution(0, WriteToPanel);
-                        return;
                     }
-                    if (cmds[3].Equals("ColorSwatchChange"))
-                    {
-                        RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ColourSwatch");
-                        int rVal = Convert.ToInt32(cmds[4]);
-                        int gVal = Convert.ToInt32(cmds[5]);
-                        int bVal = Convert.ToInt32(cmds[6]);
-                        int aVal = Convert.ToInt32(cmds[7]);
-                        colorVal = Color.FromArgb(aVal, rVal, gVal, bVal);
-                        this.OnPingDocument().ScheduleSolution(0, ColorSwatchChange);
-                        return;
-                    }
-                    if (cmds[3].Equals("AddValueToSlider"))
-                    {
-
-                        RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_NumberSlider");
-                        val = Convert.ToDecimal(cmds[4]);
-
-                        decimal minBound = Convert.ToDecimal(cmds[4]);
-                        decimal maxBound = Convert.ToDecimal(cmds[5]);
-                        val = Convert.ToDecimal(cmds[6]);
-                        int accuracy = Convert.ToInt32(cmds[7]);
-                        GH_SliderAccuracy sliderType = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
-
-                        GH_NumberSlider panelComponent = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
-                        panelComponent.Slider.Minimum = minBound;
-                        panelComponent.Slider.Maximum = maxBound;
-                        panelComponent.Slider.DecimalPlaces = accuracy;
-                        panelComponent.Slider.Type = sliderType;
-
-                        this.OnPingDocument().ScheduleSolution(0, AddValueToSlider);
-                        return;
-                    }
-
-
                 }
-
-                if (cmds[0].Equals("Selection"))
+                else
                 {
-                    bool selectorAdd = Convert.ToBoolean(cmds[1]);
-                    bool selectorRemove = Convert.ToBoolean(cmds[2]);
-                    int compX = Convert.ToInt32(cmds[3]);
-                    int compY = Convert.ToInt32(cmds[4]);
-                    int otherCompInx = FindComponentOnCanvasByCoordinates(compX, compY);
-                    var otherComp = this.OnPingDocument().Objects[otherCompInx];
-                    GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
-                    grip.CreateObjectData(otherComp);
-                    if (selectorAdd)
+                    if (connect)
                     {
-                        this.OnPingDocument().Select(grip, true, false);
+                        if (tgtIsSpecialType)
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, CompToSpecial);
+                        }
+                        else
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, CompToComp);
+                        }
                     }
-                    else if (selectorRemove)
+                    else if (disconnect)
                     {
-                        this.OnPingDocument().Select(grip, false, true);
+                        if (tgtIsSpecialType)
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, DisCompFromSpecial);
+                        }
+                        else
+                        {
+                            this.OnPingDocument().ScheduleSolution(0, DisCompFromComp);
+                        }
                     }
                 }
-                else if (cmds[0].Equals("Deletion"))
+            }
+
+
+            if (cmds[0].Equals("RemoParam"))
+            {
+                int compLocX = Convert.ToInt32(cmds[1]);
+                int compLocY = Convert.ToInt32(cmds[2]);
+
+                if (cmds[3].Equals("PushTheButton"))
                 {
-                    bool delete = Convert.ToBoolean(cmds[1]);
-                    int compX = Convert.ToInt32(cmds[2]);
-                    int compY = Convert.ToInt32(cmds[3]);
-
-                    if (delete)
-                    {
-                        deletionIndex = DeletionCommandFindComponentOnCanvasByCoordinates(compX, compY);
-
-                        this.OnPingDocument().ScheduleSolution(0, DeleteComponent);
-                        //Grasshopper.Instances.RedrawCanvas();
-                    }
+                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ButtonObject");
+                    buttonVal = Convert.ToBoolean(cmds[4]);
+                    this.OnPingDocument().ScheduleSolution(0, PushTheButton);
+                    return;
                 }
+                if (cmds[3].Equals("ToggleBooleanToggle"))
+                {
+                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_BooleanToggle");
+                    toggleVal = Convert.ToBoolean(cmds[4]);
+                    this.OnPingDocument().ScheduleSolution(0, ToggleBooleanToggle);
+                    return;
+                }
+                if (cmds[3].Equals("WriteToPanel"))
+                {
+                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_Panel");
+                    text = "";
+
+                    bool multiLine = Convert.ToBoolean(cmds[4]);
+                    bool drawIndicies = Convert.ToBoolean(cmds[5]);
+                    bool drawPaths = Convert.ToBoolean(cmds[6]);
+                    bool wrap = Convert.ToBoolean(cmds[7]);
+                    GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[8]);
+                    int boundSizeX = Convert.ToInt32(cmds[9]);
+                    int boundSizeY = Convert.ToInt32(cmds[10]);
+
+                    GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
+
+                    panelComponent.CreateAttributes();
+                    panelComponent.Attributes.Pivot = new PointF(compLocX + 10, compLocY + 5);
+                    panelComponent.Properties.Multiline = multiLine;
+                    panelComponent.Properties.DrawIndices = drawIndicies;
+                    panelComponent.Properties.DrawPaths = drawPaths;
+                    panelComponent.Properties.Wrap = wrap;
+                    panelComponent.Properties.Alignment = alignment;
+                    panelComponent.Attributes.Bounds = new RectangleF(compLocX + 10, compLocY + 5, boundSizeX, boundSizeY);
+
+                    for (int i = 11; i < cmds.Length; i++)
+                    {
+                        if (i < cmds.Length - 1)
+                        {
+                            text += cmds[i] + ",";
+                        }
+                        else
+                        {
+                            text += cmds[i];
+                        }
+                    }
+
+                    this.OnPingDocument().ScheduleSolution(0, WriteToPanel);
+                    return;
+                }
+                if (cmds[3].Equals("ColorSwatchChange"))
+                {
+                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ColourSwatch");
+                    int rVal = Convert.ToInt32(cmds[4]);
+                    int gVal = Convert.ToInt32(cmds[5]);
+                    int bVal = Convert.ToInt32(cmds[6]);
+                    int aVal = Convert.ToInt32(cmds[7]);
+                    colorVal = Color.FromArgb(aVal, rVal, gVal, bVal);
+                    this.OnPingDocument().ScheduleSolution(0, ColorSwatchChange);
+                    return;
+                }
+                if (cmds[3].Equals("AddValueToSlider"))
+                {
+
+                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_NumberSlider");
+                    val = Convert.ToDecimal(cmds[4]);
+
+                    decimal minBound = Convert.ToDecimal(cmds[4]);
+                    decimal maxBound = Convert.ToDecimal(cmds[5]);
+                    val = Convert.ToDecimal(cmds[6]);
+                    int accuracy = Convert.ToInt32(cmds[7]);
+                    GH_SliderAccuracy sliderType = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+
+                    GH_NumberSlider panelComponent = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
+                    panelComponent.Slider.Minimum = minBound;
+                    panelComponent.Slider.Maximum = maxBound;
+                    panelComponent.Slider.DecimalPlaces = accuracy;
+                    panelComponent.Slider.Type = sliderType;
+
+                    this.OnPingDocument().ScheduleSolution(0, AddValueToSlider);
+                    return;
+                }
+
 
             }
+
+            if (cmds[0].Equals("Selection"))
+            {
+                bool selectorAdd = Convert.ToBoolean(cmds[1]);
+                bool selectorRemove = Convert.ToBoolean(cmds[2]);
+                int compX = Convert.ToInt32(cmds[3]);
+                int compY = Convert.ToInt32(cmds[4]);
+                int otherCompInx = FindComponentOnCanvasByCoordinates(compX, compY);
+                var otherComp = this.OnPingDocument().Objects[otherCompInx];
+                GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+                grip.CreateObjectData(otherComp);
+                if (selectorAdd)
+                {
+                    this.OnPingDocument().Select(grip, true, false);
+                }
+                else if (selectorRemove)
+                {
+                    this.OnPingDocument().Select(grip, false, true);
+                }
+            }
+            else if (cmds[0].Equals("Deletion"))
+            {
+                bool delete = Convert.ToBoolean(cmds[1]);
+                int compX = Convert.ToInt32(cmds[2]);
+                int compY = Convert.ToInt32(cmds[3]);
+
+                if (delete)
+                {
+                    deletionIndex = DeletionCommandFindComponentOnCanvasByCoordinates(compX, compY);
+
+                    this.OnPingDocument().ScheduleSolution(0, DeleteComponent);
+                    //Grasshopper.Instances.RedrawCanvas();
+                }
+            }
+
+
 
 
         }
@@ -865,7 +1022,6 @@ namespace RemoSharp
             var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX -30, connectionMouseDownY));
             var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-
             for (int i = -60; i < 61; i++)
             {
                 int offset = i;
@@ -879,10 +1035,10 @@ namespace RemoSharp
                 }
             }
 
-
-
-            foundIn.AddSource((IGH_Param)foundOut);
-            
+            if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
+            {
+                foundIn.AddSource((IGH_Param)foundOut);
+            }
 
             
 
@@ -911,7 +1067,10 @@ namespace RemoSharp
 
             if (foundOut != null && foundIn != null)
             {
-                foundIn.AddSource((IGH_Param)foundOut);
+                if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
+                {
+                    foundIn.AddSource((IGH_Param)foundOut);
+                }
             }
             else
             {
@@ -975,14 +1134,20 @@ namespace RemoSharp
             }
             if (foundOut != null && foundIn != null)
             {
-                foundIn.AddSource((IGH_Param)foundOut);
+                if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
+                {
+                    foundIn.AddSource((IGH_Param)foundOut);
+                }
             }
             else
             {
                 var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
                 var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
 
-                closeComponent.AddSource((IGH_Param)sourceComponent);
+                if (sourceComponent.InstanceGuid != closeComponent.InstanceGuid)
+                {
+                    closeComponent.AddSource((IGH_Param)sourceComponent);
+                }
             }
         }
 

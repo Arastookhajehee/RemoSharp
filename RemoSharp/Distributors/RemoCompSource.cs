@@ -149,7 +149,7 @@ namespace RemoSharp
             var ghDoc = Grasshopper.Instances.DocumentEditor;
             if (toggleChangeVal)
             {
-                ghDoc.Opacity = 0.45;
+                ghDoc.Opacity = 0.25;
             }
             else
             {
