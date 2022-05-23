@@ -36,6 +36,9 @@ namespace RemoSharp
         int sourceOutput = 0;
         int targetInput = 0;
 
+        // placement bool
+        bool justCreated = true;
+
         // Mouse Interaction variables
         bool movingMode = false;
         bool connectingMode = false;
@@ -176,7 +179,25 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            
+            if (justCreated)
+            {
+                foreach (var obj in this.OnPingDocument().Objects)
+                {
+                    try
+                    {
+                        if (obj.NickName.Equals("RemoSharp"))
+                        {
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                Grasshopper.Kernel.Special.GH_Timer trigger = (Grasshopper.Kernel.Special.GH_Timer)obj;
+                                trigger.AddTarget(this.InstanceGuid);
+                            });
+                        }
+                    }
+                    catch { }
+                }
+                justCreated = false;
+            }
 
             componentProperSetup++;
             if (componentProperSetup < 15) {

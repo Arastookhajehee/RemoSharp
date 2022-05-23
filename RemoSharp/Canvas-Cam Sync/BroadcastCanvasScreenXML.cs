@@ -12,9 +12,21 @@ using Newtonsoft.Json;
 using System.Linq;
 using WebMarkupMin.Core;
 using AdvancedStringBuilder;
+using Grasshopper.Kernel.Data;
 
 namespace RemoSharp
 {
+    public class PanelContentRepo
+    {
+        public string guidString;
+        public string content;
+        public PanelContentRepo(string guidString, string content)
+        {
+            this.guidString = guidString;
+            this.content = content;
+
+        }
+    }
     public class BroadcastCanvasScreenXML : GHCustomComponent
     {
         GH_Document GrasshopperDocument;
@@ -25,7 +37,7 @@ namespace RemoSharp
         /// Initializes a new instance of the BroadcastCanvasScreenXML class.
         /// </summary>
         public BroadcastCanvasScreenXML()
-          : base("BroadcastCanvasScreenXML", "BrdCstCanvas",
+          : base("BroadcastCanvasScreen", "BrdCstCanvas",
               "Broadcasts the extents of the grasshopper canvas as a Grasshopper document as an XML text representation.",
               "RemoSharp", "BroadcastTools")
         {
@@ -65,10 +77,11 @@ namespace RemoSharp
             bool currentValue = Convert.ToBoolean(e.Value);
             if (currentValue)
             {
+
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
                 System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 350, pivot.Y -109);
                 System.Drawing.PointF panelPivot2 = new System.Drawing.PointF(pivot.X - 670, pivot.Y -29);
-                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 238 , pivot.Y + 60);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 225 , pivot.Y -140);
                 System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 180, pivot.Y - 61);
                 System.Drawing.PointF buttnPivot2 = new System.Drawing.PointF(pivot.X - 500, pivot.Y + 19);
                 System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 30, pivot.Y - 70);
@@ -83,20 +96,30 @@ namespace RemoSharp
                 toggle.NickName = "RemoSharp";
 
                 // sending wss address panel
+                //StreamIPSet canvasAddress = new StreamIPSet();
+                //canvasAddress.DialougeTitle.Text = "Please Set Your Canvas Sync Server Address";
+                //canvasAddress.ShowDialog();
+                string address = "";
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
                 panel.Attributes.Pivot = panelPivot;
                 panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
-                panel.SetUserText("");
-                panel.NickName = "RemoSharp";
+                panel.SetUserText(address);
+                panel.NickName = "RemoSharp Canvas Server";
 
+
+                
                 // receiving wss address panel
+                //StreamIPSet viewAddress = new StreamIPSet();
+                //viewAddress.DialougeTitle.Text = "Please Set Your Bounds Sync Server Address";
+                //viewAddress.ShowDialog();
+                string viewAddressString = "";
                 Grasshopper.Kernel.Special.GH_Panel panel2 = new Grasshopper.Kernel.Special.GH_Panel();
                 panel2.CreateAttributes();
                 panel2.Attributes.Pivot = panelPivot2;
                 panel2.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
-                panel2.SetUserText("");
-                panel2.NickName = "RemoSharp";
+                panel2.SetUserText(viewAddressString);
+                panel2.NickName = "RemoSharp Bounds Server";
 
                 // sending wss button
                 Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
@@ -114,22 +137,25 @@ namespace RemoSharp
                 RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
                 wss.CreateAttributes();
                 wss.Attributes.Pivot = wssPivot;
+                wss.Params.RepairParamAssociations();
 
                 // receiving wss
                 RemoSharp.WsClientCat.WsClientStart wss2 = new WsClientCat.WsClientStart();
                 wss2.CreateAttributes();
                 wss2.Attributes.Pivot = wssPivot2;
+                wss2.Params.RepairParamAssociations();
 
                 // send component
                 RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
                 wsSend.CreateAttributes();
                 wsSend.Attributes.Pivot = wsSendPivot;
+                wsSend.Params.RepairParamAssociations();
 
                 // send component
                 RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
                 wsRecv.CreateAttributes();
                 wsRecv.Attributes.Pivot = wsRecvPivot;
-
+                wsRecv.Params.RepairParamAssociations();
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
@@ -144,23 +170,133 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(wsRecv, true);
                     this.OnPingDocument().AddObject(panel2, true);
                     this.OnPingDocument().AddObject(button2, true);
-                    
 
-
-                    wss.Params.Input[0].AddSource((IGH_Param)panel);
-                    wss2.Params.Input[0].AddSource((IGH_Param)panel2);
+                    if(!address.Equals("")) wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wss.Params.Input[2].AddSource((IGH_Param)button);
-                    wss2.Params.Input[2].AddSource((IGH_Param)button2);
                     wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
                     wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
 
+                    if (!viewAddressString.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
+                    wss2.Params.Input[2].AddSource((IGH_Param)button2);
                     wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
+
                     this.Params.Input[0].AddSource((IGH_Param)toggle);
                     this.Params.Input[1].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
+
+                //StreamIPSet commandAddress = new StreamIPSet();
+                //commandAddress.DialougeTitle.Text = "Please Set Your Commands Server Address";
+                //commandAddress.ShowDialog();
+                string commandAddressString = "";
+                CreateWebSocketClientComponents(pivot, 0, 94, commandAddressString, false);
+
+                //StreamIPSet commandAddress2 = new StreamIPSet();
+                //commandAddress2.DialougeTitle.Text = "Please Set Your Camera Server Address";
+                //commandAddress2.ShowDialog();
+                string commandAddressString2 = "";
+                CreateWebSocketClientComponents(pivot, 0, 180, commandAddressString2, true);
+
             }
         }
+
+
+        private void CreateWebSocketClientComponents(System.Drawing.PointF pivot, int shiftX, int shiftY, string address, bool IsCameraSync)
+        {
+            System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 350 + shiftX, pivot.Y - 109 + shiftY);
+            System.Drawing.PointF panelPivot2 = new System.Drawing.PointF(pivot.X - 670 + shiftX, pivot.Y - 29 + shiftY);
+            System.Drawing.PointF buttnPivot2 = new System.Drawing.PointF(pivot.X - 500 + shiftX, pivot.Y + 19 + shiftY);
+            System.Drawing.PointF wssPivot2 = new System.Drawing.PointF(pivot.X - 290 + shiftX, pivot.Y + 10 + shiftY);
+            System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 160 + shiftX, pivot.Y + 20 + shiftY);
+            int slightShiftup = IsCameraSync ? -19 : -25;
+            System.Drawing.PointF commandReceiver = new System.Drawing.PointF(pivot.X - 0 + shiftX, pivot.Y + 20 + shiftY + slightShiftup);
+
+
+            Grasshopper.Kernel.Special.GH_Panel panel2 = new Grasshopper.Kernel.Special.GH_Panel();
+            panel2.CreateAttributes();
+            panel2.Attributes.Pivot = panelPivot2;
+            panel2.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+            panel2.SetUserText(address);
+            panel2.NickName = IsCameraSync ? "RemoSharp Camera Server" : "RemoSharp Command Server";
+
+            // receiving wss button
+            Grasshopper.Kernel.Special.GH_ButtonObject button2 = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            button2.CreateAttributes();
+            button2.Attributes.Pivot = buttnPivot2;
+            button2.NickName = "RemoSharp";
+
+            // receiving wss
+            RemoSharp.WsClientCat.WsClientStart wss2 = new WsClientCat.WsClientStart();
+            wss2.CreateAttributes();
+            wss2.Attributes.Pivot = wssPivot2;
+            wss2.Params.RepairParamAssociations();
+
+            // send component
+            RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
+            wsRecv.CreateAttributes();
+            wsRecv.Attributes.Pivot = wsRecvPivot;
+            wsRecv.Params.RepairParamAssociations();
+
+            if (!address.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
+            wss2.Params.Input[2].AddSource((IGH_Param)button2);
+            wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
+
+            if (IsCameraSync)
+            {
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 225, pivot.Y + 231);
+                // run/notrun toggle
+                Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                toggle.CreateAttributes();
+                toggle.Attributes.Pivot = togglePivot;
+                toggle.NickName = "RemoSharp";
+
+                this.OnPingDocument().AddObject(wss2, true);
+                this.OnPingDocument().AddObject(wsRecv, true);
+                this.OnPingDocument().AddObject(panel2, true);
+                this.OnPingDocument().AddObject(button2, true);
+                this.OnPingDocument().AddObject(toggle, true);
+
+                RemoSharp.SyncCamera syncCamera = new RemoSharp.SyncCamera();
+                syncCamera.CreateAttributes();
+                syncCamera.Attributes.Pivot = commandReceiver;
+                syncCamera.Params.RepairParamAssociations();
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    this.OnPingDocument().AddObject(syncCamera, true);
+
+                });
+
+                if (!address.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
+                wss2.Params.Input[2].AddSource((IGH_Param)button2);
+                wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
+                syncCamera.Params.Input[0].AddSource((IGH_Param)toggle);
+            }
+            else
+            {
+                this.OnPingDocument().AddObject(wss2, true);
+                this.OnPingDocument().AddObject(wsRecv, true);
+                this.OnPingDocument().AddObject(panel2, true);
+                this.OnPingDocument().AddObject(button2, true);
+
+                RemoSharp.RemoCommands remoCommands = new RemoSharp.RemoCommands();
+                remoCommands.CreateAttributes();
+                remoCommands.Attributes.Pivot = commandReceiver;
+                remoCommands.Params.RepairParamAssociations();
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    this.OnPingDocument().AddObject(remoCommands, true);
+
+                });
+
+                if (!address.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
+                wss2.Params.Input[2].AddSource((IGH_Param)button2);
+                wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
+                remoCommands.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+            }
+        }
+
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
@@ -190,10 +326,30 @@ namespace RemoSharp
             DA.GetData(1, ref coords);
 
             if (!run || coords == "" || coords == null || coords == "Hello World") return;
-            
 
+            var panelContents = new List<PanelContentRepo>();
+            foreach (var obj in this.OnPingDocument().Objects)
+            {
+                if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel") &&
+                   !obj.NickName.Contains("RemoSharp"))
+                {
+                    var panelGuid = obj.InstanceGuid.ToString();
+                    string panelLiveContent = GetLivePanelContent((Grasshopper.Kernel.Special.GH_Panel)obj);
+                    panelContents.Add(new PanelContentRepo(panelGuid, panelLiveContent));
+                    //string tempStreamPath = @"C:\temp\RemoSharp\" + panelGuid + ".ghx";
+                    //CheckForDirectoryAndFileExistance(tempStreamPath);
+
+                    //using (StreamWriter sw = new StreamWriter(tempStreamPath))
+                    //{
+                    //    sw.Write();
+                    //}
+
+                }
+            }
             Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
             bool saveDocR = saveDoc.SaveQuiet(savePath);
+
+
             System.IO.File.Copy(savePath, openPath, true);
             Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
             openDoc.Open(openPath);
@@ -213,6 +369,38 @@ namespace RemoSharp
                 if (isFromRemoSharp || outside || remosharpNickname)
                 {
                     openDoc.Document.RemoveObject(obj, false);
+                }
+                if (!outside)
+                {
+                    if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
+                    {
+                        Grasshopper.Kernel.Special.GH_Panel panel = (Grasshopper.Kernel.Special.GH_Panel)obj;
+                        if (panel.NickName.Contains("RemoSharp")) continue;
+                        panel.Properties.Colour = Color.Transparent;
+                        openDoc.Document.ArrangeObject(panel, GH_Arrange.MoveToBack);
+                        var panelPivot = panel.Attributes.Pivot;
+                        var newPivot = new System.Drawing.PointF(panelPivot.X + 10, panelPivot.Y);
+                        Grasshopper.Kernel.Special.GH_Panel newPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                        newPanel.CreateAttributes();
+                        newPanel.Attributes.Pivot = newPivot;
+                        string newPanelContent = BackgoundDocumentPanelContent(panel, panelContents);
+                        newPanel.SetUserText(newPanelContent);
+                        newPanel.ExpireSolution(true);
+                        newPanel.Properties.Alignment = Grasshopper.Kernel.Special.GH_Panel.Alignment.Left;
+                        newPanel.Attributes.Bounds = panel.Attributes.Bounds;
+                        //newPanel.Properties.Multiline = false;
+                        openDoc.Document.AddObject(newPanel, false, openDoc.Document.ObjectCount - 1);
+
+                        openDoc.Document.ArrangeObject(newPanel, GH_Arrange.MoveToFront);
+                        //openDoc.Document.ScheduleSolution(0, (GH_Document doc) => 
+                        //{
+                        //});
+                        ////panel.StreamCurrentContent()
+                        ////foreach (var source in panel.Sources)
+                        ////{
+                        ////    var data = so;
+                        ////}
+                    }
                 }
             }
             openDoc.SaveQuiet(savePath);
@@ -238,6 +426,67 @@ namespace RemoSharp
             {
                 this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Broadcasting region too large");
             }
+        }
+
+        string GetLivePanelContent(Grasshopper.Kernel.Special.GH_Panel panel)
+        {
+
+            var e = panel.VolatileData;
+            string content = "";
+            for (int i = 0; i < e.Paths.Count; i++)
+            {
+                var currPath = e.Paths[i];
+                content += "Branch: " + currPath.ToString(true) + Environment.NewLine;
+                int index = 0;
+                foreach (object o in e.get_Branch(currPath))
+                {
+                    content += "   " + index + "| " + o.ToString() + Environment.NewLine;
+                    index++;
+                }
+            }
+
+            return content;
+        }
+
+        string BackgoundDocumentPanelContent(Grasshopper.Kernel.Special.GH_Panel panel, List<PanelContentRepo> panelContents)
+        {
+
+
+            string content = "";
+
+            foreach (PanelContentRepo panelContentRepo in panelContents)
+            {
+                if(panel.InstanceGuid.ToString() == panelContentRepo.guidString)
+                {
+                    content = panelContentRepo.content;
+                }
+            }
+            ////for (int i = 0; i < e.Paths.Count; i++)
+            ////{
+            ////    var currPath = e.Paths[i];
+            ////    content += "Branch: " + currPath.ToString(true) + Environment.NewLine;
+            ////    int index = 0;
+            ////    foreach (object o in e.get_Branch(currPath))
+            ////    {
+            ////        content += index + "| " + o.ToString() + Environment.NewLine;
+            ////        index++;
+            ////    }
+            ////}
+            //var panelGuid = panel.InstanceGuid.ToString().Substring(0, 15);
+            //string tempStreamPath = @"C:\temp\RemoSharp\" + panelGuid + ".ghx";
+            //CheckForDirectoryAndFileExistance(tempStreamPath);
+
+            //string content = "";
+            ////try
+            ////{
+            ////    using (StreamReader sr = new StreamReader(tempStreamPath))
+            ////    {
+            ////        content = sr.ReadToEnd();
+            ////    }
+            ////}
+            ////catch { }
+
+            return content;
         }
 
         private class VisibleBounds

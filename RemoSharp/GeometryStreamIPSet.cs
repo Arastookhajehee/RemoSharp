@@ -10,10 +10,10 @@ using System.Windows.Forms;
 
 namespace RemoSharp
 {
-    public partial class GeometryStremIPSet : Form
+    public partial class StreamIPSet : Form
     {
         public string WS_Server_Address = "";
-        public GeometryStremIPSet()
+        public StreamIPSet()
         {
             this.WS_Server_Address = "";
             InitializeComponent();
@@ -48,6 +48,16 @@ namespace RemoSharp
             Port_Address = Port_Address.Replace(Environment.NewLine, "");
 
             this.WS_Server_Address = "ws://"+ IP_address + ":"+ Port_Address + "/RemoSharp";
+            this.Close();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
+            string serverIndex = this.comboBox1.Text;
+            string address = "wss://remosharp-public-server" + serverIndex + ".glitch.me/";
+            address = address.Replace(Environment.NewLine, "");
+            this.WS_Server_Address = serverIndex.Equals("") ? "" : address;
             this.Close();
         }
     }

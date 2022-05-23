@@ -13,19 +13,21 @@ namespace RemoSharp
         GH_Document GrasshopperDocument;
         IGH_Component Component;
 
-        PushButton pushButton1;
-        PushButton pushButton2;
-        PushButton pushButton3;
-        PushButton pushButton4;
-        ToggleSwitch toggle5;
-        PushButton pushButton6;
-        PushButton pushButton7;
+        PushButton createButton;
+        PushButton selectButton;
+        PushButton hideButton;
+        PushButton lockButton;
+        PushButton remoParamButton;
+        ToggleSwitch deleteToggle;
+        PushButton wsClientButton;
+        PushButton deleteButton;
         StackPanel stackPanel;
         StackPanel stackPanel01;
 
 
 
         bool create = false;
+        bool select = false;
         bool delete = false;
         bool hide = false;
         bool lockThis = false;
@@ -59,41 +61,54 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("Create",
+            createButton = new PushButton("Create",
                 "Create a new instance of the close component on the main remote GH_Canvas.", "Create");
-            pushButton2 = new PushButton("Hide",
+            selectButton = new PushButton("Select",
+                "Select a component on the main remote GH_Canvas.", "Sel");
+            hideButton = new PushButton("Hide",
                 "Hides a component on the main remote GH_Canvas.", "Hide");
-            pushButton3 = new PushButton("Lock",
+            lockButton = new PushButton("Lock",
                             "Unhides a component on the main remote GH_Canvas.", "Lock");
-            pushButton4 = new PushButton("RmoPrm",
+            remoParamButton = new PushButton("RmoPrm",
                             "Creates the necessary remote parameter components", "RmoPrm");
-            toggle5 = new ToggleSwitch("DelAfterCreation","Delete Component Upon Remote Creation",false);
-            pushButton6 = new PushButton("WSC",
+            deleteToggle = new ToggleSwitch("DelAfterCreation","Delete Component Upon Remote Creation",false);
+            wsClientButton = new PushButton("WSC",
                 "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WSC");
-            pushButton7 = new PushButton("Del",
+            deleteButton = new PushButton("Del",
                 "Deletes a component on the main remote GH_Canvas.", "Del");
 
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            pushButton2.OnValueChanged += PushButton2_OnValueChanged;
-            pushButton3.OnValueChanged += PushButton3_OnValueChanged;
-            pushButton4.OnValueChanged += PushButton4_OnValueChanged;
-            toggle5.OnValueChanged += PushButton5_OnValueChanged;
-            pushButton6.OnValueChanged += PushButton6_OnValueChanged;
-            pushButton7.OnValueChanged += PushButton7_OnValueChanged;
+            createButton.OnValueChanged += PushButton1_OnValueChanged;
+            selectButton.OnValueChanged += SelectButton_OnValueChanged;
+            hideButton.OnValueChanged += PushButton2_OnValueChanged;
+            lockButton.OnValueChanged += PushButton3_OnValueChanged;
+            remoParamButton.OnValueChanged += PushButton4_OnValueChanged;
+            deleteToggle.OnValueChanged += PushButton5_OnValueChanged;
+            wsClientButton.OnValueChanged += PushButton6_OnValueChanged;
+            deleteButton.OnValueChanged += PushButton7_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                pushButton1, pushButton2, pushButton3
+                createButton, selectButton, hideButton, lockButton
                 );
             stackPanel01 = new StackPanel("C2", Orientation.Horizontal, true,
-                pushButton7, pushButton4,  pushButton6
+                deleteButton, remoParamButton,  wsClientButton
                 );
             AddCustomControl(stackPanel);
             AddCustomControl(stackPanel01);
-            AddCustomControl(toggle5);
+            AddCustomControl(deleteToggle);
 
             pManager.AddTextParameter("SourceCommand", "SrcCmd",
                 "Command from RemoCompSource regarding creation, connection, disconnection, and movement of components on the main remote GH_Canvas",
                 GH_ParamAccess.item, "");
+        }
+
+        private void SelectButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                select = currentValue;
+                this.ExpireSolution(true);
+            }
         }
 
         private void PushButton7_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -157,28 +172,56 @@ namespace RemoSharp
             bool currentValue = Convert.ToBoolean(e.Value);
             if (currentValue)
             {
+                int shiftX = 192;
+                int shiftY = -40;
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 151, pivot.Y - 129);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X +45, pivot.Y - 83);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 257, pivot.Y - 92);
-                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 412, pivot.Y - 34);
 
+                foreach (var obj in this.OnPingDocument().Objects)
+                {
+                    try
+                    {
+                        if (obj.GetType().ToString().Equals("RemoSharp.ClientCanvasBounds"))
+                        {
+                            pivot = obj.Attributes.Pivot;
+                            shiftX = -29;
+                            shiftY = +240;
+                        }
+                    }
+                    catch { }
+                }
+
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 255 + shiftX, pivot.Y - 66 + shiftY);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 255 + shiftX, pivot.Y - 18 + shiftY);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 57 + shiftX, pivot.Y - 27 + shiftY);
+                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 60 + shiftX, pivot.Y - 17 + shiftY);
+
+
+                //StreamIPSet commandAddress = new StreamIPSet();
+                //commandAddress.DialougeTitle.Text = "Please Set Your Command Server Address";
+                //commandAddress.ShowDialog();
+                string commandSrvAddress = "";
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
                 panel.Attributes.Pivot = panelPivot;
-                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 100, 20);
+                panel.SetUserText(commandSrvAddress);
+                panel.NickName = "RemoSharp Command Server";
+
 
                 Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
                 button.CreateAttributes();
                 button.Attributes.Pivot = buttnPivot;
+                button.NickName = "RemoSharp";
 
                 RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
                 wss.CreateAttributes();
                 wss.Attributes.Pivot = wssPivot;
+                wss.Params.RepairParamAssociations();
 
                 RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
                 wsSend.CreateAttributes();
                 wsSend.Attributes.Pivot = wsSendPivot;
+                wsSend.Params.RepairParamAssociations();
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
@@ -187,6 +230,7 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(wss, true);
                     this.OnPingDocument().AddObject(wsSend, true);
 
+                    if (!commandSrvAddress.Equals("")) wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wss.Params.Input[2].AddSource((IGH_Param)button);
                     wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
                     wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
@@ -236,6 +280,7 @@ namespace RemoSharp
                     string typeName = FindClosestObjectTypeOnCanvas(out newPivot, out currentComponentIndex);
                     int otherCompX = Convert.ToInt32(newPivot.X);
                     int otherCompY = Convert.ToInt32(newPivot.Y);
+
                     // converting the string format of the closest component to an actual type
                     var type = Type.GetType(typeName);
                     // most probable the type is going to return null
@@ -299,9 +344,11 @@ namespace RemoSharp
 
                     else if (type.ToString().Equals("RemoSharp.RemoGeomStreamer"))
                     {
-                        GeometryStremIPSet gmAddress = new GeometryStremIPSet();
+                        StreamIPSet gmAddress = new StreamIPSet();
                         gmAddress.ShowDialog();
                         string address = gmAddress.WS_Server_Address;
+
+
 
                         System.Drawing.PointF pivot = new System.Drawing.PointF(otherCompX, otherCompY);
                         System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 75, pivot.Y - 80);
@@ -346,7 +393,7 @@ namespace RemoSharp
 
                     else if (typeName.Equals("RemoSharp.RemoGeomParser"))
                     {
-                        GeometryStremIPSet gmAddress = new GeometryStremIPSet();
+                        StreamIPSet gmAddress = new StreamIPSet();
                         gmAddress.ShowDialog();
                         string address = gmAddress.WS_Server_Address;
 
@@ -427,6 +474,17 @@ namespace RemoSharp
                 cmd = "RemoHide," + thisCompX + "," + thisCompY + "," + DateTime.Now.Second;
                 DA.SetData(0, cmd);
                 hide = false;
+            }
+
+            if (select)
+            {
+                var thisCompPivot = this.Component.Attributes.Pivot;
+                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
+                int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
+
+                cmd = "Selection," + thisCompX + "," + thisCompY + "," + DateTime.Now.Second;
+                DA.SetData(0, cmd);
+                select = false;
             }
 
             if (lockThis)

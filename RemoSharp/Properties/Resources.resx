@@ -169,6 +169,18 @@
   <data name="RemoSharp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSharp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RemoSharpIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\RemoSharpIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHicon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSharpIconGHicon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHiconSmall" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSharpIconGHiconSmall.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHiconSmall1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\RemoSharpIconGHiconSmall.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoSlider" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSlider.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -186,6 +198,12 @@
   </data>
   <data name="SourceComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\SourceComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SyncCanvas" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\SyncCanvas.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SyncGHviewport" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\SyncGHviewport.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Sync_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Sync Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

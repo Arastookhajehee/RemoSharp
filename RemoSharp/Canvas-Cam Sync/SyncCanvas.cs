@@ -32,12 +32,12 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("WS_Client",
-            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
+            pushButton1 = new PushButton("Set Up Visualizer",
+            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up Visualizer");
             pushButton1.OnValueChanged += PushButton1_OnValueChanged;
             AddCustomControl(pushButton1);
 
-            pManager.AddTextParameter("XML_Stream", "XMLstrm", "XML text representation of the server's canvas Grasshopper document.",
+            pManager.AddTextParameter("XML_GH_Stream", "GH_DocXML", "XML text representation of the server's canvas Grasshopper document.",
                 GH_ParamAccess.item, "");
         }
 
@@ -46,18 +46,24 @@ namespace RemoSharp
             bool currentValue = Convert.ToBoolean(e.Value);
             if (currentValue)
             {
+                //StreamIPSet canvasAddress = new StreamIPSet();
+                //canvasAddress.DialougeTitle.Text = "Please Set Your Canvas Content Sync Server Address";
+                //canvasAddress.ShowDialog();
+                string address = "";
+
+                int shiftX = -20;
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 700, pivot.Y - 23);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 504, pivot.Y + 13);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 293, pivot.Y + 4);
-                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 135, pivot.Y + 14);
+                System.Drawing.PointF panelPivot = new System.Drawing.PointF(shiftX + pivot.X - 673, pivot.Y - 39);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(shiftX + pivot.X - 504, pivot.Y + 9);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(shiftX + pivot.X - 293, pivot.Y + 0);
+                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(shiftX + pivot.X - 148, pivot.Y + 10);
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
                 panel.Attributes.Pivot = panelPivot;
-                panel.SetUserText("");
-                panel.Name = "RemoSharp";
-                panel.NickName = "RemoSharp";
+                panel.SetUserText(address);
+                panel.Name = "RemoSharp Canvas";
+                panel.NickName = "RemoSharp Canvas";
                 panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
 
                 Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
@@ -69,10 +75,12 @@ namespace RemoSharp
                 RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
                 wss.CreateAttributes();
                 wss.Attributes.Pivot = wssPivot;
+                wss.Params.RepairParamAssociations();
 
                 RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
                 wsRecv.CreateAttributes();
                 wsRecv.Attributes.Pivot = wsRecvPivot;
+                wsRecv.Params.RepairParamAssociations();
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
@@ -82,14 +90,67 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(wsRecv, true);
 
                     wss.Params.Input[2].AddSource((IGH_Param)button);
-                    wss.Params.Input[0].AddSource((IGH_Param)panel);
+                    //wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
                     this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
+                AddSyncViewPortCoordinates(pivot, 80);
+                currentValue = false;
             }
         }
+        private void AddSyncViewPortCoordinates(System.Drawing.PointF pivot, int shiftDown)
+        {
+            
+            string address = "ws://127.0.0.1:18580/RemoSharpCanvasBounds";
 
+            int shiftX = -20;
+            System.Drawing.PointF syncViewPivot = new System.Drawing.PointF(shiftX + pivot.X - 7, pivot.Y + shiftDown);
+            System.Drawing.PointF panelPivot = new System.Drawing.PointF(shiftX + pivot.X - 673, pivot.Y - 39 + shiftDown);
+            System.Drawing.PointF buttnPivot = new System.Drawing.PointF(shiftX + pivot.X - 504, pivot.Y + 9 + shiftDown);
+            System.Drawing.PointF wssPivot = new System.Drawing.PointF(shiftX + pivot.X - 293, pivot.Y + 0 + shiftDown);
+            System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(shiftX + pivot.X - 148, pivot.Y + 10 + shiftDown);
+
+            RemoSharp.Canvas_Cam_Sync.SyncGHviewport syncView = new RemoSharp.Canvas_Cam_Sync.SyncGHviewport();
+            syncView.CreateAttributes();
+            syncView.Attributes.Pivot = syncViewPivot;
+
+            Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+            panel.CreateAttributes();
+            panel.Attributes.Pivot = panelPivot;
+            panel.SetUserText(address);
+            panel.Name = "RemoSharp";
+            panel.NickName = "RemoSharp";
+            panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+
+            Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+            button.CreateAttributes();
+            button.Attributes.Pivot = buttnPivot;
+            button.Name = "RemoSharp";
+            button.NickName = "RemoSharp";
+
+            RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
+            wss.CreateAttributes();
+            wss.Attributes.Pivot = wssPivot;
+
+            RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
+            wsRecv.CreateAttributes();
+            wsRecv.Attributes.Pivot = wsRecvPivot;
+
+            this.OnPingDocument().ScheduleSolution(1, doc =>
+            {
+                this.OnPingDocument().AddObject(syncView, true);
+                this.OnPingDocument().AddObject(panel, true);
+                this.OnPingDocument().AddObject(button, true);
+                this.OnPingDocument().AddObject(wss, true);
+                this.OnPingDocument().AddObject(wsRecv, true);
+
+                wss.Params.Input[2].AddSource((IGH_Param)button);
+                if (!address.Equals("")) wss.Params.Input[0].AddSource((IGH_Param)panel);
+                wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
+                syncView.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+            });
+        }
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
@@ -164,7 +225,7 @@ namespace RemoSharp
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return null;
+                return RemoSharp.Properties.Resources.SyncCanvas.ToBitmap();
             }
         }
 

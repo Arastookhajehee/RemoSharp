@@ -28,19 +28,19 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("WS_Client",
-                "Creates The Required WS Client Components To Broadcast Canvas Bounds Coordinates", "WS_Client");
+            pushButton1 = new PushButton("Set Up Client",
+                "Creates The Required WS Client Components To Broadcast Canvas Bounds Coordinates", "Set Up Client");
             pushButton1.OnValueChanged += PushButton1_OnValueChanged;
             AddCustomControl(pushButton1);
 
-            pManager.AddNumberParameter("ManualScale", "Scl", "Manually Change the scale of the final image", GH_ParamAccess.item, 1);
-            pManager.AddIntegerParameter("Resolution", "Res", "0 -> setting 1:0.25 scale GH_Canvas bounds." + Environment.NewLine +
-                                                              "1 -> setting 1:0.50 scale GH_Canvas bounds." + Environment.NewLine +
-                                                              "2 -> setting 1:1.00 scale GH_Canvas bounds.",
-                GH_ParamAccess.item,
-                1);
-            pManager.AddPointParameter("CalibPoint", "CbrPnt", "A point in XY Coordinates to callibrate the position of the regenerated image from the grasshopper extents", GH_ParamAccess.item, new Point3d(-90, 100, 0));
-            pManager.AddTextParameter("ImageServer", "ImgSrv", "The Server Address used for the Image reconstruction", GH_ParamAccess.item, "");
+            //pManager.AddNumberParameter("ManualScale", "Scl", "Manually Change the scale of the final image", GH_ParamAccess.item, 1);
+            //pManager.AddIntegerParameter("Resolution", "Res", "0 -> setting 1:0.25 scale GH_Canvas bounds." + Environment.NewLine +
+            //                                                  "1 -> setting 1:0.50 scale GH_Canvas bounds." + Environment.NewLine +
+            //                                                  "2 -> setting 1:1.00 scale GH_Canvas bounds.",
+            //    GH_ParamAccess.item,
+            //    1);
+            //pManager.AddPointParameter("CalibPoint", "CbrPnt", "A point in XY Coordinates to callibrate the position of the regenerated image from the grasshopper extents", GH_ParamAccess.item, new Point3d(-90, 100, 0));
+            //pManager.AddTextParameter("ImageServer", "ImgSrv", "The Server Address used for the Image reconstruction", GH_ParamAccess.item, "");
             
         }
 
@@ -52,102 +52,159 @@ namespace RemoSharp
                 this.Hidden = true;
                 
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y - 113);
-                System.Drawing.PointF srvAddPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y - 128);
-                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 200);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y - 74);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X -70, pivot.Y - 83);
-                System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 50, pivot.Y - 73);
-                System.Drawing.PointF calbSlider = new System.Drawing.PointF(pivot.X - 280, pivot.Y - 20);
-                System.Drawing.PointF calbPanel = new System.Drawing.PointF(pivot.X - 280, pivot.Y);
+                
+                System.Drawing.PointF remoteBoundsPanelPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y - 66);
+                System.Drawing.PointF localBoundsPanelPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y +33);
+                
+                System.Drawing.PointF remoteSrvButtonPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y -18);
+                System.Drawing.PointF localSrvButtonPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y +81);
+                
+                System.Drawing.PointF remoteWssPivot = new System.Drawing.PointF(pivot.X -87, pivot.Y -27);
+                System.Drawing.PointF localWssPivot = new System.Drawing.PointF(pivot.X - 87, pivot.Y + 72);
+                
+                System.Drawing.PointF remoteWsSendPivot = new System.Drawing.PointF(pivot.X + 173, pivot.Y - 17);
+                System.Drawing.PointF localWsSendPivot = new System.Drawing.PointF(pivot.X + 173, pivot.Y + 82);
+                
+                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 281, pivot.Y + 130);
 
-                Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                panel.CreateAttributes();
-                panel.Attributes.Pivot = panelPivot;
-                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 100, 20);
-                panel.SetUserText("ws://127.0.0.1:6999/RemoSharpCanvasBounds");
+                //System.Drawing.PointF sourceCompPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 180);
+                //System.Drawing.PointF targetCompPivot = new System.Drawing.PointF(pivot.X + 0, pivot.Y + 180);
 
-                Grasshopper.Kernel.Special.GH_Panel srvPanel = new Grasshopper.Kernel.Special.GH_Panel();
-                srvPanel.CreateAttributes();
-                srvPanel.Attributes.Pivot = srvAddPivot;
-                srvPanel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 100, 20);
-                srvPanel.SetUserText("");
+                // setup the panel that contains the remote server viewport bounds stream
+                //StreamIPSet canvasAddress = new StreamIPSet();
+                //canvasAddress.DialougeTitle.Text = "Please Set Your Bounds Sync Server Address";
+                //canvasAddress.ShowDialog();
+                string address = "";
+                Grasshopper.Kernel.Special.GH_Panel remoteServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                remoteServAddPanel.CreateAttributes();
+                remoteServAddPanel.Attributes.Pivot = remoteBoundsPanelPivot;
+                remoteServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 100, 20);
+                remoteServAddPanel.SetUserText(address);
+                remoteServAddPanel.NickName = "RemoSharp Bounds";
 
-                Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                button.CreateAttributes();
-                button.Attributes.Pivot = buttnPivot;
+                // setup the panel that contains the local viewport bounds server
+                Grasshopper.Kernel.Special.GH_Panel localServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                localServAddPanel.CreateAttributes();
+                localServAddPanel.Attributes.Pivot = localBoundsPanelPivot;
+                localServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 100, 20);
+                localServAddPanel.SetUserText("ws://127.0.0.1:18580/RemoSharpCanvasBounds");
+                localServAddPanel.NickName = "RemoSharp";
 
-                RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
-                wss.CreateAttributes();
-                wss.Attributes.Pivot = wssPivot;
+                Grasshopper.Kernel.Special.GH_ButtonObject remoteButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                remoteButton.CreateAttributes();
+                remoteButton.Attributes.Pivot = remoteSrvButtonPivot;
+                remoteButton.NickName = "RemoSharp";
 
-                RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
-                wsSend.CreateAttributes();
-                wsSend.Attributes.Pivot = wsSendPivot;
+                Grasshopper.Kernel.Special.GH_ButtonObject localButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                localButton.CreateAttributes();
+                localButton.Attributes.Pivot = localSrvButtonPivot;
+                localButton.NickName = "RemoSharp";
 
-                decimal minBound = Convert.ToDecimal(0.001);
-                decimal maxBound = Convert.ToDecimal(1.5);
-                decimal currentVal = Convert.ToDecimal(1);
-                int accuracy = 3;
-                GH_SliderAccuracy acc = GH_SliderAccuracy.Float;
-                var sliderComponent = new Grasshopper.Kernel.Special.GH_NumberSlider();
-                sliderComponent.CreateAttributes();
-                sliderComponent.Attributes.Pivot = calbSlider;
-                sliderComponent.Slider.Minimum = minBound;
-                sliderComponent.Slider.Maximum = maxBound;
-                sliderComponent.Slider.Value = currentVal;
-                sliderComponent.Slider.DecimalPlaces = accuracy;
-                sliderComponent.Slider.Type = acc;
+                RemoSharp.WsClientCat.WsClientStart remoteWssComp = new WsClientCat.WsClientStart();
+                remoteWssComp.CreateAttributes();
+                remoteWssComp.Attributes.Pivot = remoteWssPivot;
+                remoteWssComp.Params.RepairParamAssociations();
 
-                var multiSlider = new Grasshopper.Kernel.Special.GH_MultiDimensionalSlider();
-                multiSlider.CreateAttributes();
-                multiSlider.Attributes.Pivot = calbPanel;
-                multiSlider.XInterval = new Interval(-200, 0);
-                multiSlider.YInterval = new Interval(0, 200);
-                multiSlider.SliderMode = Grasshopper.Kernel.Special.GH_MDSliderMode._2d;
-                multiSlider.VolatileData.Clear();
-                multiSlider.Value = new Point3d(0.55, 0.5, 0.0);
-                //point.PersistentData.Append(ghPoint);
-                multiSlider.ExpireSolution(true);
+                RemoSharp.WsClientCat.WsClientStart localWssComp = new WsClientCat.WsClientStart();
+                localWssComp.CreateAttributes();
+                localWssComp.Attributes.Pivot = localWssPivot;
+                localWssComp.Params.RepairParamAssociations();
 
-                //var ghPoint = new Grasshopper.Kernel.Types.GH_Point();
-                //ghPoint.CreateFromCoordinate(new Point3d(-90, 100, 0));
-                //Grasshopper.Kernel.Parameters.Param_Point point = new Grasshopper.Kernel.Parameters.Param_Point();
-                //point.CreateAttributes();
-                //point.Attributes.Pivot = pointPivot;
-                //point.PersistentData.Clear();
-                //point.PersistentData.Append(ghPoint);
-                //point.Attributes.Selected = true;
-                //point.ExpireSolution(true);
+                RemoSharp.WsClientCat.WsClientSend remoteWsSendComp = new WsClientCat.WsClientSend();
+                remoteWsSendComp.CreateAttributes();
+                remoteWsSendComp.Attributes.Pivot = remoteWsSendPivot;
+                remoteWsSendComp.Params.RepairParamAssociations();
+
+                RemoSharp.WsClientCat.WsClientSend localWsSendComp = new WsClientCat.WsClientSend();
+                localWsSendComp.CreateAttributes();
+                localWsSendComp.Attributes.Pivot = localWsSendPivot;
+                localWsSendComp.Params.RepairParamAssociations();
 
                 var guid = this.InstanceGuid;
                 Grasshopper.Kernel.Special.GH_Timer trigger = new Grasshopper.Kernel.Special.GH_Timer();
                 trigger.CreateAttributes();
                 trigger.Attributes.Pivot = triggerPivot;
                 trigger.Interval = 100;
+                trigger.NickName = "RemoSharp";
+                //RemoSharp.RemoCompSource sourceComp = new RemoSharp.RemoCompSource();
+                //sourceComp.CreateAttributes();
+                //sourceComp.Attributes.Pivot = sourceCompPivot;
+                //var sourceGuid = sourceComp.InstanceGuid;
 
-                this.OnPingDocument().ScheduleSolution(1, doc =>
+                //RemoSharp.RemoCompTarget targetComp = new RemoSharp.RemoCompTarget();
+                //targetComp.CreateAttributes();
+                //targetComp.Attributes.Pivot = targetCompPivot;
+
+                //RemoSharp.WsClientCat.WsClientStart commandWssComp = new WsClientCat.WsClientStart();
+                //commandWssComp.CreateAttributes();
+                //commandWssComp.Attributes.Pivot = commandSrvButtonPivot;
+
+                //StreamIPSet commandAddress = new StreamIPSet();
+                //commandAddress.DialougeTitle.Text = "Please Set Your Command Server Address";
+                //commandAddress.ShowDialog();
+                //string commandSrvAddress = commandAddress.WS_Server_Address;
+                //Grasshopper.Kernel.Special.GH_Panel commandServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                //commandServAddPanel.CreateAttributes();
+                //commandServAddPanel.Attributes.Pivot = commandBoundsPanelPivot;
+                //commandServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(commandBoundsPanelPivot.X, commandBoundsPanelPivot.Y, 100, 20);
+                //commandServAddPanel.SetUserText(commandSrvAddress);
+                //commandServAddPanel.NickName = "RemoSharp";
+
+                //Grasshopper.Kernel.Special.GH_ButtonObject commandButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                //commandButton.CreateAttributes();
+                //commandButton.Attributes.Pivot = commandSrvButtonPivot;
+
+                //RemoSharp.WsClientCat.WsClientSend commandWsSendComp = new WsClientCat.WsClientSend();
+                //commandWsSendComp.CreateAttributes();
+                //commandWsSendComp.Attributes.Pivot = commandWsSendPivot;
+
+                this.OnPingDocument().ScheduleSolution(1, (GH_Document.GH_ScheduleDelegate)(doc =>
                 {
-                    this.OnPingDocument().AddObject(panel, true);
-                    this.OnPingDocument().AddObject(srvPanel, true);
-                    this.OnPingDocument().AddObject(button, true);
-                    this.OnPingDocument().AddObject(wss, true);
-                    this.OnPingDocument().AddObject(wsSend, true);
-                    this.OnPingDocument().AddObject(wsSend, true);
-                    this.OnPingDocument().AddObject(multiSlider, true);
-                    this.OnPingDocument().AddObject(sliderComponent, true);
+                    this.OnPingDocument().AddObject(remoteServAddPanel, true);
+                    this.OnPingDocument().AddObject(localServAddPanel, true);
+                    this.OnPingDocument().AddObject(remoteButton, true);
+                    this.OnPingDocument().AddObject(localButton, true);
+                    this.OnPingDocument().AddObject((IGH_DocumentObject)remoteWssComp, true);
+                    this.OnPingDocument().AddObject((IGH_DocumentObject)localWssComp, true);
+                    this.OnPingDocument().AddObject(remoteWsSendComp, true);
+                    this.OnPingDocument().AddObject(localWsSendComp, true);
                     this.OnPingDocument().AddObject(trigger, true);
 
-                    trigger.AddTarget(guid);
-                    this.Params.Input[0].AddSource((IGH_Param)sliderComponent);
-                    this.Params.Input[2].AddSource((IGH_Param)multiSlider);
-                    this.Params.Input[3].AddSource((IGH_Param)srvPanel);
-                    wss.Params.Input[2].AddSource((IGH_Param)button);
-                    wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                    wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
-                    wss.Params.Input[0].AddSource((IGH_Param)panel);
-                });
+                    //this.OnPingDocument().AddObject(sourceComp, true);
+                    //this.OnPingDocument().AddObject(targetComp, true);
+                    //this.OnPingDocument().AddObject(commandWssComp, true);
+                    //this.OnPingDocument().AddObject(commandServAddPanel, true);
+                    //this.OnPingDocument().AddObject(commandButton, true);
+                    //this.OnPingDocument().AddObject(commandWsSendComp, true);
 
+
+                    //this.OnPingDocument().AddObject(multiSlider, true);
+                    //this.OnPingDocument().AddObject(sliderComponent, true);
+                    //this.Params.Input[0].AddSource((IGH_Param)sliderComponent);
+                    //this.Params.Input[2].AddSource((IGH_Param)multiSlider);
+
+                    trigger.AddTarget(guid);
+                    //trigger.AddTarget(sourceGuid);
+
+                    remoteWssComp.Params.Input[2].AddSource((IGH_Param)remoteButton);
+                    if(!address.Equals("")) remoteWssComp.Params.Input[0].AddSource((IGH_Param)remoteServAddPanel);
+                    localWssComp.Params.Input[2].AddSource((IGH_Param)localButton);
+                    localWssComp.Params.Input[0].AddSource((IGH_Param)localServAddPanel);
+
+                    remoteWsSendComp.Params.Input[0].AddSource((IGH_Param)remoteWssComp.Params.Output[0]);
+                    remoteWsSendComp.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
+
+                    localWsSendComp.Params.Input[0].AddSource((IGH_Param)localWssComp.Params.Output[0]);
+                    localWsSendComp.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
+
+                    ////targetComp.Params.Input[0].AddSource((IGH_Param)sourceComp.Params.Output[0]);
+                    //commandWssComp.Params.Input[2].AddSource((IGH_Param)commandButton);
+                    //commandWssComp.Params.Input[0].AddSource((IGH_Param)commandServAddPanel);
+
+                    //commandWsSendComp.Params.Input[0].AddSource((IGH_Param)commandWssComp.Params.Output[0]);
+                    //commandWsSendComp.Params.Input[1].AddSource((IGH_Param)targetComp.Params.Output[0]);
+
+                }));
             }
         }
 
@@ -156,9 +213,9 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("CanvasBounds", "bounds", "A text based representation of the current GH_Canvas active region bounds",
-                GH_ParamAccess.item);
-            pManager.AddTextParameter("CanvasBoundsForXML", "bnds4XML", "A text based representation of the current GH_Canvas active region bounds",
+            //pManager.AddTextParameter("CanvasBounds", "bounds", "A text based representation of the current GH_Canvas active region bounds",
+            //    GH_ParamAccess.item);
+            pManager.AddTextParameter("CanvasBoundsForXML", "CanvasBounds", "A text based representation of the current GH_Canvas active region bounds",
                 GH_ParamAccess.item);
         }
 
@@ -168,112 +225,113 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            #region Checking for GH_Canvas Zoom
-            // Checking for the Zoom Level of GH
-            var textList = new List<string>();
-            var GH_Objects = this.OnPingDocument().Objects;
-            for (int i = 0; i < GH_Objects.Count; i++)
-            {
-                try
-                {
-                    IGH_Component comp = (IGH_Component)GH_Objects[i];
-                    string componentType = comp.GetType().ToString();
-                    if (componentType.Equals("RemoSharp.RemoCompSource") || componentType.Equals("RemoSharp.RemoCompTarget"))
-                    {
-                        //string zoomOutMessage = "Zoom Out Please";
-                        //string zoomInMessage = "Zoom in Please";
-                        //var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
-                        //if (zoomLevel > 1)
-                        //{
-                        //    if (comp.Message != "Please Connect a Trigger")
-                        //    {
-                        //        comp.Message = zoomOutMessage;
-                        //        comp.ClearRuntimeMessages();
-                        //        comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomOutMessage);
-                        //    }
-                        //}
-                        //else if (zoomLevel < 1)
-                        //{
-                        //    if (comp.Message != "Please Connect a Trigger")
-                        //    {
-                        //        comp.ClearRuntimeMessages();
-                        //        comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomInMessage);
-                        //        comp.Message = zoomInMessage;
-                        //    }
-                        //}
-                        //else
-                        //{
-                        if (comp.Message != "Please Connect a Trigger")
-                        {
-                            comp.ClearRuntimeMessages();
-                            comp.Message = "";
-                        }
 
-                        //}
-                    }
-                    textList.Add(componentType);
-                }
-                catch { }
-            }
-            #endregion
+            #region Checking for GH_Canvas Zoom
+            //// Checking for the Zoom Level of GH
+            //var textList = new List<string>();
+            //var GH_Objects = this.OnPingDocument().Objects;
+            //for (int i = 0; i < GH_Objects.Count; i++)
+            //{
+            //    try
+            //    {
+            //        IGH_Component comp = (IGH_Component)GH_Objects[i];
+            //        string componentType = comp.GetType().ToString();
+            //        if (componentType.Equals("RemoSharp.RemoCompSource") || componentType.Equals("RemoSharp.RemoCompTarget"))
+            //        {
+            //            //string zoomOutMessage = "Zoom Out Please";
+            //            //string zoomInMessage = "Zoom in Please";
+            //            //var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
+            //            //if (zoomLevel > 1)
+            //            //{
+            //            //    if (comp.Message != "Please Connect a Trigger")
+            //            //    {
+            //            //        comp.Message = zoomOutMessage;
+            //            //        comp.ClearRuntimeMessages();
+            //            //        comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomOutMessage);
+            //            //    }
+            //            //}
+            //            //else if (zoomLevel < 1)
+            //            //{
+            //            //    if (comp.Message != "Please Connect a Trigger")
+            //            //    {
+            //            //        comp.ClearRuntimeMessages();
+            //            //        comp.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, zoomInMessage);
+            //            //        comp.Message = zoomInMessage;
+            //            //    }
+            //            //}
+            //            //else
+            //            //{
+            //            if (comp.Message != "Please Connect a Trigger")
+            //            {
+            //                comp.ClearRuntimeMessages();
+            //                comp.Message = "";
+            //            }
+
+            //            //}
+            //        }
+            //        textList.Add(componentType);
+            //    }
+            //    catch { }
+            //}
+            #endregion // Commented Out (obselete)
 
             this.Message = "Need a Trigger for RT";
 
-            Point3d pnt = new Point3d(8, 7, 0);
-            double manRes = 1;
-            int resolutionVal = 1;
-            bool lowRes = false;
-            bool highRes = false;
-            string address = "";
+            //Point3d pnt = new Point3d(8, 7, 0);
+            //double manRes = 1;
+            //int resolutionVal = 1;
+            //bool lowRes = false;
+            //bool highRes = false;
+            //string address = "";
 
-            DA.GetData(0, ref manRes);
-            DA.GetData(1, ref resolutionVal);
-            DA.GetData(2, ref pnt);
-            DA.GetData(3, ref address);
+            //DA.GetData(0, ref manRes);
+            //DA.GetData(1, ref resolutionVal);
+            //DA.GetData(2, ref pnt);
+            //DA.GetData(3, ref address);
 
-            if (resolutionVal == 0) lowRes = true;
-            if (resolutionVal == 2) highRes = true;
+            //if (resolutionVal == 0) lowRes = true;
+            //if (resolutionVal == 2) highRes = true;
 
-            int x = Convert.ToInt32(pnt.X);
-            int y = Convert.ToInt32(-pnt.Y);
+            //int x = Convert.ToInt32(pnt.X);
+            //int y = Convert.ToInt32(-pnt.Y);
 
-            double scale = 50;
-            if (lowRes) scale = 15;
-            else if (highRes) scale = 100;
+            //double scale = 50;
+            //if (lowRes) scale = 15;
+            //else if (highRes) scale = 100;
             
-            var thisCanvas = Grasshopper.Instances.ActiveCanvas;
+            //var thisCanvas = Grasshopper.Instances.ActiveCanvas;
 
-            // getting the active region of the grasshopper canvas
-            var thisCanvasViewPort = thisCanvas.Viewport;
-            var visRg = thisCanvasViewPort.VisibleRegion;
-            var coords1 = Convert.ToInt32((visRg.X + visRg.Width) * thisCanvasViewPort.Zoom);
-            var coords2 = Convert.ToInt32((visRg.Y + visRg.Height) * thisCanvasViewPort.Zoom);
+            //// getting the active region of the grasshopper canvas
+            //var thisCanvasViewPort = thisCanvas.Viewport;
+            //var visRg = thisCanvasViewPort.VisibleRegion;
+            //var coords1 = Convert.ToInt32((visRg.X + visRg.Width) * thisCanvasViewPort.Zoom);
+            //var coords2 = Convert.ToInt32((visRg.Y + visRg.Height) * thisCanvasViewPort.Zoom);
 
-            int visRgX = Convert.ToInt32(visRg.X);
-            int visRgY = Convert.ToInt32(visRg.Y);
+            //int visRgX = Convert.ToInt32(visRg.X);
+            //int visRgY = Convert.ToInt32(visRg.Y);
 
-            visRgY += 0;
-            visRgX += 0;
+            //visRgY += 0;
+            //visRgX += 0;
 
-            int xPos = x - 15;
-            int yPos = y + 161;
+            //int xPos = x - 15;
+            //int yPos = y + 161;
 
-            if (visRgX < 0)
-            {
-                xPos += -visRgX;
-                visRgX = 0;
+            //if (visRgX < 0)
+            //{
+            //    xPos += -visRgX;
+            //    visRgX = 0;
 
-            }
-            if (visRgY < 0)
-            {
-                yPos += -visRgY;
-                visRgY = 0;
-            }
-            var viewPortCorners = visRgY + "," + coords2 + "," + visRgX + "," + coords1 + "," + thisCanvasViewPort.Zoom;
+            //}
+            //if (visRgY < 0)
+            //{
+            //    yPos += -visRgY;
+            //    visRgY = 0;
+            //}
+            //var viewPortCorners = visRgY + "," + coords2 + "," + visRgX + "," + coords1 + "," + thisCanvasViewPort.Zoom;
 
 
-            viewPortCorners += "," + xPos + "," + yPos + "," + scale + "," + manRes + "," + address;
-            // getting where the gh window is and what is its size
+            //viewPortCorners += "," + xPos + "," + yPos + "," + scale + "," + manRes + "," + address;
+            //// getting where the gh window is and what is its size
 
             var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
             var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
@@ -286,8 +344,8 @@ namespace RemoSharp
                 + "," + screenMidPnt.Y
                 + "," + zoomLevel;
 
-            DA.SetData(0, viewPortCorners);
-            DA.SetData(1, bnds4XML);
+            //DA.SetData(0, viewPortCorners);
+            DA.SetData(0, bnds4XML);
         }
 
         /// <summary>

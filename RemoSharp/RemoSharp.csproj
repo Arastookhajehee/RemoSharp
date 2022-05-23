@@ -83,9 +83,8 @@
   <ItemGroup>
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
-    <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreen.cs" />
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
-    <Compile Include="Canvas-Cam Sync\SyncCanvasBounds.cs" />
+    <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
     <Compile Include="Distributors\RemoCommands.cs" />
     <Compile Include="GeometryStreamIPSet.cs">
       <SubType>Form</SubType>
@@ -122,6 +121,7 @@
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
+    <Compile Include="TabProperties.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
@@ -231,6 +231,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\RemoGeomStream.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSharpIconGHicon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSharpIconGHiconSmall.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\SyncCanvas.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\SyncGHviewport.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RemoSharpIconGHiconSmall.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RemoSharpIcon.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
