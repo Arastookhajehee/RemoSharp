@@ -174,14 +174,14 @@ namespace RemoSharp
                     if(!address.Equals("")) wss.Params.Input[0].AddSource((IGH_Param)panel);
                     wss.Params.Input[2].AddSource((IGH_Param)button);
                     wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                    wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
+                    //wsSend.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
 
                     if (!viewAddressString.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
                     wss2.Params.Input[2].AddSource((IGH_Param)button2);
                     wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
 
                     this.Params.Input[0].AddSource((IGH_Param)toggle);
-                    this.Params.Input[1].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+                    //this.Params.Input[1].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
 
@@ -293,7 +293,7 @@ namespace RemoSharp
                 if (!address.Equals("")) wss2.Params.Input[0].AddSource((IGH_Param)panel2);
                 wss2.Params.Input[2].AddSource((IGH_Param)button2);
                 wsRecv.Params.Input[0].AddSource((IGH_Param)wss2.Params.Output[0]);
-                remoCommands.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+                //remoCommands.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
             }
         }
 
@@ -404,6 +404,7 @@ namespace RemoSharp
                 }
             }
             openDoc.SaveQuiet(savePath);
+
 
             string content = "";
             using (StreamReader sr = new StreamReader(savePath))

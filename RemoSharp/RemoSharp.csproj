@@ -122,6 +122,7 @@
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
     <Compile Include="TabProperties.cs" />
+    <Compile Include="Utilities\GHL.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
