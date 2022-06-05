@@ -121,8 +121,11 @@
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
+    <Compile Include="RT Robotics\Deserialize_Machina_Actions.cs" />
+    <Compile Include="RT Robotics\Serialize_Machina_Action.cs" />
     <Compile Include="TabProperties.cs" />
     <Compile Include="Utilities\GHL.cs" />
+    <Compile Include="Utilities\RotatePlane.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
@@ -250,6 +253,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\RemoSharpIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Machina_NET_KUKA_Online\src\Machina\Machina.csproj">
+      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
+      <Name>Machina</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\ReadMachinaStream.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RotatePlane.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Steam Machina.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\GHL.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -56,12 +56,8 @@ namespace RemoSharp
             pManager.AddBooleanParameter("Broadcast", "BrdCst",
                 "Creates and broadcasts the current GH_Canvas screenshot in a text format.",
                 GH_ParamAccess.item, false);
-            pManager.AddTextParameter("Client Coordinates", "Cl_Coords",
-                "The coordinates of the a client's Grasshopper canvas. (The visiable and active reagion the Grasshopper canvs).",
-                GH_ParamAccess.item, "");
-            
-            
-            
+            pManager.AddTextParameter("ID", "ID", "PC Network ID", GH_ParamAccess.item, "1");
+
         }
         private void CheckForDirectoryAndFileExistance(string path)
         {
@@ -312,20 +308,21 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            bool run = false;
+            string ID = "";
+            DA.GetData(0, ref run);
+            DA.GetData(1, ref ID);
+
+            if (!run) return;
             string savePath = @"C:\temp\RemoSharp\saveTempFile.ghx";
-            string openPath = @"C:\temp\RemoSharp\openTempFile.ghx";
-            string finalPath = @"C:\temp\RemoSharp\finalTempFile.ghx";
+            string openPath = @"C:\temp\RemoSharp\openTempFile" + ID + ".ghx";
+            string finalPath = @"C:\temp\RemoSharp\finalTempFile" + ID + ".ghx";
 
             CheckForDirectoryAndFileExistance(savePath);
             CheckForDirectoryAndFileExistance(openPath);
             CheckForDirectoryAndFileExistance(finalPath);
 
-            bool run = false;
-            string coords = "";
-            DA.GetData(0, ref run);
-            DA.GetData(1, ref coords);
 
-            if (!run || coords == "" || coords == null || coords == "Hello World") return;
 
             var panelContents = new List<PanelContentRepo>();
             foreach (var obj in this.OnPingDocument().Objects)
@@ -333,9 +330,11 @@ namespace RemoSharp
                 if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel") &&
                    !obj.NickName.Contains("RemoSharp"))
                 {
-                    var panelGuid = obj.InstanceGuid.ToString();
-                    string panelLiveContent = GetLivePanelContent((Grasshopper.Kernel.Special.GH_Panel)obj);
-                    panelContents.Add(new PanelContentRepo(panelGuid, panelLiveContent));
+                    var panel = (Grasshopper.Kernel.Special.GH_Panel)obj;
+                    var panelGuid = panel.InstanceGuid.ToString();
+                    //string panelLiveContent = GetLivePanelContent(panel);
+                    //panel.SetUserText(panelLiveContent);
+                    //panelContents.Add(new PanelContentRepo(panelGuid, panelLiveContent));
                     //string tempStreamPath = @"C:\temp\RemoSharp\" + panelGuid + ".ghx";
                     //CheckForDirectoryAndFileExistance(tempStreamPath);
 
@@ -349,84 +348,91 @@ namespace RemoSharp
             Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
             bool saveDocR = saveDoc.SaveQuiet(savePath);
 
-
-            System.IO.File.Copy(savePath, openPath, true);
-            Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
-            openDoc.Open(openPath);
-            var bounds = new VisibleBounds(coords);
-            foreach (var obj in openDoc.Document.Objects.Reverse())
+            while (true)
             {
-                string type = obj.GetType().ToString();
-                var objPivot = obj.Attributes.Pivot;
-                bool outside = false;
-                bool isFromRemoSharp = type.Contains("RemoSharp");
-                bool remosharpNickname = obj.NickName.Contains("RemoSharp");
-                if (
-                  (int)objPivot.X < bounds.topLeftCornerX ||
-                  (int)objPivot.Y < bounds.topLeftCornerY ||
-                  (int)objPivot.X > bounds.topLeftCornerX + bounds.visibleAreaWidth ||
-                  (int)objPivot.Y > bounds.topLeftCornerY + bounds.visibleAreaHeight) outside = true;
-                if (isFromRemoSharp || outside || remosharpNickname)
+                try
                 {
-                    openDoc.Document.RemoveObject(obj, false);
+                    System.IO.File.Copy(savePath, openPath, true);
+                    break;
                 }
-                if (!outside)
+                catch { }
+            }
+
+            //Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
+            //openDoc.Open(openPath);
+            //var bounds = new VisibleBounds(coords);
+            //foreach (var obj in openDoc.Document.Objects.Reverse())
+            //{
+            //    string type = obj.GetType().ToString();
+            //    var objPivot = obj.Attributes.Pivot;
+            //    bool outside = false;
+            //    bool isFromRemoSharp = type.Contains("RemoSharp");
+            //    bool remosharpNickname = obj.NickName.Contains("RemoSharp");
+            //    if (
+            //      (int)objPivot.X < bounds.topLeftCornerX ||
+            //      (int)objPivot.Y < bounds.topLeftCornerY ||
+            //      (int)objPivot.X > bounds.topLeftCornerX + bounds.visibleAreaWidth ||
+            //      (int)objPivot.Y > bounds.topLeftCornerY + bounds.visibleAreaHeight) outside = true;
+            //    if (isFromRemoSharp || outside || remosharpNickname)
+            //    {
+            //        openDoc.Document.RemoveObject(obj, false);
+            //    }
+            //    if (!outside)
+            //    {
+            //        if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
+            //        {
+            //            Grasshopper.Kernel.Special.GH_Panel panel = (Grasshopper.Kernel.Special.GH_Panel)obj;
+            //            if (panel.NickName.Contains("RemoSharp")) continue;
+            //            panel.Properties.Colour = Color.Transparent;
+            //            openDoc.Document.ArrangeObject(panel, GH_Arrange.MoveToBack);
+            //            var panelPivot = panel.Attributes.Pivot;
+            //            var newPivot = new System.Drawing.PointF(panelPivot.X + 10, panelPivot.Y);
+            //            Grasshopper.Kernel.Special.GH_Panel newPanel = new Grasshopper.Kernel.Special.GH_Panel();
+            //            newPanel.CreateAttributes();
+            //            newPanel.Attributes.Pivot = newPivot;
+            //            string newPanelContent = BackgoundDocumentPanelContent(panel, panelContents);
+            //            newPanel.SetUserText(newPanelContent);
+            //            newPanel.ExpireSolution(true);
+            //            newPanel.Properties.Alignment = Grasshopper.Kernel.Special.GH_Panel.Alignment.Left;
+            //            newPanel.Attributes.Bounds = panel.Attributes.Bounds;
+            //            //newPanel.Properties.Multiline = false;
+            //            openDoc.Document.AddObject(newPanel, false, openDoc.Document.ObjectCount - 1);
+
+            //            openDoc.Document.ArrangeObject(newPanel, GH_Arrange.MoveToFront);
+            //            //openDoc.Document.ScheduleSolution(0, (GH_Document doc) => 
+            //            //{
+            //            //});
+            //            ////panel.StreamCurrentContent()
+            //            ////foreach (var source in panel.Sources)
+            //            ////{
+            //            ////    var data = so;
+            //            ////}
+            //        }
+            //    }
+            //}
+            //openDoc.SaveQuiet(savePath);
+
+            try
+            {
+                string content = "";
+                using (StreamReader sr = new StreamReader(finalPath))
                 {
-                    if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                    {
-                        Grasshopper.Kernel.Special.GH_Panel panel = (Grasshopper.Kernel.Special.GH_Panel)obj;
-                        if (panel.NickName.Contains("RemoSharp")) continue;
-                        panel.Properties.Colour = Color.Transparent;
-                        openDoc.Document.ArrangeObject(panel, GH_Arrange.MoveToBack);
-                        var panelPivot = panel.Attributes.Pivot;
-                        var newPivot = new System.Drawing.PointF(panelPivot.X + 10, panelPivot.Y);
-                        Grasshopper.Kernel.Special.GH_Panel newPanel = new Grasshopper.Kernel.Special.GH_Panel();
-                        newPanel.CreateAttributes();
-                        newPanel.Attributes.Pivot = newPivot;
-                        string newPanelContent = BackgoundDocumentPanelContent(panel, panelContents);
-                        newPanel.SetUserText(newPanelContent);
-                        newPanel.ExpireSolution(true);
-                        newPanel.Properties.Alignment = Grasshopper.Kernel.Special.GH_Panel.Alignment.Left;
-                        newPanel.Attributes.Bounds = panel.Attributes.Bounds;
-                        //newPanel.Properties.Multiline = false;
-                        openDoc.Document.AddObject(newPanel, false, openDoc.Document.ObjectCount - 1);
-
-                        openDoc.Document.ArrangeObject(newPanel, GH_Arrange.MoveToFront);
-                        //openDoc.Document.ScheduleSolution(0, (GH_Document doc) => 
-                        //{
-                        //});
-                        ////panel.StreamCurrentContent()
-                        ////foreach (var source in panel.Sources)
-                        ////{
-                        ////    var data = so;
-                        ////}
-                    }
+                    content = sr.ReadToEnd();
+                    sr.Close();
+                    //WebMarkupMin.Core.XmlMinifier minifier = new XmlMinifier();
+                    //MarkupMinificationResult result = minifier.Minify(content, false);
+                    //content = result.MinifiedContent;
                 }
-            }
-            openDoc.SaveQuiet(savePath);
-
-
-            string content = "";
-            using (StreamReader sr = new StreamReader(savePath))
-            {
-                content = sr.ReadToEnd();
-                WebMarkupMin.Core.XmlMinifier minifier = new XmlMinifier();
-                MarkupMinificationResult result = minifier.Minify(content, false);
-                content = result.MinifiedContent;
-
-                using (StreamWriter sw = new StreamWriter(finalPath))
+                if (content.Length < 150000)
                 {
-                    sw.Write(content);
+                    DA.SetData(0, content);
+                }
+                else
+                {
+                    this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Broadcasting region too large");
                 }
             }
-            if (content.Length < 150000)
-            {
-                DA.SetData(0, content);
-            }
-            else
-            {
-                this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Broadcasting region too large");
-            }
+            catch { }
         }
 
         string GetLivePanelContent(Grasshopper.Kernel.Special.GH_Panel panel)

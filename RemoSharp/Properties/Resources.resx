@@ -139,6 +139,9 @@
   <data name="EavesDropIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\EavesDropIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="GHL" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\GHL.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Output_Icons_Item" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Output Icons Item.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -147,6 +150,9 @@
   </data>
   <data name="Output_Icons_Tree" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Output Icons Tree.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ReadMachinaStream" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\ReadMachinaStream.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="receive" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\receive.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -187,6 +193,9 @@
   <data name="RemoToggle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoToggle.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RotatePlane" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RotatePlane.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Script_Checker" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Script_Checker.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -198,6 +207,9 @@
   </data>
   <data name="SourceComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\SourceComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Steam_Machina" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Steam Machina.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="SyncCanvas" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\SyncCanvas.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

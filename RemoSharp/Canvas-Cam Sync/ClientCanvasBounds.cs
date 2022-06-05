@@ -40,8 +40,8 @@ namespace RemoSharp
             //    GH_ParamAccess.item,
             //    1);
             //pManager.AddPointParameter("CalibPoint", "CbrPnt", "A point in XY Coordinates to callibrate the position of the regenerated image from the grasshopper extents", GH_ParamAccess.item, new Point3d(-90, 100, 0));
-            //pManager.AddTextParameter("ImageServer", "ImgSrv", "The Server Address used for the Image reconstruction", GH_ParamAccess.item, "");
-            
+            pManager.AddTextParameter("ID", "ID", "Collaborator PC Network ID", GH_ParamAccess.item, "1");
+
         }
 
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -298,7 +298,7 @@ namespace RemoSharp
             //double scale = 50;
             //if (lowRes) scale = 15;
             //else if (highRes) scale = 100;
-            
+
             //var thisCanvas = Grasshopper.Instances.ActiveCanvas;
 
             //// getting the active region of the grasshopper canvas
@@ -333,6 +333,9 @@ namespace RemoSharp
             //viewPortCorners += "," + xPos + "," + yPos + "," + scale + "," + manRes + "," + address;
             //// getting where the gh window is and what is its size
 
+            string ID = "1";
+            DA.GetData(0, ref ID);
+
             var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
             var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
             var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
@@ -342,7 +345,8 @@ namespace RemoSharp
                 + "," + bounds_for_xml.Height
                 + "," + screenMidPnt.X
                 + "," + screenMidPnt.Y
-                + "," + zoomLevel;
+                + "," + zoomLevel
+                + "," + ID;
 
             //DA.SetData(0, viewPortCorners);
             DA.SetData(0, bnds4XML);

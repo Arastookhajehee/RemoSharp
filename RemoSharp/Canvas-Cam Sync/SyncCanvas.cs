@@ -184,6 +184,20 @@ namespace RemoSharp
             Grasshopper.Kernel.GH_DocumentIO ioDoc = new GH_DocumentIO();
             ioDoc.Open(path);
             var newDoc = ioDoc.Document;
+
+            //foreach (var obj in newDoc.Objects.Reverse())
+            //{
+            //    string type = obj.GetType().ToString();
+            //    var objPivot = obj.Attributes.Pivot;
+            //    bool isFromRemoSharp = type.Contains("RemoSharp");
+            //    bool remosharpNickname = obj.NickName.Contains("RemoSharp");
+                
+            //    if (isFromRemoSharp || remosharpNickname)
+            //    {
+            //        newDoc.RemoveObject(obj, false);
+            //    }
+            //}
+
             this.OnPingDocument().MergeDocument(newDoc);
 
             this.OnPingDocument().ScheduleSolution(150, DeleteAll);
