@@ -50,43 +50,63 @@ namespace RemoSharp
             if (currentValue)
             {
                 this.Hidden = true;
-                
+
+                int shiftX = -25 -78;
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
                 
-                System.Drawing.PointF remoteBoundsPanelPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y - 66);
-                System.Drawing.PointF localBoundsPanelPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y +33);
+                //System.Drawing.PointF ID_PanelPivot = new System.Drawing.PointF(shiftX + pivot.X - 159, pivot.Y - 19);
+
+                int shiftRemoteSendersUP = -35;
+                System.Drawing.PointF remoteBoundsPanelPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y - 66 + shiftRemoteSendersUP);
+                System.Drawing.PointF localBoundsPanelPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y +33);
                 
-                System.Drawing.PointF remoteSrvButtonPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y -18);
-                System.Drawing.PointF localSrvButtonPivot = new System.Drawing.PointF(pivot.X - 285, pivot.Y +81);
+                System.Drawing.PointF remoteSrvButtonPivot = new System.Drawing.PointF(shiftX + pivot.X - 237, pivot.Y - 105 + shiftRemoteSendersUP);
+                System.Drawing.PointF localSrvButtonPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y +81);
                 
-                System.Drawing.PointF remoteWssPivot = new System.Drawing.PointF(pivot.X -87, pivot.Y -27);
-                System.Drawing.PointF localWssPivot = new System.Drawing.PointF(pivot.X - 87, pivot.Y + 72);
+                System.Drawing.PointF remoteWssPivot = new System.Drawing.PointF(shiftX + 78 + pivot.X -87, pivot.Y - 27 + shiftRemoteSendersUP);
+                System.Drawing.PointF localWssPivot = new System.Drawing.PointF(shiftX + 78 + pivot.X - 87, pivot.Y + 72);
                 
-                System.Drawing.PointF remoteWsSendPivot = new System.Drawing.PointF(pivot.X + 173, pivot.Y - 17);
+                System.Drawing.PointF remoteWsSendPivot = new System.Drawing.PointF(pivot.X + 173, pivot.Y - 17 + shiftRemoteSendersUP);
                 System.Drawing.PointF localWsSendPivot = new System.Drawing.PointF(pivot.X + 173, pivot.Y + 82);
                 
-                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 281, pivot.Y + 130);
+                System.Drawing.PointF triggerPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y + 130);
 
-                //System.Drawing.PointF sourceCompPivot = new System.Drawing.PointF(pivot.X - 251, pivot.Y + 180);
-                //System.Drawing.PointF targetCompPivot = new System.Drawing.PointF(pivot.X + 0, pivot.Y + 180);
+
+                int shiftDistroPivotsY = 143;
+                System.Drawing.PointF sourceCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X - 251, pivot.Y + 150 + shiftDistroPivotsY);
+                System.Drawing.PointF targetCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X + 0, pivot.Y + 150 + shiftDistroPivotsY);
+
+                System.Drawing.PointF commandSrvButtonPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y + 81 + shiftDistroPivotsY);
+                System.Drawing.PointF commandWSSPivot = new System.Drawing.PointF(shiftX + 78 + pivot.X - 87, pivot.Y + 72 + shiftDistroPivotsY);
+                //System.Drawing.PointF commandBoundsPanelPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y + 33 + shiftDistroPivotsY);
+                System.Drawing.PointF commandWsSendPivot = new System.Drawing.PointF(pivot.X + 70, pivot.Y + 82 + shiftDistroPivotsY);
 
                 // setup the panel that contains the remote server viewport bounds stream
                 //StreamIPSet canvasAddress = new StreamIPSet();
-                //canvasAddress.DialougeTitle.Text = "Please Set Your Bounds Sync Server Address";
+                // canvasAddress.DialougeTitle.Text = "Please Set Your Bounds Sync Server Address";
                 //canvasAddress.ShowDialog();
-                string address = "";
-                Grasshopper.Kernel.Special.GH_Panel remoteServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
-                remoteServAddPanel.CreateAttributes();
-                remoteServAddPanel.Attributes.Pivot = remoteBoundsPanelPivot;
-                remoteServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 100, 20);
-                remoteServAddPanel.SetUserText(address);
-                remoteServAddPanel.NickName = "RemoSharp Bounds";
+
+                //string ID = "";
+                //Grasshopper.Kernel.Special.GH_Panel ID_Panel = new Grasshopper.Kernel.Special.GH_Panel();
+                //ID_Panel.CreateAttributes();
+                //ID_Panel.Attributes.Pivot = ID_PanelPivot;
+                //ID_Panel.Attributes.Bounds = new System.Drawing.RectangleF(ID_PanelPivot.X, ID_PanelPivot.Y, 200, 20);
+                //ID_Panel.SetUserText(ID);
+                //ID_Panel.NickName = "RemoSharp Collaborator ID";
+
+                //string address = "";
+                //Grasshopper.Kernel.Special.GH_Panel remoteServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                //remoteServAddPanel.CreateAttributes();
+                //remoteServAddPanel.Attributes.Pivot = remoteBoundsPanelPivot;
+                //remoteServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 200, 20);
+                //remoteServAddPanel.SetUserText(address);
+                //remoteServAddPanel.NickName = "RemoSharp Bounds";
 
                 // setup the panel that contains the local viewport bounds server
                 Grasshopper.Kernel.Special.GH_Panel localServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
                 localServAddPanel.CreateAttributes();
                 localServAddPanel.Attributes.Pivot = localBoundsPanelPivot;
-                localServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 100, 20);
+                localServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(remoteBoundsPanelPivot.X, remoteBoundsPanelPivot.Y, 200, 20);
                 localServAddPanel.SetUserText("ws://127.0.0.1:18580/RemoSharpCanvasBounds");
                 localServAddPanel.NickName = "RemoSharp";
 
@@ -126,41 +146,51 @@ namespace RemoSharp
                 trigger.Attributes.Pivot = triggerPivot;
                 trigger.Interval = 100;
                 trigger.NickName = "RemoSharp";
-                //RemoSharp.RemoCompSource sourceComp = new RemoSharp.RemoCompSource();
-                //sourceComp.CreateAttributes();
-                //sourceComp.Attributes.Pivot = sourceCompPivot;
-                //var sourceGuid = sourceComp.InstanceGuid;
 
-                //RemoSharp.RemoCompTarget targetComp = new RemoSharp.RemoCompTarget();
-                //targetComp.CreateAttributes();
-                //targetComp.Attributes.Pivot = targetCompPivot;
+                RemoSharp.RemoCompSource sourceComp = new RemoSharp.RemoCompSource();
+                sourceComp.CreateAttributes();
+                sourceComp.Attributes.Pivot = sourceCompPivot;
+                var sourceGuid = sourceComp.InstanceGuid;
+                sourceComp.Params.RepairParamAssociations();
 
-                //RemoSharp.WsClientCat.WsClientStart commandWssComp = new WsClientCat.WsClientStart();
-                //commandWssComp.CreateAttributes();
-                //commandWssComp.Attributes.Pivot = commandSrvButtonPivot;
 
-                //StreamIPSet commandAddress = new StreamIPSet();
-                //commandAddress.DialougeTitle.Text = "Please Set Your Command Server Address";
-                //commandAddress.ShowDialog();
-                //string commandSrvAddress = commandAddress.WS_Server_Address;
+                RemoSharp.RemoCompTarget targetComp = new RemoSharp.RemoCompTarget();
+                targetComp.CreateAttributes();
+                targetComp.Attributes.Pivot = targetCompPivot;
+                targetComp.Params.RepairParamAssociations();
+
+
+                RemoSharp.WsClientCat.WsClientStart commandWssComp = new WsClientCat.WsClientStart();
+                commandWssComp.CreateAttributes();
+                commandWssComp.Attributes.Pivot = commandWSSPivot;
+                commandWssComp.Params.RepairParamAssociations();
+
+
+                
                 //Grasshopper.Kernel.Special.GH_Panel commandServAddPanel = new Grasshopper.Kernel.Special.GH_Panel();
                 //commandServAddPanel.CreateAttributes();
                 //commandServAddPanel.Attributes.Pivot = commandBoundsPanelPivot;
-                //commandServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(commandBoundsPanelPivot.X, commandBoundsPanelPivot.Y, 100, 20);
-                //commandServAddPanel.SetUserText(commandSrvAddress);
-                //commandServAddPanel.NickName = "RemoSharp";
+                //commandServAddPanel.Attributes.Bounds = new System.Drawing.RectangleF(commandBoundsPanelPivot.X, commandBoundsPanelPivot.Y, 200, 20);
+                //commandServAddPanel.SetUserText("");
+                //commandServAddPanel.NickName = "RemoSharp Command Server";
 
-                //Grasshopper.Kernel.Special.GH_ButtonObject commandButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                //commandButton.CreateAttributes();
-                //commandButton.Attributes.Pivot = commandSrvButtonPivot;
+                Grasshopper.Kernel.Special.GH_ButtonObject commandButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                commandButton.CreateAttributes();
+                commandButton.Attributes.Pivot = commandSrvButtonPivot;
 
-                //RemoSharp.WsClientCat.WsClientSend commandWsSendComp = new WsClientCat.WsClientSend();
-                //commandWsSendComp.CreateAttributes();
-                //commandWsSendComp.Attributes.Pivot = commandWsSendPivot;
+                RemoSharp.WsClientCat.WsClientSend commandWsSendComp = new WsClientCat.WsClientSend();
+                commandWsSendComp.CreateAttributes();
+                commandWsSendComp.Attributes.Pivot = commandWsSendPivot;
+                commandWsSendComp.Params.RepairParamAssociations();
+
+
+                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -290, -48, true);
+
 
                 this.OnPingDocument().ScheduleSolution(1, (GH_Document.GH_ScheduleDelegate)(doc =>
                 {
-                    this.OnPingDocument().AddObject(remoteServAddPanel, true);
+                    //this.OnPingDocument().AddObject(ID_Panel, true);
+                    //this.OnPingDocument().AddObject(remoteServAddPanel, true);
                     this.OnPingDocument().AddObject(localServAddPanel, true);
                     this.OnPingDocument().AddObject(remoteButton, true);
                     this.OnPingDocument().AddObject(localButton, true);
@@ -170,12 +200,12 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(localWsSendComp, true);
                     this.OnPingDocument().AddObject(trigger, true);
 
-                    //this.OnPingDocument().AddObject(sourceComp, true);
-                    //this.OnPingDocument().AddObject(targetComp, true);
-                    //this.OnPingDocument().AddObject(commandWssComp, true);
+                    this.OnPingDocument().AddObject(sourceComp, true);
+                    this.OnPingDocument().AddObject(targetComp, true);
+                    this.OnPingDocument().AddObject(commandWssComp, true);
                     //this.OnPingDocument().AddObject(commandServAddPanel, true);
-                    //this.OnPingDocument().AddObject(commandButton, true);
-                    //this.OnPingDocument().AddObject(commandWsSendComp, true);
+                    this.OnPingDocument().AddObject(commandButton, true);
+                    this.OnPingDocument().AddObject(commandWsSendComp, true);
 
 
                     //this.OnPingDocument().AddObject(multiSlider, true);
@@ -184,10 +214,13 @@ namespace RemoSharp
                     //this.Params.Input[2].AddSource((IGH_Param)multiSlider);
 
                     trigger.AddTarget(guid);
-                    //trigger.AddTarget(sourceGuid);
+                    trigger.AddTarget(sourceGuid);
 
+
+                    //this.Params.Input[0].AddSource(ID_Panel);
+                    remoteWssComp.Params.Input[0].AddSource((IGH_Param)addressOutPuts[1]);
                     remoteWssComp.Params.Input[2].AddSource((IGH_Param)remoteButton);
-                    if(!address.Equals("")) remoteWssComp.Params.Input[0].AddSource((IGH_Param)remoteServAddPanel);
+                    //if(!address.Equals("")) remoteWssComp.Params.Input[0].AddSource((IGH_Param)remoteServAddPanel);
                     localWssComp.Params.Input[2].AddSource((IGH_Param)localButton);
                     localWssComp.Params.Input[0].AddSource((IGH_Param)localServAddPanel);
 
@@ -197,12 +230,13 @@ namespace RemoSharp
                     localWsSendComp.Params.Input[0].AddSource((IGH_Param)localWssComp.Params.Output[0]);
                     localWsSendComp.Params.Input[1].AddSource((IGH_Param)this.Params.Output[0]);
 
-                    ////targetComp.Params.Input[0].AddSource((IGH_Param)sourceComp.Params.Output[0]);
-                    //commandWssComp.Params.Input[2].AddSource((IGH_Param)commandButton);
-                    //commandWssComp.Params.Input[0].AddSource((IGH_Param)commandServAddPanel);
+                    targetComp.Params.Input[0].AddSource((IGH_Param)sourceComp.Params.Output[0]);
+                    commandWssComp.Params.Input[2].AddSource((IGH_Param)commandButton);
+                    commandWssComp.Params.Input[0].AddSource((IGH_Param)addressOutPuts[2]);
 
-                    //commandWsSendComp.Params.Input[0].AddSource((IGH_Param)commandWssComp.Params.Output[0]);
-                    //commandWsSendComp.Params.Input[1].AddSource((IGH_Param)targetComp.Params.Output[0]);
+                    commandWsSendComp.Params.Input[0].AddSource((IGH_Param)commandWssComp.Params.Output[0]);
+                    commandWsSendComp.Params.Input[1].AddSource((IGH_Param)targetComp.Params.Output[0]);
+                    this.Params.Input[0].AddSource(addressOutPuts[4]);
 
                 }));
             }

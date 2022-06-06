@@ -353,6 +353,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon Server_Addresses {
+            get {
+                object obj = ResourceManager.GetObject("Server_Addresses", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Server_Samples {
             get {
                 object obj = ResourceManager.GetObject("Server_Samples", resourceCulture);

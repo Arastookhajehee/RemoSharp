@@ -23,10 +23,11 @@ namespace RemoSharp.Utilities
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddPlaneParameter("Plane", "pl", "Plane to be rotated", GH_ParamAccess.item);
-            pManager.AddNumberParameter("X", "x", "rotation angle around the X axis", GH_ParamAccess.item, 0);
-            pManager.AddNumberParameter("Y", "y", "rotation angle around the Y axis", GH_ParamAccess.item, 0);
-            pManager.AddNumberParameter("Y", "z", "rotation angle around the Z axis", GH_ParamAccess.item, 0);
+            pManager.AddPlaneParameter("Plane", "plane", "Plane to be rotated", GH_ParamAccess.item);
+            pManager.AddNumberParameter("X", "X", "rotation angle in degrees around the X axis", GH_ParamAccess.item, 0);
+            pManager.AddNumberParameter("Y", "Y", "rotation angle in degrees around the Y axis", GH_ParamAccess.item, 0);
+            pManager.AddNumberParameter("Y", "Z", "rotation angle in degrees around the Z axis", GH_ParamAccess.item, 0);
+            pManager.AddBooleanParameter("Flip", "flip", "Flip PLane Direction", GH_ParamAccess.item, false);
             pManager.AddBooleanParameter("Global", "glb", "Toggle between rotation around local or Global XYZ axes", GH_ParamAccess.item, false);
         }
 
@@ -35,7 +36,7 @@ namespace RemoSharp.Utilities
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPlaneParameter("Plane", "pl", "Rotated Plane", GH_ParamAccess.item);
+            pManager.AddPlaneParameter("Plane", "plane", "Rotated Plane", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -48,12 +49,14 @@ namespace RemoSharp.Utilities
             double x = 0;
             double y = 0;
             double z = 0;
+            bool flip = false;
             bool global = false;
             DA.GetData(0, ref pl);
             DA.GetData(1, ref x);
             DA.GetData(2, ref y);
             DA.GetData(3, ref z);
-            DA.GetData(4, ref global);
+            DA.GetData(4, ref flip);
+            DA.GetData(5, ref global);
 
             if (global)
             {
@@ -67,6 +70,8 @@ namespace RemoSharp.Utilities
                 pl.Rotate(Math.PI * y / 180.0, pl.YAxis, pl.Origin);
                 pl.Rotate(Math.PI * z / 180.0, pl.ZAxis, pl.Origin);
             }
+
+            if (flip) pl.Flip();
 
             DA.SetData(0, pl);
         }

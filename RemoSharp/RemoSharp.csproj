@@ -101,6 +101,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RemoCSharp\ServerAddress.cs" />
     <Compile Include="RemoParams\RemoButton.cs" />
     <Compile Include="RemoParams\RemoColorSwatch.cs" />
     <Compile Include="Distributors\RemoCompSource.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="TabProperties.cs" />
     <Compile Include="Utilities\GHL.cs" />
     <Compile Include="Utilities\RotatePlane.cs" />
+    <Compile Include="Utilities\Utilites.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
@@ -271,6 +273,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\GHL.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Server_Addresses.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

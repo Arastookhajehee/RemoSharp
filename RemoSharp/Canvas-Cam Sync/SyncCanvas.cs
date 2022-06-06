@@ -8,6 +8,7 @@ using System.Linq;
 using System.IO;
 using GHCustomControls;
 using WPFNumericUpDown;
+using System.Text;
 
 namespace RemoSharp
 {
@@ -53,18 +54,18 @@ namespace RemoSharp
 
                 int shiftX = -20;
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
-                System.Drawing.PointF panelPivot = new System.Drawing.PointF(shiftX + pivot.X - 673, pivot.Y - 39);
+                //System.Drawing.PointF panelPivot = new System.Drawing.PointF(shiftX + pivot.X - 673, pivot.Y - 39);
                 System.Drawing.PointF buttnPivot = new System.Drawing.PointF(shiftX + pivot.X - 504, pivot.Y + 9);
                 System.Drawing.PointF wssPivot = new System.Drawing.PointF(shiftX + pivot.X - 293, pivot.Y + 0);
                 System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(shiftX + pivot.X - 148, pivot.Y + 10);
 
-                Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                panel.CreateAttributes();
-                panel.Attributes.Pivot = panelPivot;
-                panel.SetUserText(address);
-                panel.Name = "RemoSharp Canvas";
-                panel.NickName = "RemoSharp Canvas";
-                panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
+                //Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+                //panel.CreateAttributes();
+                //panel.Attributes.Pivot = panelPivot;
+                //panel.SetUserText(address);
+                //panel.Name = "RemoSharp Canvas Server";
+                //panel.NickName = "RemoSharp Canvas Server";
+                //panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
 
                 Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
                 button.CreateAttributes();
@@ -82,17 +83,20 @@ namespace RemoSharp
                 wsRecv.Attributes.Pivot = wsRecvPivot;
                 wsRecv.Params.RepairParamAssociations();
 
+                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -474, -69, true);
+
+
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
-                    this.OnPingDocument().AddObject(panel, true);
+                    //this.OnPingDocument().AddObject(panel, true);
                     this.OnPingDocument().AddObject(button, true);
                     this.OnPingDocument().AddObject(wss, true);
                     this.OnPingDocument().AddObject(wsRecv, true);
 
                     wss.Params.Input[2].AddSource((IGH_Param)button);
-                    //wss.Params.Input[0].AddSource((IGH_Param)panel);
+                    wss.Params.Input[0].AddSource((IGH_Param)addressOutPuts[0]);
                     wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                    this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
+                    //this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
                 AddSyncViewPortCoordinates(pivot, 80);
@@ -171,19 +175,31 @@ namespace RemoSharp
             string stream = "";
             DA.GetData(0,ref stream);
 
-            if (stream == "" ||
-                stream == null ||
+            if (string.IsNullOrEmpty(stream) ||
                 stream == " " ||
-                stream == "Hello World") return;
+                stream == "Hello World" ||
+                !stream.Substring(0,15).Contains("?xml version")) return;
 
             using (StreamWriter sw = new StreamWriter(path))
             {
                 sw.Write(stream);
             }
 
-            Grasshopper.Kernel.GH_DocumentIO ioDoc = new GH_DocumentIO();
-            ioDoc.Open(path);
-            var newDoc = ioDoc.Document;
+
+            try
+            {
+                Grasshopper.Kernel.GH_DocumentIO ioDoc = new GH_DocumentIO();
+                ioDoc.Open(path);
+                var newDoc = ioDoc.Document;
+
+                this.OnPingDocument().MergeDocument(newDoc);
+
+                this.OnPingDocument().ScheduleSolution(150, DeleteAll);
+            }
+            catch
+            {
+
+            }
 
             //foreach (var obj in newDoc.Objects.Reverse())
             //{
@@ -198,15 +214,21 @@ namespace RemoSharp
             //    }
             //}
 
-            this.OnPingDocument().MergeDocument(newDoc);
-
-            this.OnPingDocument().ScheduleSolution(150, DeleteAll);
         }
 
         private void CheckForDirectoryAndFileExistance(string path)
         {
             if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
-            if (!File.Exists(path)) File.Create(path);
+            if (!File.Exists(path))
+            {
+                using (var file = File.Create(path))
+                {
+                    byte[] byteArray = Encoding.ASCII.GetBytes("First Line");
+                    file.Write(byteArray, 0, 0);
+                    file.Close();
+                }
+            }
+
         }
 
         public void DeleteAll(GH_Document doc)
