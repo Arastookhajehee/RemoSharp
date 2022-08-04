@@ -89,8 +89,8 @@ namespace RemoSharp
                 //System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 404, pivot.Y -110);
                 //System.Drawing.PointF IDpanelPivot = new System.Drawing.PointF(pivot.X - 404, pivot.Y -9);
                 System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 231 , pivot.Y -140);
-                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 230, pivot.Y - 62);
-                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 30, pivot.Y - 71);
+                System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 230, pivot.Y - 62 -40);
+                System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 30, pivot.Y - 71 -40);
                 System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 180, pivot.Y - 10);
                 System.Drawing.PointF triggerPivot = new System.Drawing.PointF(pivot.X - 330, pivot.Y - 175);  
 
@@ -173,7 +173,7 @@ namespace RemoSharp
                 CreateWebSocketClientComponents(pivot, 7, 94, commandAddressString, false, addressOutPuts[2], addressOutPuts[3]);
 
                 string commandAddressString2 = "";
-                CreateWebSocketClientComponents(pivot, 7, 189, commandAddressString2, true, addressOutPuts[2], addressOutPuts[3]);
+                CreateWebSocketClientComponents(pivot, 7, 189 + 40, commandAddressString2, true, addressOutPuts[2], addressOutPuts[3]);
 
             }
         }
@@ -221,7 +221,7 @@ namespace RemoSharp
 
             if (IsCameraSync)
             {
-                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 225, pivot.Y + 231);
+                System.Drawing.PointF togglePivot = new System.Drawing.PointF(pivot.X - 225, pivot.Y + 231 +40);
                 // run/notrun toggle
                 Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
                 toggle.CreateAttributes();
@@ -403,11 +403,11 @@ namespace RemoSharp
                 {
                     content = sr.ReadToEnd();
                     sr.Close();
-                    //WebMarkupMin.Core.XmlMinifier minifier = new XmlMinifier();
-                    //MarkupMinificationResult result = minifier.Minify(content, false);
-                    //content = result.MinifiedContent;
+                    WebMarkupMin.Core.XmlMinifier minifier = new XmlMinifier();
+                    MarkupMinificationResult result = minifier.Minify(content, false);
+                    content = result.MinifiedContent;
                 }
-                if (content.Length < 150000)
+                if (content.Length < 999915000)
                 {
                     if(!string.IsNullOrEmpty(content)) DA.SetData(0, content);
                 }

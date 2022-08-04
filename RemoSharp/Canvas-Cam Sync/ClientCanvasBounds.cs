@@ -73,8 +73,8 @@ namespace RemoSharp
 
 
                 int shiftDistroPivotsY = 143;
-                System.Drawing.PointF sourceCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X - 251, pivot.Y + 150 + shiftDistroPivotsY);
-                System.Drawing.PointF targetCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X + 0, pivot.Y + 150 + shiftDistroPivotsY);
+                System.Drawing.PointF sourceCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X - 251, pivot.Y + 150 + shiftDistroPivotsY + 40);
+                System.Drawing.PointF targetCompPivot = new System.Drawing.PointF(shiftX/2 + pivot.X + 0, pivot.Y + 150 + shiftDistroPivotsY + 40);
 
                 System.Drawing.PointF commandSrvButtonPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, pivot.Y + 81 + shiftDistroPivotsY);
                 System.Drawing.PointF commandWSSPivot = new System.Drawing.PointF(shiftX + 78 + pivot.X - 87, pivot.Y + 72 + shiftDistroPivotsY);

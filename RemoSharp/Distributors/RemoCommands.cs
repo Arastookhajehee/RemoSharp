@@ -226,7 +226,7 @@ namespace RemoSharp
                 string typeName = cmds[1];
                 int pivotX = Convert.ToInt32(cmds[2]);
                 int pivotY = Convert.ToInt32(cmds[3]);
-
+                string newGuid = typeName = cmds[cmds.Length - 1];
                 try
                 {
                     if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
@@ -498,9 +498,9 @@ namespace RemoSharp
                 int srcPivotX = Convert.ToInt32(cmds[3]);
                 int srcPivotY = Convert.ToInt32(cmds[4]);
                 srcCompOutputIndex = Convert.ToInt32(cmds[5]);
+                tgtCompInputIndex = Convert.ToInt32(cmds[6]);
                 int tgtPivotX = Convert.ToInt32(cmds[7]);
                 int tgtPivotY = Convert.ToInt32(cmds[8]);
-                tgtCompInputIndex = Convert.ToInt32(cmds[6]);
 
                 connectionMouseDownX = srcPivotX;
                 connectionMouseDownY = srcPivotY;
@@ -510,91 +510,98 @@ namespace RemoSharp
                 var ghDocument = this.OnPingDocument();
                 var ghObjectsList = ghDocument.Objects;
 
-                srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
-                tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
+                //srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
+                //tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
 
-                for (int i = 0; i < 21; i++)
+                //for (int i = 0; i < 21; i++)
+                //{
+                //    double ratio = (double)i / 20.0;
+                //    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
+                //    var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
+                //    //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
+                //    //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
+                //    //if (inputIsSlider || inputIsDigitScroller)
+                //    //{
+                //    //    srcComp = offsetSrcComp;
+                //    //}
+                //}
+
+                //var srcObject = ghObjectsList[srcComp];
+                //var tgtObject = ghObjectsList[tgtComp];
+
+                //string srcType = CategoryString(srcComp);
+                //string tgtType = CategoryString(tgtComp);
+
+                //bool srcIsSpecialType = CheckforSpecialCase(srcType);
+                //bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
+
+                ////if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
+                ////if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
+
+                //string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
+                //bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
+                //if (tgtGradientComponent) { tgtIsSpecialType = false; }
+
+
+                //if (srcIsSpecialType)
+                //{
+                if (connect)
                 {
-                    double ratio = (double)i / 20.0;
-                    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
-                    var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
-                    //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
-                    //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
-                    //if (inputIsSlider || inputIsDigitScroller)
+                    if (srcComp == tgtComp) return;
+
+
+                    this.OnPingDocument().ScheduleSolution(0, ConnectWire);
+                    //if (tgtIsSpecialType)
                     //{
-                    //    srcComp = offsetSrcComp;
+                    //    this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
+                    //}
+                    //else
+                    //{
+                    //    this.OnPingDocument().ScheduleSolution(0, SpecialToComp);
                     //}
                 }
-
-                var srcObject = ghObjectsList[srcComp];
-                var tgtObject = ghObjectsList[tgtComp];
-
-                string srcType = CategoryString(srcComp);
-                string tgtType = CategoryString(tgtComp);
-
-                bool srcIsSpecialType = CheckforSpecialCase(srcType);
-                bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
-
-                //if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
-                //if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
-
-                string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
-                bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
-                if (tgtGradientComponent) { tgtIsSpecialType = false; }
-
-
-                if (srcIsSpecialType)
+                else if (disconnect)
                 {
-                    if (connect)
-                    {
-                        if (srcComp == tgtComp) return;
-                        if (tgtIsSpecialType)
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
-                        }
-                        else
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, SpecialToComp);
-                        }
-                    }
-                    else if (disconnect)
-                    {
-                        if (tgtIsSpecialType)
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromSpecial);
-                        }
-                        else
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromComp);
-                        }
 
-                    }
+
+                    this.OnPingDocument().ScheduleSolution(0, DisonnectWire);
+
+                    //if (tgtIsSpecialType)
+                    //{
+                    //    this.OnPingDocument().ScheduleSolution(0, DisSpecialFromSpecial);
+                    //}
+                    //else
+                    //{
+                    //    this.OnPingDocument().ScheduleSolution(0, DisSpecialFromComp);
+                    //}
+
                 }
-                else
-                {
-                    if (connect)
-                    {
-                        if (tgtIsSpecialType)
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, CompToSpecial);
-                        }
-                        else
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, CompToComp);
-                        }
-                    }
-                    else if (disconnect)
-                    {
-                        if (tgtIsSpecialType)
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, DisCompFromSpecial);
-                        }
-                        else
-                        {
-                            this.OnPingDocument().ScheduleSolution(0, DisCompFromComp);
-                        }
-                    }
-                }
+                //}
+                //else
+                //{
+                //    if (connect)
+                //    {
+                //        if (tgtIsSpecialType)
+                //        {
+                //            this.OnPingDocument().ScheduleSolution(0, CompToSpecial);
+                //        }
+                //        else
+                //        {
+                //            this.OnPingDocument().ScheduleSolution(0, CompToComp);
+                //        }
+                //    }
+                //    else if (disconnect)
+                //    {
+                //        if (tgtIsSpecialType)
+                //        {
+                //            this.OnPingDocument().ScheduleSolution(0, DisCompFromSpecial);
+                //        }
+                //        else
+                //        {
+                //            this.OnPingDocument().ScheduleSolution(0, DisCompFromComp);
+                //        }
+                //    }
+                //}
             }
 
 
@@ -733,6 +740,32 @@ namespace RemoSharp
 
 
 
+        }
+
+        private void ConnectWire(GH_Document doc)
+        {
+
+            //connectionMouseDownX = srcPivotX;
+            //connectionMouseDownY = srcPivotY;
+            //connectionMouseUpX = tgtPivotX;
+            //connectionMouseUpY = tgtPivotY;
+
+            var src = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX, connectionMouseDownY));
+            var tgt = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX, connectionMouseUpY));
+            tgt.AddSource(src);
+        }
+
+        private void DisonnectWire(GH_Document doc)
+        {
+
+            //connectionMouseDownX = srcPivotX;
+            //connectionMouseDownY = srcPivotY;
+            //connectionMouseUpX = tgtPivotX;
+            //connectionMouseUpY = tgtPivotY;
+
+            var src = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX, connectionMouseDownY));
+            var tgt = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX, connectionMouseUpY));
+            tgt.RemoveSource(src);
         }
 
         /// <summary>

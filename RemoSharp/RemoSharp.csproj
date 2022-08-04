@@ -127,6 +127,7 @@
     <Compile Include="TabProperties.cs" />
     <Compile Include="Utilities\GHL.cs" />
     <Compile Include="Utilities\RotatePlane.cs" />
+    <Compile Include="Utilities\testComp.cs" />
     <Compile Include="Utilities\Utilites.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />

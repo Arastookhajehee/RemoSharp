@@ -47,7 +47,7 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             //pManager.AddIntegerParameter("Select Server", "Srv_Sel", "The index of the public server to use. (1 - 10)", GH_ParamAccess.item, 1);
-            slider = new HorizontalSliderInteger("Internet-Based Public Server", "Please select the internet-based public server that you would like to use.", 1, 1, 10);
+            slider = new HorizontalSliderInteger("Internet-Based Public Server", "Please select the internet-based public server that you would like to use.", 1, 1, 16);
 
             slider.OnValueChanged += Slider_OnValueChanged;
 
@@ -148,13 +148,13 @@ namespace RemoSharp
             index = serverIndex;
             // server list
             var serverList = new List<string>();
-            for (int i = 1; i < 10; i++) 
+            for (int i = 1; i < 17; i++) 
             {
-                serverList.Add("wss://remosharp-public-server0"+ i +".glitch.me/");
+                string addressIndex = i.ToString("00");
+                serverList.Add("wss://remosharp-public-server"+ addressIndex + ".glitch.me/");
             }
-            serverList.Add("wss://remosharp-public-server10.glitch.me/");
 
-            if (index < 1 || index > 10) { 
+            if (index < 1 || index > 16) { 
                 this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please input a number form 1 to 10");
                 return;
             }

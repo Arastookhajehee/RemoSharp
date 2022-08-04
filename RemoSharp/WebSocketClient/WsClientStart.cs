@@ -6,7 +6,8 @@ using WebSocketSharp;
 using System.Windows.Forms;
 using RemoSharp.WsClient;
 using Grasshopper;
-
+using GHCustomControls;
+using WPFNumericUpDown;
 
 
 namespace RemoSharp.WsClientCat
@@ -17,10 +18,11 @@ public class WsClientStart : WsClientComponent
 	private bool isSubscribedToEvents;
 	private GH_Document ghDocument;
 	private WsAddress wsAddress;
+	PushButton pushButton1;
 
 
 
-	public WsClientStart():base
+		public WsClientStart():base
 	(
 		"Websocket Client Start",
 		"WS*",
@@ -57,15 +59,72 @@ public class WsClientStart : WsClientComponent
 
 	protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
 	{
+		pushButton1 = new PushButton("Set Up",
+					"Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
+        pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+		AddCustomControl(pushButton1);
+
 		pManager.AddTextParameter("address", "URL", "Websocket server address. Scheme (ws://) should be included. For example <b>ws://echo.websocket.org</b>", GH_ParamAccess.item);
 		pManager.AddTextParameter("inital message", "Msg", "initial message", GH_ParamAccess.item, "Hello World");
 		pManager.AddBooleanParameter("reset", "Rst", "Restart the connection.", GH_ParamAccess.item, false);
 	}//eof
 
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+			bool currentValue = Convert.ToBoolean(e.Value);
+			if (currentValue)
+			{
+				System.Drawing.PointF pivot = this.Attributes.Pivot;
+				int shiftX = 0;
+				int shiftY = -72;
+				System.Drawing.PointF buttnPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, shiftY + pivot.Y + 81);
+				System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(shiftX + pivot.X + 173, shiftY + pivot.Y + 130);
+				System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(shiftX + pivot.X + 173, shiftY + pivot.Y + 82);
+				System.Drawing.PointF panelPivot = new System.Drawing.PointF(shiftX + pivot.X - 285, shiftY + pivot.Y + 33);
 
+				// sending wss button
+				Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
+				button.CreateAttributes();
+				button.Attributes.Pivot = buttnPivot;
+				button.NickName = "RemoSharp";
 
+				// send component
+				RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
+				wsSend.CreateAttributes();
+				wsSend.Attributes.Pivot = wsSendPivot;
+				wsSend.Params.RepairParamAssociations();
 
-	protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
+				// send component
+				RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
+				wsRecv.CreateAttributes();
+				wsRecv.Attributes.Pivot = wsRecvPivot;
+				wsRecv.Params.RepairParamAssociations();
+
+				// setup the panel that contains the local viewport bounds server
+				Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
+				panel.CreateAttributes();
+				panel.Attributes.Pivot = panelPivot;
+				panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 200, 20);
+				panel.SetUserText("");
+				panel.NickName = "RemoSharp";
+
+				this.OnPingDocument().ScheduleSolution(1, doc =>
+				{
+					this.OnPingDocument().AddObject(button, true);
+					this.OnPingDocument().AddObject(wsSend, true);
+					this.OnPingDocument().AddObject(wsRecv, true);
+					this.OnPingDocument().AddObject(panel, true);
+
+					this.Params.Input[0].AddSource((IGH_Param)panel);
+					this.Params.Input[2].AddSource((IGH_Param)button);
+					wsSend.Params.Input[0].AddSource((IGH_Param)this.Params.Output[0]);
+					wsRecv.Params.Input[0].AddSource((IGH_Param)this.Params.Output[0]);
+
+				});
+			}
+		}
+
+        protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
 	{
 		pManager.AddGenericParameter("Websocket Objects", "WSC", "This object provides access to the connection. Connect this output to WS input websocket Send/Recv components.", GH_ParamAccess.item);
 	}//eof

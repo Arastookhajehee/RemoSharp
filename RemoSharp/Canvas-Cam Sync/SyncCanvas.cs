@@ -40,6 +40,7 @@ namespace RemoSharp
 
             pManager.AddTextParameter("XML_GH_Stream", "GH_DocXML", "XML text representation of the server's canvas Grasshopper document.",
                 GH_ParamAccess.item, "");
+            pManager.AddTextParameter("ID", "ID", "ID of the used stream", GH_ParamAccess.item, "1");
         }
 
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -99,7 +100,7 @@ namespace RemoSharp
                     //this.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
                 });
 
-                AddSyncViewPortCoordinates(pivot, 80);
+                AddSyncViewPortCoordinates(pivot, 120);
                 currentValue = false;
             }
         }
@@ -136,10 +137,12 @@ namespace RemoSharp
             RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
             wss.CreateAttributes();
             wss.Attributes.Pivot = wssPivot;
+            wss.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
             wsRecv.CreateAttributes();
             wsRecv.Attributes.Pivot = wsRecvPivot;
+            wsRecv.Params.RepairParamAssociations();
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -168,8 +171,11 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            string id = "0";
+            DA.GetData(1,ref id);
+            
             //https://stackoverflow.com/questions/674479/how-do-i-get-the-directory-from-a-files-full-path
-            string path = @"C:\temp\RemoSharp\ReceiveStream.ghx";
+            string path = @"C:\temp\RemoSharp\ReceiveStream" + id + ".ghx";
             CheckForDirectoryAndFileExistance(path);
 
             string stream = "";
