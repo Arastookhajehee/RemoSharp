@@ -139,6 +139,9 @@
   <data name="EavesDropIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\EavesDropIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="GHL" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\GHL.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Output_Icons_Item" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Output Icons Item.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -148,11 +151,23 @@
   <data name="Output_Icons_Tree" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Output Icons Tree.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="ReadMachinaStream" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\ReadMachinaStream.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="receive" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\receive.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoButton" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoButton.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="RemoColor" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoColor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoGeomParser" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoGeomParser.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoGeomStream" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoGeomStream.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="RemoPanel" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoPanel.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -160,20 +175,50 @@
   <data name="RemoSharp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSharp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RemoSharpIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\RemoSharpIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHicon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSharpIconGHicon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHiconSmall" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSharpIconGHiconSmall.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="RemoSharpIconGHiconSmall1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\RemoSharpIconGHiconSmall.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoSlider" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSlider.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="RemoToggle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoToggle.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RotatePlane" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RotatePlane.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Script_Checker" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Script_Checker.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="send" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\send.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Server_Addresses" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Server_Addresses.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Server_Samples" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Server Samples.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="SourceComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\SourceComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Steam_Machina" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Steam Machina.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SyncCanvas" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\SyncCanvas.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SyncGHviewport" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\SyncGHviewport.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="Sync_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Sync Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -186,6 +231,9 @@
   </data>
   <data name="Text_Point" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Text_Point.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="WSC" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\WSC.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="WS_BFF" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\WS_BFF.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

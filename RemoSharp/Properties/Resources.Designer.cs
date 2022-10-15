@@ -19,7 +19,7 @@ namespace RemoSharp.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -143,6 +143,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon GHL {
+            get {
+                object obj = ResourceManager.GetObject("GHL", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Output_Icons_Item {
             get {
                 object obj = ResourceManager.GetObject("Output_Icons_Item", resourceCulture);
@@ -173,6 +183,26 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon ReadMachinaStream {
+            get {
+                object obj = ResourceManager.GetObject("ReadMachinaStream", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon receive {
+            get {
+                object obj = ResourceManager.GetObject("receive", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon RemoButton {
             get {
                 object obj = ResourceManager.GetObject("RemoButton", resourceCulture);
@@ -186,6 +216,26 @@ namespace RemoSharp.Properties {
         internal static System.Drawing.Icon RemoColor {
             get {
                 object obj = ResourceManager.GetObject("RemoColor", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon RemoGeomParser {
+            get {
+                object obj = ResourceManager.GetObject("RemoGeomParser", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon RemoGeomStream {
+            get {
+                object obj = ResourceManager.GetObject("RemoGeomStream", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
@@ -207,6 +257,46 @@ namespace RemoSharp.Properties {
             get {
                 object obj = ResourceManager.GetObject("RemoSharp", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RemoSharpIcon {
+            get {
+                object obj = ResourceManager.GetObject("RemoSharpIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon RemoSharpIconGHicon {
+            get {
+                object obj = ResourceManager.GetObject("RemoSharpIconGHicon", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon RemoSharpIconGHiconSmall {
+            get {
+                object obj = ResourceManager.GetObject("RemoSharpIconGHiconSmall", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap RemoSharpIconGHiconSmall1 {
+            get {
+                object obj = ResourceManager.GetObject("RemoSharpIconGHiconSmall1", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         
@@ -233,9 +323,39 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon RotatePlane {
+            get {
+                object obj = ResourceManager.GetObject("RotatePlane", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Script_Checker {
             get {
                 object obj = ResourceManager.GetObject("Script_Checker", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon send {
+            get {
+                object obj = ResourceManager.GetObject("send", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon Server_Addresses {
+            get {
+                object obj = ResourceManager.GetObject("Server_Addresses", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
@@ -263,9 +383,39 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon Steam_Machina {
+            get {
+                object obj = ResourceManager.GetObject("Steam_Machina", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon Sync_Camera {
             get {
                 object obj = ResourceManager.GetObject("Sync_Camera", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon SyncCanvas {
+            get {
+                object obj = ResourceManager.GetObject("SyncCanvas", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon SyncGHviewport {
+            get {
+                object obj = ResourceManager.GetObject("SyncGHviewport", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
@@ -306,6 +456,16 @@ namespace RemoSharp.Properties {
         internal static System.Drawing.Icon WS_BFF {
             get {
                 object obj = ResourceManager.GetObject("WS_BFF", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon WSC {
+            get {
+                object obj = ResourceManager.GetObject("WSC", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }

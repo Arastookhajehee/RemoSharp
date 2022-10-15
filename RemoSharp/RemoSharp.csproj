@@ -33,33 +33,45 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AdvancedStringBuilder, Version=0.1.0.0, Culture=neutral, PublicKeyToken=e818a2fc08933ddb, processorArchitecture=MSIL">
+      <HintPath>..\packages\AdvancedStringBuilder.0.1.0\lib\net45\AdvancedStringBuilder.dll</HintPath>
+    </Reference>
     <Reference Include="GHCustomControls">
       <HintPath>..\..\dlls\GHCustomControls.dll</HintPath>
+    </Reference>
+    <Reference Include="GH_IO">
+      <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Grasshopper">
+      <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RhinoCommon">
+      <HintPath>C:\Program Files\Rhino 7\System\RhinoCommon.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ScriptComponents">
       <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\ScriptComponents.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.0.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="RhinoCommon">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\System\rhinocommon.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="WebMarkupMin.Core, Version=2.9.0.0, Culture=neutral, PublicKeyToken=99472178d266584b, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebMarkupMin.Core.2.9.0\lib\net45\WebMarkupMin.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Grasshopper">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="GH_IO">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Rhino 6\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="websocket-sharp, Version=1.0.2.32519, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+      <HintPath>..\packages\WebSocketSharp-NonPreRelease.1.0.0\lib\net35\websocket-sharp.dll</HintPath>
     </Reference>
     <Reference Include="WindowsInput">
       <HintPath>..\..\dlls\WindowsInput.dll</HintPath>
@@ -69,13 +81,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
-    <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreen.cs" />
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
-    <Compile Include="Distributors\Distributor.cs" />
+    <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
     <Compile Include="Distributors\RemoCommands.cs" />
+    <Compile Include="GeometryStreamIPSet.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GeometryStreamIPSet.Designer.cs">
+      <DependentUpon>GeometryStreamIPSet.cs</DependentUpon>
+    </Compile>
     <Compile Include="RemoCSharp\EavesDrop.cs" />
-    <Compile Include="Canvas-Cam Sync\GH_CanvasBoundsLocalWSaddress.cs" />
     <Compile Include="RemoCSharp\Output_Grip.cs" />
     <Compile Include="RemoCSharp\Output_Grip_List.cs" />
     <Compile Include="RemoCSharp\Output_Grip_Tree.cs" />
@@ -84,30 +101,51 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Parameters\RemoButton.cs" />
-    <Compile Include="Parameters\RemoColorSwatch.cs" />
+    <Compile Include="RemoCSharp\ServerAddress.cs" />
+    <Compile Include="RemoParams\RemoButton.cs" />
+    <Compile Include="RemoParams\RemoColorSwatch.cs" />
     <Compile Include="Distributors\RemoCompSource.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
-    <Compile Include="Parameters\RemoPanel.cs" />
+    <Compile Include="RemoParams\RemoPanel.cs" />
     <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
+    <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
+    <Compile Include="RemoGeom\RemoGeomParser.cs" />
+    <Compile Include="RemoGeom\RemoGeomStreamer.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Parameters\RemoSlider.cs" />
-    <Compile Include="Parameters\RemoToggle.cs" />
+    <Compile Include="RemoParams\RemoSlider.cs" />
+    <Compile Include="RemoParams\RemoToggle.cs" />
     <Compile Include="RemoCSharp\Script_Checker.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
     <Compile Include="RemoCSharp\TextNumber.cs" />
     <Compile Include="RemoCSharp\TextPoint.cs" />
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
+    <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
+    <Compile Include="RT Robotics\Deserialize_Machina_Actions.cs" />
+    <Compile Include="RT Robotics\Serialize_Machina_Action.cs" />
+    <Compile Include="TabProperties.cs" />
+    <Compile Include="Utilities\GHL.cs" />
+    <Compile Include="Utilities\RotatePlane.cs" />
+    <Compile Include="Utilities\Utilites.cs" />
+    <Compile Include="WebSocketClient\WsAddress.cs" />
+    <Compile Include="WebSocketClient\WsClientComponent.cs" />
+    <Compile Include="WebSocketClient\WsClientRecv.cs" />
+    <Compile Include="WebSocketClient\WsClientSend.cs" />
+    <Compile Include="WebSocketClient\WsClientStart.cs" />
+    <Compile Include="WebSocketClient\WsObject.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="GeometryStreamIPSet.resx">
+      <DependentUpon>GeometryStreamIPSet.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="Resources\RemoSharp.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -185,7 +223,60 @@
   <ItemGroup>
     <None Include="images\1-1.ico" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="images\receive.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\WSC.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\send.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoGeomParser.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoGeomStream.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSharpIconGHicon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSharpIconGHiconSmall.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\SyncCanvas.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\SyncGHviewport.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RemoSharpIconGHiconSmall.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RemoSharpIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Machina_NET_KUKA_Online\src\Machina\Machina.csproj">
+      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
+      <Name>Machina</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\ReadMachinaStream.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RotatePlane.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Steam Machina.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\GHL.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Server_Addresses.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
