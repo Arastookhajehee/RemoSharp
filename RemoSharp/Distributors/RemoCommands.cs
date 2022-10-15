@@ -979,7 +979,6 @@ namespace RemoSharp
             // that we need to add it to the grasshopper document
             // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
             var myObject = (IGH_DocumentObject)Activator.CreateInstance(type);
-            //myObject.NewInstanceGuid(new Guid(newGuid));
             // creating atts to create the pivot point
             // this pivot point can be anywhere
             myObject.CreateAttributes();
@@ -993,7 +992,7 @@ namespace RemoSharp
 
             try
             {
-                IGH_Component gh_Component = (IGH_Component)myObject;
+                IGH_Component gh_Component = (IGH_Component) myObject;
                 gh_Component.Params.RepairParamAssociations();
                 // making sure the update argument is false to prevent GH crashes
                 thisDoc.AddObject(gh_Component, false);
