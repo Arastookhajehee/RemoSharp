@@ -47,7 +47,7 @@ namespace RemoSharp
 
         public string currentStringCommand = "";
 
-        
+
 
         /// <summary>
         /// Initializes a new instance of the RemoCommands class.
@@ -69,7 +69,7 @@ namespace RemoSharp
             pushButton1.OnValueChanged += PushButton1_OnValueChanged;
             AddCustomControl(pushButton1);
 
-            pManager.AddTextParameter("DistroCommand", "DstCmd", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.list,new List<string> {""});
+            pManager.AddTextParameter("DistroCommand", "DstCmd", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.list, new List<string> { "" });
         }
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -80,7 +80,7 @@ namespace RemoSharp
                 System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 662, pivot.Y - 40);
                 System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 490, pivot.Y + 9);
                 System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 280, pivot.Y);
-                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X -150, pivot.Y +10);
+                System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 150, pivot.Y + 10);
 
                 Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
                 panel.CreateAttributes();
@@ -188,7 +188,7 @@ namespace RemoSharp
 
             if (cmds[0] == "MoveComp")
             {
-                
+
                 var currentSelection = this.OnPingDocument().SelectedObjects();
                 OnPingDocument().DeselectAll();
 
@@ -214,7 +214,7 @@ namespace RemoSharp
                 {
                     GH_RelevantObjectData currentGrip = new GH_RelevantObjectData(selObj.Attributes.Pivot);
                     grip.CreateObjectData(selObj);
-                    this.OnPingDocument().Select(grip,true,false);
+                    this.OnPingDocument().Select(grip, true, false);
                 }
 
                 return;
@@ -238,6 +238,7 @@ namespace RemoSharp
                         int accuracy = Convert.ToInt32(cmds[7]);
                         GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
                         GH_NumberSlider sliderComponent = new GH_NumberSlider();
+                        //sliderComponent.NewInstanceGuid(new Guid(newGuid));
                         sliderComponent.CreateAttributes();
                         sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
                         sliderComponent.Slider.Minimum = minBound;
@@ -279,6 +280,7 @@ namespace RemoSharp
                         }
 
                         GH_Panel panelComponent = new GH_Panel();
+                        //panelComponent.NewInstanceGuid(new Guid(newGuid));
                         panelComponent.CreateAttributes();
                         panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
                         panelComponent.Properties.Multiline = multiLine;
@@ -513,10 +515,10 @@ namespace RemoSharp
                 srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
                 tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
 
-                for (int i = 0; i < 21; i++)
+                for (int i = 0; i < 6; i++)
                 {
-                    double ratio = (double)i / 20.0;
-                    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(200 * ratio), srcPivotY);
+                    double ratio = (double)i / 5;
+                    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(50 * ratio), srcPivotY);
                     var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
                     //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
                     //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
@@ -702,7 +704,7 @@ namespace RemoSharp
                 var otherComp = this.OnPingDocument().Objects[otherCompInx];
                 string compName = otherComp.GetType().ToString();
                 GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
-                
+
                 if (!otherComp.Attributes.Selected)
                 {
 
@@ -830,15 +832,16 @@ namespace RemoSharp
                 var otherComp = this.OnPingDocument().Objects[deletionIndex];
                 this.OnPingDocument().RemoveObject(otherComp, true);
             }
-            catch (Exception e){
+            catch (Exception e)
+            {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
             }
-            
+
 
         }
 
         // RemoParam Functions (Most of them schedule solutions, so their realtime use might freeze the main GH file)
-        
+
         private int RemoParamFindObjectOnCanvasByCoordinates(int compCoordX, int compCoordY, string objectType)
         {
             // getting the active instances of the GH document and current component
@@ -870,7 +873,7 @@ namespace RemoSharp
 
                         }
                     }
-                    
+
                 }
             }
             catch { }
@@ -885,26 +888,26 @@ namespace RemoSharp
             button.ExpireSolution(true);
         }
         private void ToggleBooleanToggle(GH_Document doc)
-        {  
+        {
             GH_BooleanToggle toggle = (GH_BooleanToggle)this.OnPingDocument().Objects[RemoParamIndex];
             toggle.Value = toggleVal;
             toggle.ExpireSolution(true);
         }
         private void WriteToPanel(GH_Document doc)
         {
-            GH_Panel panel = (GH_Panel) this.OnPingDocument().Objects[RemoParamIndex];
+            GH_Panel panel = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
             panel.UserText = text;
             panel.ExpireSolution(true);
         }
         private void ColorSwatchChange(GH_Document doc)
         {
-            GH_ColourSwatch colorSW = (GH_ColourSwatch) this.OnPingDocument().Objects[RemoParamIndex];
+            GH_ColourSwatch colorSW = (GH_ColourSwatch)this.OnPingDocument().Objects[RemoParamIndex];
             colorSW.SwatchColour = colorVal;
             colorSW.ExpireSolution(true);
         }
         private void AddValueToSlider(GH_Document doc)
-        {           
-            GH_NumberSlider numSlider = (GH_NumberSlider) this.OnPingDocument().Objects[RemoParamIndex];
+        {
+            GH_NumberSlider numSlider = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
             numSlider.SetSliderValue(val);
         }
 
@@ -976,6 +979,7 @@ namespace RemoSharp
             // that we need to add it to the grasshopper document
             // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
             var myObject = (IGH_DocumentObject)Activator.CreateInstance(type);
+            //myObject.NewInstanceGuid(new Guid(newGuid));
             // creating atts to create the pivot point
             // this pivot point can be anywhere
             myObject.CreateAttributes();
@@ -989,21 +993,21 @@ namespace RemoSharp
 
             try
             {
-                IGH_Component gh_Component = (IGH_Component) myObject;
+                IGH_Component gh_Component = (IGH_Component)myObject;
                 gh_Component.Params.RepairParamAssociations();
                 // making sure the update argument is false to prevent GH crashes
                 thisDoc.AddObject(gh_Component, false);
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(gh_Component.Attributes.Pivot);
                 //this.OnPingDocument().Select(grip, false, true);
             }
-            catch 
+            catch
             {
                 // making sure the update argument is false to prevent GH crashes
                 thisDoc.AddObject(myObject, false);
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(myObject.Attributes.Pivot);
                 //this.OnPingDocument().Select(grip, false, true);
             }
-            
+
         }
 
         int RemoConnectFindComponentOnCanvasByCoordinates(int compCoordX, int compCoordY)
@@ -1080,13 +1084,13 @@ namespace RemoSharp
             //var sourceComponent = (GH_Component)this.OnPingDocument().Objects[srcComp];
             //var closeComponent = (GH_Component)this.OnPingDocument().Objects[tgtComp];
 
-            
 
-            
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX -30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
 
-            for (int i = -60; i < 61; i++)
+
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
+
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1104,7 +1108,7 @@ namespace RemoSharp
                 foundIn.AddSource((IGH_Param)foundOut);
             }
 
-            
+
 
         }
 
@@ -1112,11 +1116,11 @@ namespace RemoSharp
         public void CompToSpecial(GH_Document doc)
         {
 
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1147,11 +1151,11 @@ namespace RemoSharp
         public void SpecialToComp(GH_Document doc)
         {
 
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
 
                 int offset = i;
@@ -1180,11 +1184,11 @@ namespace RemoSharp
         public void SpecialToSpecial(GH_Document doc)
         {
 
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1219,11 +1223,11 @@ namespace RemoSharp
         public void DisCompFromComp(GH_Document doc)
         {
 
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1245,11 +1249,11 @@ namespace RemoSharp
         public void DisCompFromSpecial(GH_Document doc)
         {
 
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1278,11 +1282,11 @@ namespace RemoSharp
         // 7 SpecialFromComp
         public void DisSpecialFromComp(GH_Document doc)
         {
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
@@ -1310,11 +1314,11 @@ namespace RemoSharp
         // 8 SpecialFromSpecial
         public void DisSpecialFromSpecial(GH_Document doc)
         {
-            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 30, connectionMouseDownY));
-            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 30, connectionMouseUpY));
+            var foundOut = this.OnPingDocument().FindOutputParameter(new System.Drawing.Point(connectionMouseDownX - 5, connectionMouseDownY));
+            var foundIn = this.OnPingDocument().FindInputParameter(new System.Drawing.Point(connectionMouseUpX + 5, connectionMouseUpY));
 
 
-            for (int i = -60; i < 61; i++)
+            for (int i = -7; i < 8; i++)
             {
                 int offset = i;
                 if (foundOut == null || foundOut.ToString().Equals(""))
