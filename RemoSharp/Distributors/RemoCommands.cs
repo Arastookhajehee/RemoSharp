@@ -22,6 +22,7 @@ namespace RemoSharp
         private string currentXMLString = "";
         private int otherCompInx = -1;
         public int deletionIndex = -1;
+        public Guid compGuid = Guid.Empty;
 
         // public RemoParam Persistent Variables
         public decimal val = 0;
@@ -38,12 +39,16 @@ namespace RemoSharp
         //RemoExecutor (connector and Creation) public persistent variables
         public int srcComp = -1;
         public int tgtComp = -1;
+        public int rightShifttgtComp = -1;
         public int srcCompOutputIndex = -1;
         public int tgtCompInputIndex = -1;
         public int connectionMouseDownX = -1;
         public int connectionMouseDownY = -1;
         public int connectionMouseUpX = -1;
         public int connectionMouseUpY = -1;
+
+        //RemoConnect variables
+        bool replaceConnections = false;
 
         public string currentStringCommand = "";
 
@@ -146,7 +151,7 @@ namespace RemoSharp
                 command = commandList[0];
             }
 
-            if (command == null || command == "" || command == "Hello World") return;
+            if (string.IsNullOrEmpty(command) || command == "Hello World") return;
 
             try
             {
@@ -224,19 +229,38 @@ namespace RemoSharp
             {
 
                 string typeName = cmds[1];
-                int pivotX = Convert.ToInt32(cmds[2]);
-                int pivotY = Convert.ToInt32(cmds[3]);
+
+                if (typeName.Contains("RemoSharp.WsClientCat")) return;
+                if (typeName.Equals("RemoSharp.RemoButton") ||
+                    typeName.Equals("RemoSharp.RemoColorSwatch") ||
+                    typeName.Equals("RemoSharp.RemoPanel") ||
+                    typeName.Equals("RemoSharp.RemoToggle") ||
+                    typeName.Equals("RemoSharp.RemoSlider") ) return;
+
+                Guid newCompGuid = Guid.Parse(cmds[2]);
+                int pivotX = Convert.ToInt32(cmds[3]);
+                int pivotY = Convert.ToInt32(cmds[4]);
+
+                try
+                {
+                    PointF tempPivot = new PointF(pivotX, pivotY);
+                    var currentObject = this.OnPingDocument().FindObject(tempPivot, 2);
+                    if (currentObject.GetType().ToString().Equals(typeName)) return;
+                }
+                catch
+                {
+                }
 
                 try
                 {
                     if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
                     {
 
-                        decimal minBound = Convert.ToDecimal(cmds[4]);
-                        decimal maxBound = Convert.ToDecimal(cmds[5]);
-                        decimal currentValue = Convert.ToDecimal(cmds[6]);
-                        int accuracy = Convert.ToInt32(cmds[7]);
-                        GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+                        decimal minBound = Convert.ToDecimal(cmds[5]);
+                        decimal maxBound = Convert.ToDecimal(cmds[6]);
+                        decimal currentValue = Convert.ToDecimal(cmds[7]);
+                        int accuracy = Convert.ToInt32(cmds[8]);
+                        GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[9]);
                         GH_NumberSlider sliderComponent = new GH_NumberSlider();
                         //sliderComponent.NewInstanceGuid(new Guid(newGuid));
                         sliderComponent.CreateAttributes();
@@ -247,6 +271,7 @@ namespace RemoSharp
                         sliderComponent.Slider.DecimalPlaces = accuracy;
                         sliderComponent.Slider.Type = acc;
                         sliderComponent.Attributes.Selected = false;
+                        sliderComponent.NewInstanceGuid(newCompGuid);
 
                         this.OnPingDocument().AddObject(sliderComponent, false);
 
@@ -258,16 +283,16 @@ namespace RemoSharp
                     if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
                     {
 
-                        bool multiLine = Convert.ToBoolean(cmds[4]);
-                        bool drawIndicies = Convert.ToBoolean(cmds[5]);
-                        bool drawPaths = Convert.ToBoolean(cmds[6]);
-                        bool wrap = Convert.ToBoolean(cmds[7]);
-                        GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[8]);
-                        int boundSizeX = Convert.ToInt32(cmds[9]);
-                        int boundSizeY = Convert.ToInt32(cmds[10]);
+                        bool multiLine = Convert.ToBoolean(cmds[5]);
+                        bool drawIndicies = Convert.ToBoolean(cmds[6]);
+                        bool drawPaths = Convert.ToBoolean(cmds[7]);
+                        bool wrap = Convert.ToBoolean(cmds[8]);
+                        GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[9]);
+                        int boundSizeX = Convert.ToInt32(cmds[10]);
+                        int boundSizeY = Convert.ToInt32(cmds[11]);
 
                         string contentText = "";
-                        for (int i = 11; i < cmds.Length; i++)
+                        for (int i = 12; i < cmds.Length; i++)
                         {
                             if (i < cmds.Length - 1)
                             {
@@ -291,6 +316,7 @@ namespace RemoSharp
                         panelComponent.SetUserText(contentText);
                         panelComponent.Attributes.Bounds = new RectangleF(pivotX, pivotY, boundSizeX, boundSizeY);
                         panelComponent.Attributes.Selected = false;
+                        panelComponent.NewInstanceGuid(newCompGuid);
 
                         this.OnPingDocument().AddObject(panelComponent, false);
                         //var obj = panelComponent;
@@ -334,6 +360,7 @@ namespace RemoSharp
                         remoGeomParser.Attributes.Pivot = pivot;
                         remoGeomParser.Params.RepairParamAssociations();
                         remoGeomParser.Attributes.Selected = false;
+                        remoGeomParser.NewInstanceGuid(newCompGuid);
 
                         this.OnPingDocument().ScheduleSolution(1, doc =>
                         {
@@ -389,6 +416,7 @@ namespace RemoSharp
                         remoGeom.Attributes.Pivot = pivot;
                         remoGeom.Params.RepairParamAssociations();
                         remoGeom.Attributes.Selected = false;
+                        remoGeom.NewInstanceGuid(newCompGuid);
 
                         this.OnPingDocument().ScheduleSolution(1, doc =>
                         {
@@ -409,7 +437,7 @@ namespace RemoSharp
                     }
                     else
                     {
-                        RecognizeAndMake(typeName, pivotX, pivotY);
+                        RecognizeAndMake(typeName, pivotX, pivotY, newCompGuid);
                     }
                 }
                 catch (Exception e)
@@ -504,6 +532,8 @@ namespace RemoSharp
                 int tgtPivotY = Convert.ToInt32(cmds[8]);
                 tgtCompInputIndex = Convert.ToInt32(cmds[6]);
 
+                if (connect && disconnect) replaceConnections = true;
+
                 connectionMouseDownX = srcPivotX;
                 connectionMouseDownY = srcPivotY;
                 connectionMouseUpX = tgtPivotX;
@@ -515,21 +545,30 @@ namespace RemoSharp
                 srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
                 tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
 
-                for (int i = 0; i < 6; i++)
-                {
-                    double ratio = (double)i / 5;
-                    int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(50 * ratio), srcPivotY);
-                    var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
-                    //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
-                    //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
-                    //if (inputIsSlider || inputIsDigitScroller)
-                    //{
-                    //    srcComp = offsetSrcComp;
-                    //}
-                }
+                rightShifttgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX + 5, tgtPivotY);
+
+                //for (int i = 0; i < 6; i++)
+                //{
+                //    double ratio = (double)i / 5;
+                //    //int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(50 * ratio), srcPivotY);
+                //    //var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
+                //    //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
+                //    //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
+                //    //if (inputIsSlider || inputIsDigitScroller)
+                //    //{
+                //    //    srcComp = offsetSrcComp;
+                //    //}
+                //}
 
                 var srcObject = ghObjectsList[srcComp];
                 var tgtObject = ghObjectsList[tgtComp];
+                var rightSiftTgtObject = ghObjectsList[rightShifttgtComp];
+
+                if (rightSiftTgtObject.GetType().ToString().Contains("Grasshopper.Kernel.Parameters"))
+                {
+                    tgtObject = rightSiftTgtObject;
+                    tgtComp = rightShifttgtComp;
+                }
 
                 string srcType = CategoryString(srcComp);
                 string tgtType = CategoryString(tgtComp);
@@ -722,13 +761,23 @@ namespace RemoSharp
                 bool delete = Convert.ToBoolean(cmds[1]);
                 int compX = Convert.ToInt32(cmds[2]);
                 int compY = Convert.ToInt32(cmds[3]);
+                compGuid = Guid.Parse(cmds[4]);
 
                 if (delete)
                 {
-                    deletionIndex = DeletionCommandFindComponentOnCanvasByCoordinates(compX, compY);
+                    //deletionIndex = DeletionCommandFindComponentOnCanvasByCoordinates(compX, compY);
 
-                    this.OnPingDocument().ScheduleSolution(0, DeleteComponent);
-                    //Grasshopper.Instances.RedrawCanvas();
+                    try
+                    {
+                        var otherComp = this.OnPingDocument().FindObject(compGuid, false);
+                        this.OnPingDocument().ScheduleSolution(0, DeleteComponent);
+                        //Grasshopper.Instances.RedrawCanvas();
+                    }
+                    catch
+                    {
+                    }
+
+
                 }
             }
 
@@ -829,7 +878,8 @@ namespace RemoSharp
         {
             try
             {
-                var otherComp = this.OnPingDocument().Objects[deletionIndex];
+                //var otherComp = this.OnPingDocument().Objects[deletionIndex];
+                var otherComp = this.OnPingDocument().FindObject(compGuid, false);
                 this.OnPingDocument().RemoveObject(otherComp, true);
             }
             catch (Exception e)
@@ -953,7 +1003,7 @@ namespace RemoSharp
             return objIndex;
         }
 
-        private void RecognizeAndMake(string typeName, int pivotX, int pivotY)
+        private void RecognizeAndMake(string typeName, int pivotX, int pivotY,Guid newCompGuid)
         {
             var thisDoc = this.OnPingDocument();
             // converting the string format of the closest component to an actual type
@@ -994,6 +1044,7 @@ namespace RemoSharp
             {
                 IGH_Component gh_Component = (IGH_Component) myObject;
                 gh_Component.Params.RepairParamAssociations();
+                gh_Component.NewInstanceGuid(newCompGuid);
                 // making sure the update argument is false to prevent GH crashes
                 thisDoc.AddObject(gh_Component, false);
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(gh_Component.Attributes.Pivot);
@@ -1002,6 +1053,7 @@ namespace RemoSharp
             catch
             {
                 // making sure the update argument is false to prevent GH crashes
+                myObject.NewInstanceGuid(newCompGuid);
                 thisDoc.AddObject(myObject, false);
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(myObject.Attributes.Pivot);
                 //this.OnPingDocument().Select(grip, false, true);
@@ -1104,6 +1156,8 @@ namespace RemoSharp
 
             if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
             {
+                if (replaceConnections) foundIn.RemoveAllSources();
+                replaceConnections = false;
                 foundIn.AddSource((IGH_Param)foundOut);
             }
 
@@ -1136,12 +1190,16 @@ namespace RemoSharp
             {
                 if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
                 {
+                    if (replaceConnections) foundIn.RemoveAllSources();
+                    replaceConnections = false;
                     foundIn.AddSource((IGH_Param)foundOut);
                 }
             }
             else
             {
                 var closeComponent = (IGH_Param)this.OnPingDocument().Objects[tgtComp];
+                if (replaceConnections) closeComponent.RemoveAllSources();
+                replaceConnections = false;
                 closeComponent.AddSource((IGH_Param)foundOut);
             }
         }
@@ -1169,12 +1227,16 @@ namespace RemoSharp
             }
             if (foundOut != null && foundIn != null)
             {
+                if (replaceConnections) foundIn.RemoveAllSources();
+                replaceConnections = false;
                 foundIn.AddSource((IGH_Param)foundOut);
             }
             else
             {
                 var sourceComponent = (IGH_Param)this.OnPingDocument().Objects[srcComp];
 
+                if (replaceConnections) foundIn.RemoveAllSources();
+                replaceConnections = false;
                 foundIn.AddSource(sourceComponent);
             }
         }
@@ -1203,6 +1265,8 @@ namespace RemoSharp
             {
                 if (foundIn.Attributes.Parent.DocObject.InstanceGuid != foundOut.Attributes.Parent.DocObject.InstanceGuid)
                 {
+                    if (replaceConnections) foundIn.RemoveAllSources();
+                    replaceConnections = false;
                     foundIn.AddSource((IGH_Param)foundOut);
                 }
             }
@@ -1213,6 +1277,8 @@ namespace RemoSharp
 
                 if (sourceComponent.InstanceGuid != closeComponent.InstanceGuid)
                 {
+                    if (replaceConnections) closeComponent.RemoveAllSources();
+                    replaceConnections = false; 
                     closeComponent.AddSource((IGH_Param)sourceComponent);
                 }
             }

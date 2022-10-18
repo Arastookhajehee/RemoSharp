@@ -70,6 +70,8 @@ public class WsClientSend : WsClientComponent
         if (!DA.GetData(0, ref wscObj)) return;
         if (!DA.GetData(1, ref message)) return;
 
+        if (string.IsNullOrEmpty(message)) return;
+
         wscObj.send(message);
     }//eof
 

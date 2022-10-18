@@ -120,7 +120,10 @@ public class WsClientRecv : WsClientComponent
             }
         }
 
-        DA.SetData(0, this.wscObj.message);
+        string msgCheck = this.wscObj.message;
+        if (string.IsNullOrEmpty(msgCheck)) return;
+
+            DA.SetData(0, this.wscObj.message);
         DA.SetData(1, WsObjectStatus.GetStatusName(this.wscObj.status));
         this.onMessageTriggered = false;
     }
