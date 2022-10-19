@@ -53,6 +53,8 @@ namespace RemoSharp
                 toggle.CreateAttributes();
                 toggle.Attributes.Pivot = togglePivot;
                 toggle.NickName = "RemoSharp";
+                toggle.Value = true;
+                toggle.ExpireSolution(true);
 
                 Grasshopper.Kernel.Special.GH_Timer gH_Timer = null;
 

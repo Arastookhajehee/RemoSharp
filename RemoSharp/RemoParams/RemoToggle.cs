@@ -25,6 +25,8 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddBooleanParameter("Toggle", "Tgl", "Toggle a Boolean Toggle on the main remote GH_Canvas", GH_ParamAccess.item, true);
+            pManager.AddTextParameter("Username_ID", "user", "The name of this canvas", GH_ParamAccess.item);
+
         }
 
         /// <summary>
@@ -43,17 +45,20 @@ namespace RemoSharp
         {
             Component = this;
             GrasshopperDocument = this.OnPingDocument();
-
+            string username = "";
             bool ToggleSwitch = false;
             DA.GetData(0, ref ToggleSwitch);
+            DA.GetData(1, ref username);
 
             int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -30;
             int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 27;
 
-            string outputData = "RemoParam,"
+            Guid toggleGuid = this.Params.Input[0].Sources[0].InstanceGuid;
+
+            string outputData = "ID_" + username + ",RemoParam,"
                 + coordX + ","
                 + coordY + ","
-                + "ToggleBooleanToggle," + ToggleSwitch;
+                + "ToggleBooleanToggle," + ToggleSwitch + "," + toggleGuid.ToString();
             DA.SetData(0, outputData);
         }
 

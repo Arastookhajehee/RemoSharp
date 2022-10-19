@@ -35,6 +35,7 @@ namespace RemoSharp
         public int remoParamX = -1;
         public int remoParamY = -1;
         public int RemoParamIndex = -1;
+        public Guid remoParamGuid = Guid.Empty;
 
         //RemoExecutor (connector and Creation) public persistent variables
         public int srcComp = -1;
@@ -201,6 +202,11 @@ namespace RemoSharp
                 int compY = Convert.ToInt32(cmds[2]);
                 int trsX = Convert.ToInt32(cmds[3]);
                 int trsY = Convert.ToInt32(cmds[4]);
+
+                //Guid moveCompGuid = Guid.Parse(cmds[5]);
+                //var otherComp = this.OnPingDocument().FindObject(moveCompGuid, false);
+                //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+
 
                 int otherCompInx = MoveCompFindComponentOnCanvasByCoordinates(compX, compY);
                 var otherComp = this.OnPingDocument().Objects[otherCompInx];
@@ -648,6 +654,7 @@ namespace RemoSharp
                 {
                     RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ButtonObject");
                     buttonVal = Convert.ToBoolean(cmds[4]);
+                    remoParamGuid = Guid.Parse(cmds[5]);
                     this.OnPingDocument().ScheduleSolution(0, PushTheButton);
                     return;
                 }
@@ -655,34 +662,38 @@ namespace RemoSharp
                 {
                     RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_BooleanToggle");
                     toggleVal = Convert.ToBoolean(cmds[4]);
+                    remoParamGuid = Guid.Parse(cmds[5]);
                     this.OnPingDocument().ScheduleSolution(0, ToggleBooleanToggle);
                     return;
                 }
                 if (cmds[3].Equals("WriteToPanel"))
                 {
-                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_Panel");
+                    remoParamGuid = Guid.Parse(cmds[4]);
+
+                    //RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_Panel");
                     text = "";
 
-                    bool multiLine = Convert.ToBoolean(cmds[4]);
-                    bool drawIndicies = Convert.ToBoolean(cmds[5]);
-                    bool drawPaths = Convert.ToBoolean(cmds[6]);
-                    bool wrap = Convert.ToBoolean(cmds[7]);
-                    GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[8]);
-                    int boundSizeX = Convert.ToInt32(cmds[9]);
-                    int boundSizeY = Convert.ToInt32(cmds[10]);
+                    bool multiLine = Convert.ToBoolean(cmds[5]);
+                    bool drawIndicies = Convert.ToBoolean(cmds[6]);
+                    bool drawPaths = Convert.ToBoolean(cmds[7]);
+                    bool wrap = Convert.ToBoolean(cmds[8]);
+                    GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[9]);
+                    //int boundSizeX = Convert.ToInt32(cmds[9]);
+                    //int boundSizeY = Convert.ToInt32(cmds[10]);
 
-                    GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
+                    //GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
+                    GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().FindObject(remoParamGuid, false);
 
-                    panelComponent.CreateAttributes();
-                    panelComponent.Attributes.Pivot = new PointF(compLocX + 10, compLocY + 5);
+                    //panelComponent.CreateAttributes();
+                    //panelComponent.Attributes.Pivot = new PointF(compLocX + 10, compLocY + 5);
                     panelComponent.Properties.Multiline = multiLine;
                     panelComponent.Properties.DrawIndices = drawIndicies;
                     panelComponent.Properties.DrawPaths = drawPaths;
                     panelComponent.Properties.Wrap = wrap;
                     panelComponent.Properties.Alignment = alignment;
-                    panelComponent.Attributes.Bounds = new RectangleF(compLocX + 10, compLocY + 5, boundSizeX, boundSizeY);
+                    //panelComponent.Attributes.Bounds = new RectangleF(compLocX + 10, compLocY + 5, boundSizeX, boundSizeY);
 
-                    for (int i = 11; i < cmds.Length; i++)
+                    for (int i = 10; i < cmds.Length; i++)
                     {
                         if (i < cmds.Length - 1)
                         {
@@ -694,6 +705,7 @@ namespace RemoSharp
                         }
                     }
 
+                    
                     this.OnPingDocument().ScheduleSolution(0, WriteToPanel);
                     return;
                 }
@@ -704,6 +716,7 @@ namespace RemoSharp
                     int gVal = Convert.ToInt32(cmds[5]);
                     int bVal = Convert.ToInt32(cmds[6]);
                     int aVal = Convert.ToInt32(cmds[7]);
+                    remoParamGuid = Guid.Parse(cmds[8]);
                     colorVal = Color.FromArgb(aVal, rVal, gVal, bVal);
                     this.OnPingDocument().ScheduleSolution(0, ColorSwatchChange);
                     return;
@@ -719,6 +732,8 @@ namespace RemoSharp
                     val = Convert.ToDecimal(cmds[6]);
                     int accuracy = Convert.ToInt32(cmds[7]);
                     GH_SliderAccuracy sliderType = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
+
+                    remoParamGuid = Guid.Parse(cmds[9]);
 
                     GH_NumberSlider panelComponent = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
                     panelComponent.Slider.Minimum = minBound;
@@ -933,31 +948,39 @@ namespace RemoSharp
 
         private void PushTheButton(GH_Document doc)
         {
-            GH_ButtonObject button = (GH_ButtonObject)this.OnPingDocument().Objects[RemoParamIndex];
+            //GH_ButtonObject button = (GH_ButtonObject)this.OnPingDocument().Objects[RemoParamIndex];
+            GH_ButtonObject button = (GH_ButtonObject)this.OnPingDocument().FindObject(remoParamGuid, false);
+
+            //remoParamGuid
             button.ButtonDown = buttonVal;
             button.ExpireSolution(true);
         }
         private void ToggleBooleanToggle(GH_Document doc)
         {
-            GH_BooleanToggle toggle = (GH_BooleanToggle)this.OnPingDocument().Objects[RemoParamIndex];
+            //GH_BooleanToggle toggle = (GH_BooleanToggle)this.OnPingDocument().Objects[RemoParamIndex];
+            GH_BooleanToggle toggle = (GH_BooleanToggle)this.OnPingDocument().FindObject(remoParamGuid, false);
             toggle.Value = toggleVal;
             toggle.ExpireSolution(true);
         }
         private void WriteToPanel(GH_Document doc)
         {
-            GH_Panel panel = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
-            panel.UserText = text;
+            //GH_Panel panel = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
+            GH_Panel panel = (GH_Panel)this.OnPingDocument().FindObject(remoParamGuid, false);
+            panel.SetUserText(text);
+            //this.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "panel found");
             panel.ExpireSolution(true);
         }
         private void ColorSwatchChange(GH_Document doc)
         {
-            GH_ColourSwatch colorSW = (GH_ColourSwatch)this.OnPingDocument().Objects[RemoParamIndex];
+            //GH_ColourSwatch colorSW = (GH_ColourSwatch)this.OnPingDocument().Objects[RemoParamIndex];
+            GH_ColourSwatch colorSW = (GH_ColourSwatch)this.OnPingDocument().FindObject(remoParamGuid, false);
             colorSW.SwatchColour = colorVal;
             colorSW.ExpireSolution(true);
         }
         private void AddValueToSlider(GH_Document doc)
         {
-            GH_NumberSlider numSlider = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
+            //GH_NumberSlider numSlider = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
+            GH_NumberSlider numSlider = (GH_NumberSlider)this.OnPingDocument().FindObject(remoParamGuid, false);
             numSlider.SetSliderValue(val);
         }
 

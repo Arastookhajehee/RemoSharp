@@ -150,12 +150,23 @@ namespace RemoSharp
                                 int moveX = upPntX - downPntX;
                                 int moveY = upPntY - downPntY;
 
+                                //var movedObject = this.OnPingDocument().FindObject(new PointF(upPntX, upPntY), 1);
+                                //string movedObjGuid = movedObject.InstanceGuid.ToString();
+
                                 if (downPntX != upPntX && downPntY != upPntY)
                                 {
-                                    command = "MoveComp," + downPntX + "," + downPntY + "," + moveX + "," + moveY;
-                                    downPnt = new Point2d(0, 0);
-                                    upPnt = new Point2d(0, 0);
-                                    commandReset = 0;
+                                    //try
+                                    //{
+                                        //command = "MoveComp," + downPntX + "," + downPntY + "," + moveX + "," + moveY + "," + movedObjGuid;
+                                        command = "MoveComp," + downPntX + "," + downPntY + "," + moveX + "," + moveY;
+                                        downPnt = new Point2d(0, 0);
+                                        upPnt = new Point2d(0, 0);
+                                        commandReset = 0;
+                                    //}
+                                    //catch
+                                    //{
+                                    //    command = "";
+                                    //}
                                 }
                                 else command = "";
                             }
