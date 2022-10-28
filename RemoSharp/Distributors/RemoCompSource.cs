@@ -134,11 +134,18 @@ namespace RemoSharp
                                     conDiscon = "True,False";
                                 }
 
-                                System.Drawing.PointF sourcePivot = source.Attributes.Pivot;
-                                System.Drawing.PointF targetPivot = target.Attributes.Pivot;
+                                string sourceCoords = source.Attributes.Pivot.X + "," + source.Attributes.Pivot.Y;
+                                string targetCoords = target.Attributes.Pivot.X + "," + target.Attributes.Pivot.Y;
 
-                                command = "RemoConnect" + "," + conDiscon + "," + (int)(sourcePivot.X + 10) + "," + (int)sourcePivot.Y + ",0,0," + (int)targetPivot.X + "," + (int)targetPivot.Y;
+                                string sourceGuid = source.InstanceGuid.ToString() + "," + sourceCoords;
+                                string targetGuid = target.InstanceGuid.ToString() + "," + targetCoords;
+
+                                command = "RemoConnect"
+                                  + "," + conDiscon
+                                  + "," + sourceGuid
+                                  + "," + targetGuid;
                                 commandReset = 0;
+
                             }
                             else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
                             {
@@ -360,6 +367,97 @@ namespace RemoSharp
 
             setup++;
             commandReset++;
+        }
+
+        private System.Guid GetComponentGuidAnd_Input_Index(
+    System.Drawing.Point mouseLocation,
+    int offsetMin,
+    int offsetMax,
+    out int paramIndex,
+    out bool isSpecial)
+        {
+            var component = this.OnPingDocument().FindObject((System.Drawing.PointF)mouseLocation, 2);
+            string componentType = component.GetType().ToString();
+
+            if (componentType.Contains("Grasshopper.Kernel.Special") || componentType.Contains("Grasshopper.Kernel.Parameters"))
+            {
+                System.Guid compGuid = component.InstanceGuid;
+                paramIndex = -1;
+                isSpecial = true;
+                return compGuid;
+            }
+            else
+            {
+
+                var foundInput = this.OnPingDocument().FindInputParameter(mouseLocation);
+                for (int i = offsetMax; i > offsetMin; i -= 3)
+                {
+                    mouseLocation = System.Drawing.Point.Add(mouseLocation, new System.Drawing.Size(i, 0));
+                    foundInput = this.OnPingDocument().FindInputParameter(mouseLocation);
+                    if (foundInput != null) break;
+                }
+                if (foundInput == null)
+                {
+                    paramIndex = -1;
+                    isSpecial = false;
+                    return Guid.Empty;
+                }
+                else
+                {
+                    var foundComponent = (IGH_Component)foundInput.Attributes.Parent.DocObject;
+                    int index = foundComponent.Params.Input.IndexOf(foundInput);
+
+                    paramIndex = index;
+                    isSpecial = false;
+                    return foundComponent.InstanceGuid;
+                }
+            }
+
+        }
+
+        private System.Guid GetComponentGuidAnd_Output_Index(
+          System.Drawing.Point mouseLocation,
+          int offsetMin,
+          int offsetMax,
+          out int paramIndex,
+          out bool isSpecial)
+        {
+            var component = this.OnPingDocument().FindObject((System.Drawing.PointF)mouseLocation, 2);
+            string componentType = component.GetType().ToString();
+
+            if (componentType.Contains("Grasshopper.Kernel.Special") || componentType.Contains("Grasshopper.Kernel.Parameters"))
+            {
+                System.Guid compGuid = component.InstanceGuid;
+                paramIndex = -1;
+                isSpecial = true;
+                return compGuid;
+            }
+            else
+            {
+                var foundOut = this.OnPingDocument().FindOutputParameter(mouseLocation);
+                for (int i = offsetMax; i > offsetMin; i -= 3)
+                {
+                    mouseLocation = System.Drawing.Point.Add(mouseLocation, new System.Drawing.Size(i, 0));
+                    foundOut = this.OnPingDocument().FindOutputParameter(mouseLocation);
+                    if (foundOut != null) break;
+                }
+                if (foundOut == null)
+                {
+                    paramIndex = -1;
+                    isSpecial = false;
+                    return Guid.Empty;
+                }
+                else
+                {
+                    var foundComponent = (IGH_Component)foundOut.Attributes.Parent.DocObject;
+                    int index = foundComponent.Params.Output.IndexOf(foundOut);
+
+                    paramIndex = index;
+                    isSpecial = false;
+                    return foundComponent.InstanceGuid;
+                }
+            }
+
         }
 
         /// <summary>

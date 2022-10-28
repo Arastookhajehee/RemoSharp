@@ -50,6 +50,10 @@ namespace RemoSharp
 
         //RemoConnect variables
         bool replaceConnections = false;
+        public Guid sourceGuid = Guid.Empty;
+        public Guid targetGuid = Guid.Empty;
+        int outputIndex = -1;
+        int inputIndex = -1;
 
         public string currentStringCommand = "";
 
@@ -486,8 +490,8 @@ namespace RemoSharp
             {
                 int pivotX = Convert.ToInt32(cmds[1]);
                 int pivotY = Convert.ToInt32(cmds[2]);
-
-                int compIndex = FindComponentOnCanvasByCoordinates(pivotX, pivotY);
+                bool condition = Convert.ToBoolean(cmds[5]);
+                //int compIndex = FindComponentOnCanvasByCoordinates(pivotX, pivotY);
 
 
 
@@ -495,7 +499,8 @@ namespace RemoSharp
                 {
                     try
                     {
-                        var otherComp = (IGH_Component)this.OnPingDocument().Objects[compIndex];
+                        Guid compGuid = Guid.Parse(cmds[4]);
+                        var otherComp = (IGH_Component)this.OnPingDocument().FindObject(compGuid, false);
                         if (otherComp.Locked == true)
                         {
                             otherComp.Locked = false;
@@ -509,7 +514,8 @@ namespace RemoSharp
                     }
                     catch
                     {
-                        var otherComp = (IGH_Param)this.OnPingDocument().Objects[compIndex];
+                        Guid compGuid = Guid.Parse(cmds[4]);
+                        var otherComp = (IGH_Param)this.OnPingDocument().FindObject(compGuid, false);
                         if (otherComp.Locked == true)
                         {
                             otherComp.Locked = false;
@@ -528,117 +534,107 @@ namespace RemoSharp
 
             if (cmds[0] == "RemoConnect")
             {
-
                 bool connect = Convert.ToBoolean(cmds[1]);
                 bool disconnect = Convert.ToBoolean(cmds[2]);
-                int srcPivotX = Convert.ToInt32(cmds[3]);
-                int srcPivotY = Convert.ToInt32(cmds[4]);
-                srcCompOutputIndex = Convert.ToInt32(cmds[5]);
-                int tgtPivotX = Convert.ToInt32(cmds[7]);
-                int tgtPivotY = Convert.ToInt32(cmds[8]);
-                tgtCompInputIndex = Convert.ToInt32(cmds[6]);
+                System.Guid sourceGuid = Guid.Parse(cmds[3]);
+                int outIndex = Convert.ToInt32(cmds[4]);
+                bool sourceIsSpecial = Convert.ToBoolean(cmds[5]);
+                System.Guid targetGuid = Guid.Parse(cmds[6]);
+                int inIndex = Convert.ToInt32(cmds[7]);
+                bool targetIsSpecial = Convert.ToBoolean(cmds[8]);
 
-                if (connect && disconnect) replaceConnections = true;
-
-                connectionMouseDownX = srcPivotX;
-                connectionMouseDownY = srcPivotY;
-                connectionMouseUpX = tgtPivotX;
-                connectionMouseUpY = tgtPivotY;
-
-                var ghDocument = this.OnPingDocument();
-                var ghObjectsList = ghDocument.Objects;
-
-                srcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX, srcPivotY);
-                tgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX, tgtPivotY);
-
-                rightShifttgtComp = RemoConnectFindComponentOnCanvasByCoordinates(tgtPivotX + 5, tgtPivotY);
-
-                //for (int i = 0; i < 6; i++)
-                //{
-                //    double ratio = (double)i / 5;
-                //    //int offsetSrcComp = RemoConnectFindComponentOnCanvasByCoordinates(srcPivotX - Convert.ToInt32(50 * ratio), srcPivotY);
-                //    //var offsetComp = this.OnPingDocument().Objects[offsetSrcComp];
-                //    //bool inputIsSlider = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider");
-                //    //bool inputIsDigitScroller = offsetComp.ToString().Equals("Grasshopper.Kernel.Special.GH_DigitScroller");
-                //    //if (inputIsSlider || inputIsDigitScroller)
-                //    //{
-                //    //    srcComp = offsetSrcComp;
-                //    //}
-                //}
-
-                var srcObject = ghObjectsList[srcComp];
-                var tgtObject = ghObjectsList[tgtComp];
-                var rightSiftTgtObject = ghObjectsList[rightShifttgtComp];
-
-                if (rightSiftTgtObject.GetType().ToString().Contains("Grasshopper.Kernel.Parameters"))
+                if (connect)
                 {
-                    tgtObject = rightSiftTgtObject;
-                    tgtComp = rightShifttgtComp;
-                }
-
-                string srcType = CategoryString(srcComp);
-                string tgtType = CategoryString(tgtComp);
-
-                bool srcIsSpecialType = CheckforSpecialCase(srcType);
-                bool tgtIsSpecialType = CheckforSpecialCase(tgtType);
-
-                //if (outputFound != null || !outputFound.ToString().Equals("")) srcIsSpecialType = false;
-                //if (inputFound != null || !inputFound.ToString().Equals("")) tgtIsSpecialType = false;
-
-                string[] tgtComptype = tgtObject.GetType().ToString().Split('.');
-                bool tgtGradientComponent = tgtComptype[tgtComptype.Length - 1].Equals("GH_GradientControl");
-                if (tgtGradientComponent) { tgtIsSpecialType = false; }
-
-
-                if (srcIsSpecialType)
-                {
-                    if (connect)
+                    if (sourceIsSpecial)
                     {
-                        if (srcComp == tgtComp) return;
-                        if (tgtIsSpecialType)
+                        if (targetIsSpecial)
                         {
-                            this.OnPingDocument().ScheduleSolution(0, SpecialToSpecial);
+                            var source = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                if (disconnect) target.RemoveAllSources();
+                                target.AddSource(source);
+                            });
                         }
                         else
                         {
-                            this.OnPingDocument().ScheduleSolution(0, SpecialToComp);
+                            var source = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (GH_Component)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                if (disconnect) target.Params.Input[inIndex].RemoveAllSources();
+                                target.Params.Input[inIndex].AddSource(source);
+                            });
                         }
                     }
-                    else if (disconnect)
+                    else
                     {
-                        if (tgtIsSpecialType)
+                        if (targetIsSpecial)
                         {
-                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromSpecial);
+                            var source = (GH_Component)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                if (disconnect) target.RemoveAllSources();
+                                target.AddSource(source.Params.Output[outIndex]);
+                            });
                         }
                         else
                         {
-                            this.OnPingDocument().ScheduleSolution(0, DisSpecialFromComp);
+                            var source = (GH_Component)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (GH_Component)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                if (disconnect) target.Params.Input[inIndex].RemoveAllSources();
+                                target.Params.Input[inIndex].AddSource(source.Params.Output[outIndex]);
+                            });
                         }
-
                     }
+
                 }
                 else
                 {
-                    if (connect)
+                    if (sourceIsSpecial)
                     {
-                        if (tgtIsSpecialType)
+                        if (targetIsSpecial)
                         {
-                            this.OnPingDocument().ScheduleSolution(0, CompToSpecial);
+                            var source = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                target.RemoveSource(source);
+                            });
                         }
                         else
                         {
-                            this.OnPingDocument().ScheduleSolution(0, CompToComp);
+                            var source = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (GH_Component)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                target.Params.Input[inIndex].RemoveSource(source);
+                            });
                         }
                     }
-                    else if (disconnect)
+                    else
                     {
-                        if (tgtIsSpecialType)
+                        if (targetIsSpecial)
                         {
-                            this.OnPingDocument().ScheduleSolution(0, DisCompFromSpecial);
+                            var source = (GH_Component)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                target.RemoveSource(source.Params.Output[outIndex]);
+                            });
                         }
                         else
                         {
-                            this.OnPingDocument().ScheduleSolution(0, DisCompFromComp);
+                            var source = (GH_Component)this.OnPingDocument().FindObject(sourceGuid, false);
+                            var target = (GH_Component)this.OnPingDocument().FindObject(targetGuid, false);
+                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            {
+                                target.Params.Input[inIndex].RemoveSource(source.Params.Output[outIndex]);
+                            });
                         }
                     }
                 }
