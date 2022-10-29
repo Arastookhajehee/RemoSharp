@@ -37,6 +37,9 @@ namespace RemoSharp
         Point2d downPnt = new Point2d(0, 0);
         Point2d upPnt = new Point2d(0, 0);
 
+        PushButton pushButton1;
+
+
         Point2d PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e, out string button)
         {
             Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
@@ -63,8 +66,188 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pushButton1 = new PushButton("Set Up",
+                   "Creates The Required RemoSharp Components to Connect to a Session.", "Set Up");
+            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            AddCustomControl(pushButton1);
 
-            
+        }
+
+        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (currentValue)
+            {
+                int xShift = 2;
+                PointF pivot = this.Attributes.Pivot;
+                PointF buttonPivot = new PointF(pivot.X + xShift - 214, pivot.Y - 227);
+                PointF bffTogglePivot = new PointF(pivot.X + xShift - 214, pivot.Y - 166);
+                PointF bffPivot = new PointF(pivot.X + xShift + 32, pivot.Y - 165);
+                PointF bffTriggerPivot = new PointF(pivot.X + xShift - 214, pivot.Y - 93);
+                PointF triggerPivot = new PointF(pivot.X + xShift - 178, pivot.Y - 54);
+                PointF targetPivot = new PointF(pivot.X + xShift + 167, pivot.Y);
+                PointF panelPivot = new PointF(pivot.X + xShift + 103, pivot.Y - 164);
+                PointF wscPivot = new PointF(pivot.X + xShift + 150, pivot.Y - 236);
+                PointF idTogglePivot = new PointF(pivot.X + xShift + 103, pivot.Y - 300);
+                PointF listenPivot = new PointF(pivot.X + xShift + 330, pivot.Y - 226);
+                PointF sendIDPivot = new PointF(pivot.X + xShift + 335, pivot.Y - 142);
+                PointF sendPivot = new PointF(pivot.X + xShift + 498, pivot.Y - 167);
+                PointF listenIDPivot = new PointF(pivot.X + xShift + 503, pivot.Y - 269);
+                PointF commandPivot = new PointF(pivot.X + xShift + 698, pivot.Y - 254);
+
+                //// componentName
+                //var comp = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                //comp.CreateAttributes();
+                //comp.Attributes.Pivot = 
+                //comp.Params.RepairParamAssociations();
+
+                #region setup components
+                // button
+                Grasshopper.Kernel.Special.GH_ButtonObject bffButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                bffButton.CreateAttributes();
+                bffButton.Attributes.Pivot = buttonPivot;
+                bffButton.NickName = "RemoSharp";
+
+                // toggle
+                Grasshopper.Kernel.Special.GH_BooleanToggle bffToggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                bffToggle.CreateAttributes();
+                bffToggle.Attributes.Pivot = bffTogglePivot;
+                bffToggle.NickName = "RemoSharp";
+                bffToggle.Value = true;
+                bffToggle.ExpireSolution(false);
+
+                // componentName
+                var bffComp = new RemoSharp.WebSocket_BFF();
+                bffComp.CreateAttributes();
+                bffComp.Attributes.Pivot = bffPivot;
+                bffComp.Params.RepairParamAssociations();
+
+
+                // bff trigger
+                var bffTrigger = new Grasshopper.Kernel.Special.GH_Timer();
+                bffTrigger.CreateAttributes();
+                bffTrigger.Attributes.Pivot = bffTriggerPivot;
+                bffTrigger.NickName = "RemoSharp WSBFF";
+                bffTrigger.Interval = 1000;
+                var bffTriggerTarget = bffComp.InstanceGuid;
+
+                // RemoSharp trigger
+                var trigger = new Grasshopper.Kernel.Special.GH_Timer();
+                trigger.CreateAttributes();
+                trigger.Attributes.Pivot = triggerPivot;
+                trigger.NickName = "RemoSharp";
+                trigger.Interval = 100;
+                var triggerTarget = this.InstanceGuid;
+
+                // componentName
+                var targetComp = new RemoSharp.RemoCompTarget();
+                targetComp.CreateAttributes();
+                targetComp.Attributes.Pivot = targetPivot;
+                targetComp.Params.RepairParamAssociations();
+
+                // componentName
+                var panel = new Grasshopper.Kernel.Special.GH_Panel();
+                panel.CreateAttributes();
+                panel.Attributes.Pivot = panelPivot;
+                panel.Attributes.Bounds = new Rectangle((int) panelPivot.X, (int) panelPivot.Y, 100, 45);
+                panel.SetUserText("");
+
+                // componentName
+                var wscComp = new RemoSharp.WsClientCat.WsClientStart();
+                wscComp.CreateAttributes();
+                wscComp.Attributes.Pivot = wscPivot;
+                wscComp.Params.RepairParamAssociations();
+
+                // toggle
+                var idToggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
+                idToggle.CreateAttributes();
+                idToggle.Attributes.Pivot = idTogglePivot;
+                idToggle.NickName = "RemoSharp";
+                idToggle.Value = true;
+                idToggle.ExpireSolution(false);
+
+                // componentName
+                var listenComp = new RemoSharp.WsClientCat.WsClientRecv();
+                listenComp.CreateAttributes();
+                listenComp.Attributes.Pivot = listenPivot;
+                listenComp.Params.RepairParamAssociations();
+
+                // componentName
+                var sendIDComp = new RemoSharp.Distributors.UserNameSettings();
+                sendIDComp.CreateAttributes();
+                sendIDComp.Attributes.Pivot = sendIDPivot;
+                sendIDComp.Params.RepairParamAssociations();
+
+                // componentName
+                var sendComp = new RemoSharp.WsClientCat.WsClientSend();
+                sendComp.CreateAttributes();
+                sendComp.Attributes.Pivot = sendPivot;
+                sendComp.Params.RepairParamAssociations();
+
+                // componentName
+                var listendIDComp = new RemoSharp.Distributors.UserNameSettings();
+                listendIDComp.CreateAttributes();
+                listendIDComp.Attributes.Pivot = listenIDPivot;
+                listendIDComp.Params.RepairParamAssociations();
+
+                // componentName
+                var commandComp = new RemoSharp.RemoCommands();
+                commandComp.CreateAttributes();
+                commandComp.Attributes.Pivot = commandPivot;
+                commandComp.Params.RepairParamAssociations();
+
+                #endregion
+
+                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -119, -318, false);
+
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+
+                    
+                    this.OnPingDocument().AddObject(bffButton, true);
+                    this.OnPingDocument().AddObject(bffToggle, true);
+                    this.OnPingDocument().AddObject(bffComp, true);
+                    this.OnPingDocument().AddObject(bffTrigger, true);
+                    this.OnPingDocument().AddObject(trigger, true);
+                    this.OnPingDocument().AddObject(targetComp, true);
+                    this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(wscComp, true);
+                    this.OnPingDocument().AddObject(idToggle, true);
+                    this.OnPingDocument().AddObject(listenComp, true);
+                    this.OnPingDocument().AddObject(sendIDComp, true);
+                    this.OnPingDocument().AddObject(sendComp, true);
+                    this.OnPingDocument().AddObject(listendIDComp, true);
+                    this.OnPingDocument().AddObject(commandComp, true);
+
+                    /*
+                    bffButton bffToggle bffComp
+                    bffTrigger trigger targetComp
+                    panel wscComp idToggle
+                    listenComp sendIDComp sendComp
+                    listendIDComp commandComp
+                    */
+
+                    bffComp.Params.Input[0].AddSource(bffButton);
+                    bffComp.Params.Input[1].AddSource(bffToggle);
+                    targetComp.Params.Input[0].AddSource(this.Params.Output[0]);
+                    wscComp.Params.Input[2].AddSource(bffButton);
+                    wscComp.Params.Input[0].AddSource(addressOutPuts[0]);
+                    sendIDComp.Params.Input[0].AddSource(idToggle);
+                    sendIDComp.Params.Input[1].AddSource(panel);
+                    sendIDComp.Params.Input[2].AddSource(targetComp.Params.Output[0]);
+                    listenComp.Params.Input[0].AddSource(wscComp.Params.Output[0]);
+                    listendIDComp.Params.Input[0].AddSource(idToggle);
+                    listendIDComp.Params.Input[1].AddSource(panel);
+                    listendIDComp.Params.Input[2].AddSource(listenComp.Params.Output[0]);
+                    sendComp.Params.Input[0].AddSource(wscComp.Params.Output[0]);
+                    sendComp.Params.Input[1].AddSource(sendIDComp.Params.Output[0]);
+                    commandComp.Params.Input[0].AddSource(listendIDComp.Params.Output[1]);
+
+                    bffTrigger.AddTarget(bffTriggerTarget);
+                    trigger.AddTarget(triggerTarget);
+                });
+            }
         }
 
         /// <summary>
@@ -94,8 +277,8 @@ namespace RemoSharp
                       canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_PanInteraction ||
                       canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_ZoomInteraction)
                     {
-                        command = "";
                         interaction = null;
+                        commandReset++;
                         return;
                     }
                     if (canvas.ActiveInteraction != null &&

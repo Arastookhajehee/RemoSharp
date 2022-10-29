@@ -19,7 +19,7 @@ namespace RemoSharp
         PushButton remoParamButton;
         //ToggleSwitch deleteToggle;
         ToggleSwitch movingModeSwitch;
-        ToggleSwitch transparencySwitch;
+        //ToggleSwitch transparencySwitch;
         ToggleSwitch enableSwitch;
         PushButton wsClientButton;
         StackPanel stackPanel;
@@ -79,8 +79,8 @@ namespace RemoSharp
             wsClientButton = new PushButton("WSC",
                 "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WSC");
 
-            transparencySwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
-            transparencySwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
+            //transparencySwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
+            //transparencySwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
             movingModeSwitch = new ToggleSwitch("Moving Mode", "It is recommended to keep it turned off if the user does not wish to move components around", false);
             movingModeSwitch.OnValueChanged += MovingModeSwitch_OnValueChanged;
             enableSwitch = new ToggleSwitch("Enable Interactions", "It has to be turned on if we want interactions with the server", false);
@@ -106,7 +106,7 @@ namespace RemoSharp
             AddCustomControl(stackPanel01);
             //AddCustomControl(stackPanel02);
             AddCustomControl(enableSwitch);
-            AddCustomControl(transparencySwitch);
+            //AddCustomControl(transparencySwitch);
             AddCustomControl(movingModeSwitch);
             //AddCustomControl(transparencySwitch);
 
@@ -127,19 +127,19 @@ namespace RemoSharp
             this.ExpireSolution(true);
         }
 
-        private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool toggleChangeVal = Convert.ToBoolean(e.Value);
-            var ghDoc = Grasshopper.Instances.DocumentEditor;
-            if (toggleChangeVal)
-            {
-                ghDoc.Opacity = 0.25;
-            }
-            else
-            {
-                ghDoc.Opacity = 1;
-            }
-        }
+        //private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    bool toggleChangeVal = Convert.ToBoolean(e.Value);
+        //    var ghDoc = Grasshopper.Instances.DocumentEditor;
+        //    if (toggleChangeVal)
+        //    {
+        //        ghDoc.Opacity = 0.25;
+        //    }
+        //    else
+        //    {
+        //        ghDoc.Opacity = 1;
+        //    }
+        //}
 
         private void SelectButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
