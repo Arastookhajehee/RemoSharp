@@ -86,6 +86,7 @@
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
     <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
     <Compile Include="Distributors\RemoCommands.cs" />
+    <Compile Include="Distributors\UserNameSettings.cs" />
     <Compile Include="GeometryStreamIPSet.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -276,6 +277,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\Server_Addresses.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\ID.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

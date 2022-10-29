@@ -27,6 +27,7 @@ namespace RemoSharp
         {
             pManager.AddBooleanParameter("Set", "Set", "Trigger a Slider value change on the main remote GH_Canvas", GH_ParamAccess.item, true);
             pManager.AddNumberParameter("Slider", "Sldr", "Changing the value of a Slider on the main remote GH_Canvas", GH_ParamAccess.item, 0);
+            pManager.AddTextParameter("Username_ID", "user", "The name of this canvas", GH_ParamAccess.item);
 
         }
 
@@ -50,8 +51,10 @@ namespace RemoSharp
 
             bool RUNComp = false;
             double value = 0;
+            string username = "";
             DA.GetData(0, ref RUNComp);
             DA.GetData(1, ref value);
+            DA.GetData(2, ref username);
 
             int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -30;
             int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 40;
@@ -68,12 +71,14 @@ namespace RemoSharp
                 int accuracy = sliderComponent.Slider.DecimalPlaces;
                 var sliderType = sliderComponent.Slider.Type;
 
-                string outputData = "RemoParam,"
+                Guid sliderGuid = this.Params.Input[1].Sources[0].InstanceGuid;
+
+                string outputData = "ID_" + username + ",RemoParam,"
                     + coordX + ","
                     + coordY + ","
                     + "AddValueToSlider";
-                //  command Index -->   4               5                  6                  7                 8   
-                outputData += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
+                //  command Index -->   4               5                  6                  7                 8                   9
+                outputData += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType + "," + sliderGuid.ToString();
 
                 DA.SetData(0, outputData);
                 return;

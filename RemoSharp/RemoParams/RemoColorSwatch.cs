@@ -29,6 +29,8 @@ namespace RemoSharp
         {
             pManager.AddBooleanParameter("Set", "Set", "Trigger a Colour Swatch value change on the main remote GH_Canvas", GH_ParamAccess.item, true);
             pManager.AddColourParameter("ColourSwatch", "Color", "Changing a Colour Swatch a panel on the main remote GH_Canvas", GH_ParamAccess.item, Color.White);
+            pManager.AddTextParameter("Username_ID", "user", "The name of this canvas", GH_ParamAccess.item);
+
         }
 
         /// <summary>
@@ -50,19 +52,23 @@ namespace RemoSharp
 
             bool RUNComp = false;
             Color color = Color.White;
+            string username = "";
 
             DA.GetData(0, ref RUNComp);
             DA.GetData(1, ref color);
+            DA.GetData(2, ref username);
 
             int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -30;
             int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 40;
 
+            Guid colorGuid = this.Params.Input[1].Sources[0].InstanceGuid;
+
             if (RUNComp)
             {
-                string outputData = "RemoParam,"
+                string outputData = "ID_" + username + ",RemoParam,"
                     + coordX + ","
                     + coordY + ","
-                    + "ColorSwatchChange," + color.R + "," + color.G + "," + color.B + "," + color.A;
+                    + "ColorSwatchChange," + color.R + "," + color.G + "," + color.B + "," + color.A + "," + colorGuid.ToString();
                 DA.SetData(0, outputData);
                 return;
             }

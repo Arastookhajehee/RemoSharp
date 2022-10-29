@@ -13,25 +13,28 @@ namespace RemoSharp
         GH_Document GrasshopperDocument;
         IGH_Component Component;
 
-        PushButton createButton;
         PushButton selectButton;
         PushButton hideButton;
         PushButton lockButton;
         PushButton remoParamButton;
-        ToggleSwitch deleteToggle;
+        //ToggleSwitch deleteToggle;
+        ToggleSwitch movingModeSwitch;
+        //ToggleSwitch transparencySwitch;
+        ToggleSwitch enableSwitch;
         PushButton wsClientButton;
-        PushButton deleteButton;
         StackPanel stackPanel;
         StackPanel stackPanel01;
+        //StackPanel stackPanel02;
 
-
-
-        bool create = false;
+        bool enable = false;
+        bool movingMode = false;
+        //bool create = false;
         bool select = false;
-        bool delete = false;
+        //bool delete = false;
         bool hide = false;
         bool lockThis = false;
         bool remoParam = false;
+
 
         // remoParam public variables
         public string componentType = "";
@@ -44,7 +47,10 @@ namespace RemoSharp
         public System.Drawing.PointF compPivot;
 
         public string currentConnectString = "";
-        int con_DisConCounter = 0;
+        public int con_DisConCounter = 0;
+
+        // Move Mode variables
+        int setup = 0;
 
         /// <summary>
         /// Initializes a new instance of the RemoCompTarget class.
@@ -61,8 +67,6 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            createButton = new PushButton("Create",
-                "Create a new instance of the close component on the main remote GH_Canvas.", "Create");
             selectButton = new PushButton("Select",
                 "Select a component on the main remote GH_Canvas.", "Sel");
             hideButton = new PushButton("Hide",
@@ -71,35 +75,71 @@ namespace RemoSharp
                             "Unhides a component on the main remote GH_Canvas.", "Lock");
             remoParamButton = new PushButton("RmoPrm",
                             "Creates the necessary remote parameter components", "RmoPrm");
-            deleteToggle = new ToggleSwitch("DelAfterCreation","Delete Component Upon Remote Creation",false);
+            //deleteToggle = new ToggleSwitch("DelAfterCreation","Delete Component Upon Remote Creation",false);
             wsClientButton = new PushButton("WSC",
                 "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WSC");
-            deleteButton = new PushButton("Del",
-                "Deletes a component on the main remote GH_Canvas.", "Del");
 
-            createButton.OnValueChanged += PushButton1_OnValueChanged;
+            //transparencySwitch = new ToggleSwitch("Transparency", "Toggles transparency of Grasshopper", false);
+            //transparencySwitch.OnValueChanged += ToggleSwitch_OnValueChanged;
+            movingModeSwitch = new ToggleSwitch("Moving Mode", "It is recommended to keep it turned off if the user does not wish to move components around", false);
+            movingModeSwitch.OnValueChanged += MovingModeSwitch_OnValueChanged;
+            enableSwitch = new ToggleSwitch("Enable Interactions", "It has to be turned on if we want interactions with the server", false);
+            enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
+
             selectButton.OnValueChanged += SelectButton_OnValueChanged;
             hideButton.OnValueChanged += PushButton2_OnValueChanged;
             lockButton.OnValueChanged += PushButton3_OnValueChanged;
             remoParamButton.OnValueChanged += PushButton4_OnValueChanged;
-            deleteToggle.OnValueChanged += PushButton5_OnValueChanged;
+            //deleteToggle.OnValueChanged += PushButton5_OnValueChanged;
             wsClientButton.OnValueChanged += PushButton6_OnValueChanged;
-            deleteButton.OnValueChanged += PushButton7_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                createButton, selectButton, hideButton, lockButton
+                selectButton, hideButton, lockButton
                 );
             stackPanel01 = new StackPanel("C2", Orientation.Horizontal, true,
-                deleteButton, remoParamButton,  wsClientButton
+                remoParamButton,  wsClientButton
                 );
+            //stackPanel02 = new StackPanel("C3", Orientation.Vecrtical, false,
+            //    enableSwitch, transparencySwitch, movingModeSwitch
+            //    );
             AddCustomControl(stackPanel);
             AddCustomControl(stackPanel01);
-            AddCustomControl(deleteToggle);
+            //AddCustomControl(stackPanel02);
+            AddCustomControl(enableSwitch);
+            //AddCustomControl(transparencySwitch);
+            AddCustomControl(movingModeSwitch);
+            //AddCustomControl(transparencySwitch);
 
             pManager.AddTextParameter("SourceCommand", "SrcCmd",
                 "Command from RemoCompSource regarding creation, connection, disconnection, and movement of components on the main remote GH_Canvas",
                 GH_ParamAccess.item, "");
         }
+
+        private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            enable = Convert.ToBoolean(e.Value);
+            this.ExpireSolution(true);
+        }
+
+        private void MovingModeSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            movingMode = Convert.ToBoolean(e.Value);
+            this.ExpireSolution(true);
+        }
+
+        //private void ToggleSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    bool toggleChangeVal = Convert.ToBoolean(e.Value);
+        //    var ghDoc = Grasshopper.Instances.DocumentEditor;
+        //    if (toggleChangeVal)
+        //    {
+        //        ghDoc.Opacity = 0.25;
+        //    }
+        //    else
+        //    {
+        //        ghDoc.Opacity = 1;
+        //    }
+        //}
 
         private void SelectButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -111,25 +151,6 @@ namespace RemoSharp
             }
         }
 
-        private void PushButton7_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                delete = currentValue;
-                this.ExpireSolution(true);
-            }
-        }
-
-        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                create = currentValue;
-                this.ExpireSolution(true);
-            }
-        }
         
         private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -160,12 +181,12 @@ namespace RemoSharp
             }
         }
 
-        private void PushButton5_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            DeleteThisCompBool = currentValue;
-            this.ExpireSolution(true);
-        }
+        //private void PushButton5_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    bool currentValue = Convert.ToBoolean(e.Value);
+        //    DeleteThisCompBool = currentValue;
+        //    this.ExpireSolution(true);
+        //}
 
         private void PushButton6_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -254,6 +275,16 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            // registering s
+            if (setup == 0)
+            {
+                Grasshopper.Instances.ActiveCanvas.KeyDown += ActiveCanvas_KeyDown;
+                Grasshopper.Instances.ActiveCanvas.KeyUp += ActiveCanvas_KeyUp;
+            }
+            setup++;
+            if (setup > 100) setup = 5;
+
+            if (!enable) return;
             Component = this;
             GrasshopperDocument = this.OnPingDocument();
 
@@ -264,206 +295,297 @@ namespace RemoSharp
 
             string[] cmds = cmd.Split(',');
 
-
-
-            if (create)
+            if (cmds[0] == "MoveComp") 
             {
-                try
+                if (!movingMode) return;
+
+            }
+
+
+            if (cmds[0] == "RemoConnect")
+            {
+
+                Guid sourceGuid = Guid.Parse(cmds[3]);
+                Guid targetGuid = Guid.Parse(cmds[6]);
+
+                var sourceComp = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
+                var targetComp = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
+
+                var sourceDocComp = sourceComp.Attributes.DocObject;
+                var targetDocComp = targetComp.Attributes.DocObject;
+
+                string sourceType = sourceComp.Attributes.DocObject.GetType().ToString();
+                string targetType = targetComp.Attributes.DocObject.GetType().ToString();
+
+                string sourceCommand = "";
+                string targetCommand = "";
+
+                if (
+                  sourceType == "Grasshopper.Kernel.Special.GH_NumberSlider"
+                  || sourceType == "Grasshopper.Kernel.Special.GH_ButtonObject"
+                  || sourceType == "Grasshopper.Kernel.Special.GH_BooleanToggle"
+                  || sourceType == "Grasshopper.Kernel.Special.GH_ColourSwatch"
+                  )
                 {
-                    // getting the GH Document
-                    var thisDoc = this.GrasshopperDocument;
+                    sourceCommand +=
+                      sourceComp.InstanceGuid.ToString() +
+                      "," + "-1" +
+                      "," + true;
 
-                    // getting the type of the closest component on the canvas in string format
-                    // getting its location too
-                    System.Drawing.PointF newPivot;
-                    int currentComponentIndex = -1;
-                    string typeName = FindClosestObjectTypeOnCanvas(out newPivot, out currentComponentIndex);
-                    int otherCompX = Convert.ToInt32(newPivot.X);
-                    int otherCompY = Convert.ToInt32(newPivot.Y);
 
-                    // converting the string format of the closest component to an actual type
-                    var type = Type.GetType(typeName);
-                    // most probable the type is going to return null
-                    // for that we search through all the loaded dlls in Grasshopper and Rhino's application
-                    // to find out which one matches that of the closest component
-                    if (type == null)
+                    GH_ParamKind targetKind = targetComp.Kind;
+                    if (targetKind == GH_ParamKind.floating)
                     {
-                        // going through the loaded components
-                        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
-                        {
-                            // trying for all dll types unless one would return an actual type
-                            // since almost all of them give us null we check for this condition
-                            if (type == null)
-                            {
-                                type = a.GetType(typeName);
-                            }
-                        }
+                        targetCommand +=
+                          targetComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
+                    }
+                    else
+                    {
+                        int inIndex = -1;
+                        bool inIsSpecial = false;
+                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                          targetComp, out inIndex, out inIsSpecial);
+
+                        targetCommand +=
+                          inGuid.ToString() +
+                          "," + inIndex +
+                          "," + inIsSpecial;
                     }
 
-                    cmd = "RemoCreate," + type + "," + otherCompX + "," + otherCompY;
+                }
+                else if (sourceComp.Kind == GH_ParamKind.output)
+                {
 
-                    if (
-                        type.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider") ||
-                        type.ToString().Equals("Grasshopper.Kernel.Special.GH_ButtonObject") ||
-                        type.ToString().Equals("Grasshopper.Kernel.Special.GH_BooleanToggle") ||
-                        type.ToString().Equals("Grasshopper.Kernel.Special.GH_ColourSwatch") ||
-                        type.ToString().Equals("Grasshopper.Kernel.Special.GH_Panel") ||
-                        type.ToString().Equals("RemoSharp.RemoGeomStreamer") ||
-                        type.ToString().Equals("RemoSharp.RemoGeomParser") 
-                        )
+                    int outIndex = -1;
+                    bool outIsSpecial = false;
+                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                      sourceComp, out outIndex, out outIsSpecial);
+
+                    sourceCommand +=
+                      outGuid.ToString() +
+                      "," + outIndex +
+                      "," + outIsSpecial;
+
+                    int inIndex = -1;
+                    bool inIsSpecial = false;
+                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                      targetComp, out inIndex, out inIsSpecial);
+
+                    targetCommand +=
+                      inGuid.ToString() +
+                      "," + inIndex +
+                      "," + inIsSpecial;
+
+
+                }
+                else if (targetComp.Kind == GH_ParamKind.input)
+                {
+
+                    int outIndex = -1;
+                    bool outIsSpecial = false;
+                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                      sourceComp, out outIndex, out outIsSpecial);
+
+                    sourceCommand +=
+                      outGuid.ToString() +
+                      "," + outIndex +
+                      "," + outIsSpecial;
+
+                    int inIndex = -1;
+                    bool inIsSpecial = false;
+                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                      targetComp, out inIndex, out inIsSpecial);
+
+                    targetCommand +=
+                      inGuid.ToString() +
+                      "," + inIndex +
+                      "," + inIsSpecial;
+
+                }
+                else if (targetComp.Kind == GH_ParamKind.output)
+                {
+
+                    int outIndex = -1;
+                    bool outIsSpecial = false;
+                    System.Guid outGuid = GetComponentGuidAnd_Input_Index(
+                      sourceComp, out outIndex, out outIsSpecial);
+
+                    int inIndex = -1;
+                    bool inIsSpecial = false;
+                    System.Guid inGuid = GetComponentGuidAnd_Output_Index(
+                      targetComp, out inIndex, out inIsSpecial);
+
+
+                    targetCommand +=
+                      outGuid.ToString() +
+                      "," + outIndex +
+                      "," + outIsSpecial;
+
+                    sourceCommand +=
+                      inGuid.ToString() +
+                      "," + inIndex +
+                      "," + inIsSpecial;
+
+                }
+                else if (sourceComp.Kind == GH_ParamKind.input)
+                {
+
+                    int outIndex = -1;
+                    bool outIsSpecial = false;
+                    System.Guid outGuid = GetComponentGuidAnd_Input_Index(
+                      sourceComp, out outIndex, out outIsSpecial);
+
+                    int inIndex = -1;
+                    bool inIsSpecial = false;
+                    System.Guid inGuid = GetComponentGuidAnd_Output_Index(
+                      targetComp, out inIndex, out inIsSpecial);
+
+
+                    targetCommand +=
+                      outGuid.ToString() +
+                      "," + outIndex +
+                      "," + outIsSpecial;
+
+                    sourceCommand +=
+                      inGuid.ToString() +
+                      "," + inIndex +
+                      "," + inIsSpecial;
+
+                }
+                else if (
+                  targetType == "Grasshopper.Kernel.Special.GH_NumberSlider"
+                  || targetType == "Grasshopper.Kernel.Special.GH_ButtonObject"
+                  || targetType == "Grasshopper.Kernel.Special.GH_BooleanToggle"
+                  || targetType == "Grasshopper.Kernel.Special.GH_ColourSwatch"
+                  )
+                {
+                    sourceCommand +=
+                      targetComp.InstanceGuid.ToString() +
+                      "," + "-1" +
+                      "," + true;
+
+                    if (sourceComp.Kind == GH_ParamKind.floating)
                     {
-                        DeleteThisCompBool = false;
+                        targetCommand +=
+                          sourceComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
+                    }
+                    else
+                    {
+                        int inIndex = -1;
+                        bool inIsSpecial = false;
+                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                          targetComp, out inIndex, out inIsSpecial);
+
+                        targetCommand +=
+                          inGuid.ToString() +
+                          "," + inIndex +
+                          "," + inIsSpecial;
                     }
 
-                    if(type.ToString().Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
+                }
+                else if (
+                  targetType == "Grasshopper.Kernel.Special.GH_Panel"
+                  )
+                {
+                    int targetX = (int)Convert.ToDouble(cmds[4]);
+                    int panelPivotX = (int)targetComp.Attributes.Pivot.X;
+
+                    if (targetX > panelPivotX)
                     {
-                        Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider)this.OnPingDocument().Objects[currentComponentIndex];
-                        decimal minBound = sliderComponent.Slider.Minimum;
-                        decimal maxBound = sliderComponent.Slider.Maximum;
-                        decimal currentValue = sliderComponent.Slider.Value;
-                        int accuracy = sliderComponent.Slider.DecimalPlaces;
-                        var sliderType = sliderComponent.Slider.Type;
-                        cmd += "," + minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
+                        sourceCommand +=
+                          targetComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
+
+                        int inIndex = -1;
+                        bool inIsSpecial = false;
+                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                          sourceComp, out inIndex, out inIsSpecial);
+
+                        targetCommand +=
+                          inGuid.ToString() +
+                          "," + inIndex +
+                          "," + inIsSpecial;
+                    }
+                    else
+                    {
+
+                        int outIndex = -1;
+                        bool outIsSpecial = false;
+                        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                          sourceComp, out outIndex, out outIsSpecial);
+
+                        sourceCommand +=
+                          outGuid.ToString() +
+                          "," + outIndex +
+                          "," + outIsSpecial;
+
+                        targetCommand +=
+                          targetComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
                     }
 
-                    else if(type.ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                    {
-                        Grasshopper.Kernel.Special.GH_Panel panelComponent = (Grasshopper.Kernel.Special.GH_Panel) this.OnPingDocument().Objects[currentComponentIndex];
-                        bool multiLine = panelComponent.Properties.Multiline;
-                        bool drawIndicies = panelComponent.Properties.DrawIndices;
-                        bool drawPaths = panelComponent.Properties.DrawPaths;
-                        bool wrap = panelComponent.Properties.Wrap;
-                        Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
-                        float panelSizeX = panelComponent.Attributes.Bounds.Width;
-                        float panelSizeY = panelComponent.Attributes.Bounds.Height;
+                }
+                else if (
+                  sourceType == "Grasshopper.Kernel.Special.GH_Panel"
+                  )
+                {
+                    int targetX = (int)Convert.ToDouble(cmds[4]);
+                    int panelPivotX = (int)targetComp.Attributes.Pivot.X;
 
-                        string content = panelComponent.UserText;
-                        
-                        cmd += "," + multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
+                    if (targetX > panelPivotX)
+                    {
+                        sourceCommand +=
+                          targetComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
+
+                        int inIndex = -1;
+                        bool inIsSpecial = false;
+                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                          sourceComp, out inIndex, out inIsSpecial);
+
+                        targetCommand +=
+                          inGuid.ToString() +
+                          "," + inIndex +
+                          "," + inIsSpecial;
+                    }
+                    else
+                    {
+
+                        int outIndex = -1;
+                        bool outIsSpecial = false;
+                        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                          sourceComp, out outIndex, out outIsSpecial);
+
+
+                        sourceCommand +=
+                          outGuid.ToString() +
+                          "," + outIndex +
+                          "," + outIsSpecial;
+
+                        targetCommand +=
+                          targetComp.InstanceGuid.ToString() +
+                          "," + "-1" +
+                          "," + true;
                     }
 
-                    else if (type.ToString().Equals("RemoSharp.RemoGeomStreamer"))
-                    {
-                        StreamIPSet gmAddress = new StreamIPSet();
-                        gmAddress.ShowDialog();
-                        string address = gmAddress.WS_Server_Address;
-
-
-
-                        System.Drawing.PointF pivot = new System.Drawing.PointF(otherCompX, otherCompY);
-                        System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 75, pivot.Y - 80);
-                        System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 100, pivot.Y - 40);
-                        System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 34, pivot.Y - 50);
-                        System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 42, pivot.Y - 40);
-
-                        Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                        panel.CreateAttributes();
-                        panel.Attributes.Pivot = panelPivot;
-                        panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 55, 20);
-                        panel.SetUserText(address);
-
-                        Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                        button.CreateAttributes();
-                        button.Attributes.Pivot = buttnPivot;
-
-                        RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
-                        wss.CreateAttributes();
-                        wss.Attributes.Pivot = wssPivot;
-
-                        RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
-                        wsSend.CreateAttributes();
-                        wsSend.Attributes.Pivot = wsSendPivot;
-
-                        RemoSharp.RemoGeomStreamer RemoGeom = (RemoSharp.RemoGeomStreamer) this.OnPingDocument().FindObject(pivot, 3);
-
-                        this.OnPingDocument().ScheduleSolution(1, doc =>
-                        {
-                            this.OnPingDocument().AddObject(panel, true);
-                            this.OnPingDocument().AddObject(button, true);
-                            this.OnPingDocument().AddObject(wss, true);
-                            this.OnPingDocument().AddObject(wsSend, true);
-
-                            wss.Params.Input[2].AddSource((IGH_Param)button);
-                            wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                            wsSend.Params.Input[1].AddSource((IGH_Param)RemoGeom.Params.Output[0]);
-                            wss.Params.Input[0].AddSource((IGH_Param)panel);
-                        });
-                        cmd += "," + address;
-                    }
-
-                    else if (typeName.Equals("RemoSharp.RemoGeomParser"))
-                    {
-                        StreamIPSet gmAddress = new StreamIPSet();
-                        gmAddress.ShowDialog();
-                        string address = gmAddress.WS_Server_Address;
-
-                        System.Drawing.PointF pivot = new System.Drawing.PointF(otherCompX, otherCompY);
-                        System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 375, pivot.Y - 121);
-                        System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 290, pivot.Y - 85);
-                        System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X - 304, pivot.Y + 6);
-                        System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X - 159, pivot.Y);
-
-                        Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                        panel.CreateAttributes();
-                        panel.Attributes.Pivot = panelPivot;
-                        panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
-                        panel.SetUserText(address);
-
-                        Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                        button.CreateAttributes();
-                        button.Attributes.Pivot = buttnPivot;
-
-                        RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
-                        wss.CreateAttributes();
-                        wss.Attributes.Pivot = wssPivot;
-
-                        RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
-                        wsRecv.CreateAttributes();
-                        wsRecv.Attributes.Pivot = wsRecvPivot;
-
-                        
-                        RemoSharp.RemoGeomParser remoGeomParser = (RemoSharp.RemoGeomParser)this.OnPingDocument().FindObject(pivot, 3);
-
-                        this.OnPingDocument().ScheduleSolution(1, doc =>
-                        {
-                            this.OnPingDocument().AddObject(panel, true);
-                            this.OnPingDocument().AddObject(button, true);
-                            this.OnPingDocument().AddObject(wss, true);
-                            this.OnPingDocument().AddObject(wsRecv, true);
-                            this.OnPingDocument().AddObject(remoGeomParser, true);
-
-                            wss.Params.Input[2].AddSource((IGH_Param)button);
-                            wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                            remoGeomParser.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
-                            wss.Params.Input[0].AddSource((IGH_Param)panel);
-                        });
-                        cmd += "," + address;
-                    }
-
-                    DA.SetData(0, cmd);
-                    create = false;
                 }
 
+                string command = cmds[0]
+                  + "," + cmds[1]
+                  + "," + cmds[2]
+                  + "," + sourceCommand + "," + targetCommand;
 
-                catch (Exception e)
-                {
-                    this.Component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
-                }
-            }
-           
-            if (delete)
-            {
-                var pivot = this.Component.Attributes.Pivot;
-                int otherCompInx = DeletionFindComponentOnCanvasByCoordinates(pivot.X, pivot.Y);
-                var otherComp = this.GrasshopperDocument.Objects[otherCompInx];
-                int coordX = Convert.ToInt32(otherComp.Attributes.Pivot.X);
-                int coordY = Convert.ToInt32(otherComp.Attributes.Pivot.Y);
+                cmd = command;
 
-                string otherCompCoords = coordX + "," + coordY;
-                cmd = "Deletion," + delete + "," + otherCompCoords;
-                DA.SetData(0, cmd);
-                delete = false;
             }
+
 
             if (hide)
             {
@@ -482,6 +604,7 @@ namespace RemoSharp
                 int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
                 int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
 
+
                 cmd = "Selection," + thisCompX + "," + thisCompY + "," + DateTime.Now.Second;
                 DA.SetData(0, cmd);
                 select = false;
@@ -493,7 +616,49 @@ namespace RemoSharp
                 int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
                 int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
 
-                cmd = "RemoLock," + thisCompX + "," + thisCompY + "," + DateTime.Now.Second;
+                System.Drawing.PointF componentLoc = new System.Drawing.PointF(thisCompX, thisCompY);
+                bool condition = false;
+                Guid compGuid = Guid.Empty;
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    try
+                    {
+                        var otherComp = (IGH_Component)this.OnPingDocument().FindObject(componentLoc, 2);
+                        compGuid = otherComp.InstanceGuid;
+                        if (otherComp.Locked == true)
+                        {
+                            otherComp.Locked = false;
+                            otherComp.ExpireSolution(false);
+                            condition = false;
+                        }
+                        else if (otherComp.Locked == false)
+                        {
+                            otherComp.Locked = true;
+                            otherComp.ExpireSolution(false);
+                            condition = true;
+                        }
+                    }
+                    catch
+                    {
+                        var otherComp = (IGH_Param)this.OnPingDocument().FindObject(componentLoc, 2);
+                        compGuid = otherComp.InstanceGuid;
+                        if (otherComp.Locked == true)
+                        {
+                            otherComp.Locked = false;
+                            otherComp.ExpireSolution(false);
+                            condition = false;
+                        }
+                        else if (otherComp.Locked == false)
+                        {
+                            otherComp.Locked = true;
+                            otherComp.ExpireSolution(false);
+                            condition = true;
+                        }
+                    }
+
+                });
+
+                cmd = "RemoLock," + thisCompX + "," + thisCompY + "," + DateTime.Now.Second + "," + compGuid + "," + condition;
                 DA.SetData(0, cmd);
                 lockThis = false;
             }
@@ -528,7 +693,7 @@ namespace RemoSharp
 
 
             string[] outGoingCommand = cmd.Split(',');
-            int commandRepeatCount = 7;
+            int commandRepeatCount = 6;
             if (   outGoingCommand[0] == "RemoConnect" 
                 || outGoingCommand[0] == "MoveComp"
                 || outGoingCommand[0] == "RemoCreate"
@@ -536,23 +701,13 @@ namespace RemoSharp
                 || outGoingCommand[0] == "RemoLock"
                 || outGoingCommand[0] == "Deletion")
             {
+
                 con_DisConCounter = 0;
                 currentConnectString = cmd ;
-                if (outGoingCommand[0] == "RemoCreate" && DeleteThisCompBool)
-                {
-                    System.Drawing.PointF deletionPivot;
-                    FindClosestObjectTypeOnCanvas(out deletionPivot, out DeleteThisComp);
-
-                    this.OnPingDocument().ScheduleSolution(0, DeleteObjectAbove);
-                }
+                
             }
             if (con_DisConCounter < commandRepeatCount)
             {
-                // a trigger is already connected to the component. We don't need extra repeated runs
-                //this.Component.OnPingDocument().ScheduleSolution(15, doc =>
-                //{
-                //    this.Component.ExpireSolution(false);
-                //});
                 DA.SetData(0, currentConnectString);
             }
             else currentConnectString = "";
@@ -570,6 +725,22 @@ namespace RemoSharp
 
 
 
+        }
+
+        private void ActiveCanvas_KeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            if (e.KeyCode == System.Windows.Forms.Keys.Tab)
+            {
+                this.movingModeSwitch.CurrentValue = false;
+            }
+        }
+
+        private void ActiveCanvas_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            if (e.KeyCode == System.Windows.Forms.Keys.Tab)
+            {
+                this.movingModeSwitch.CurrentValue = true;
+            }
         }
 
         /// <summary>
@@ -712,30 +883,24 @@ namespace RemoSharp
         }
 
 
-        private IGH_Param FindWebSocketClientComponentOutput()
+        private IGH_Param FindWebSocketClientComponentOutput(out Grasshopper.Kernel.Special.GH_Panel usernamePanel)
         {
-            var recepients = this.Params.Output[0].Recipients;
-            IGH_Param thisCompOutput = recepients[0];
-            IGH_Component WSClientWSC = new WsClientCat.WsClientStart();
-            bool wssfound = false;
-            foreach (IGH_Param item in this.Params.Output[0].Recipients)
+
+            try
             {
-                try
-                {
-                    var wsSendComponentGuid = item.Attributes.Parent.InstanceGuid;
-                    WsClientCat.WsClientSend wsSendComponent = (WsClientCat.WsClientSend)this.OnPingDocument().FindObject(wsSendComponentGuid, false);
-                    var wsSendInputSource = wsSendComponent.Params.Input[0].Sources[0].Attributes.Parent.InstanceGuid;
-                    WSClientWSC = (WsClientCat.WsClientStart)this.OnPingDocument().FindObject(wsSendInputSource, false);
-                    wssfound = true;
-                }
-                catch 
-                {
-                }
-
+                var idComp = (IGH_Component)this.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
+                Grasshopper.Kernel.Special.GH_Panel idPanel = (Grasshopper.Kernel.Special.GH_Panel)
+                    idComp.Params.Input[1].Sources[0];
+                var sendComp = (IGH_Component)idComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
+                var wscComp = (IGH_Component)sendComp.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
+                usernamePanel = idPanel;
+                return wscComp.Params.Output[0];
             }
-
-            if (wssfound) return WSClientWSC.Params.Output[0];
-            else return null;
+            catch 
+            {
+                usernamePanel= null;
+                return null;
+            }
         }
 
         private void MakeRemoButton(GH_Document doc)
@@ -744,31 +909,38 @@ namespace RemoSharp
             int pivotY = Convert.ToInt32(compPivot.Y);
             var otherComp = this.Component.OnPingDocument().Objects[RemoMakeindex];
 
-            GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+            //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
 
-            grip.CreateObjectData(otherComp);
+            //grip.CreateObjectData(otherComp);
 
-            this.Component.OnPingDocument().DeselectAll();
-            this.Component.OnPingDocument().Select(grip);
-            System.Drawing.Size vec = new System.Drawing.Size(-160, 25);
-            this.Component.OnPingDocument().TranslateObjects(vec, true);
-            this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().Select(grip);
+            //System.Drawing.Size vec = new System.Drawing.Size(-160, 25);
+            //this.Component.OnPingDocument().TranslateObjects(vec, true);
+            //this.Component.OnPingDocument().DeselectAll();
 
             Grasshopper.Kernel.Special.GH_ButtonObject button = (Grasshopper.Kernel.Special.GH_ButtonObject)otherComp;
 
             RemoSharp.RemoButton remoButton = new RemoButton();
             remoButton.CreateAttributes();
-            remoButton.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39, pivotY + 37);
+            remoButton.Attributes.Pivot = new System.Drawing.PointF(pivotX + 44, pivotY + 39 + 7);
+            remoButton.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
             wsSend.CreateAttributes();
-            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24);
+            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 27);
+            wsSend.Params.RepairParamAssociations();
 
             remoButton.Params.Input[0].AddSource( (IGH_Param) button);
             wsSend.Params.Input[1].AddSource((IGH_Param)remoButton.Params.Output[0]);
-            try { wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput()); }
+            Grasshopper.Kernel.Special.GH_Panel usernamePanel = null;
+            try { 
+                wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput(out usernamePanel));
+                remoButton.Params.Input[1].AddSource(usernamePanel);
+            }
             catch { }
             wsSend.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
+            remoButton.Params.Input[1].WireDisplay = GH_ParamWireDisplay.hidden;
 
             this.OnPingDocument().AddObject(remoButton, true);
             this.OnPingDocument().AddObject(wsSend, true);
@@ -781,31 +953,39 @@ namespace RemoSharp
             int pivotY = Convert.ToInt32(compPivot.Y);
             var otherComp = this.Component.OnPingDocument().Objects[RemoMakeindex];
 
-            GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+            //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
 
-            grip.CreateObjectData(otherComp);
+            //grip.CreateObjectData(otherComp);
 
-            this.Component.OnPingDocument().DeselectAll();
-            this.Component.OnPingDocument().Select(grip);
-            System.Drawing.Size vec = new System.Drawing.Size(-160, 25);
-            this.Component.OnPingDocument().TranslateObjects(vec, true);
-            this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().Select(grip);
+            //System.Drawing.Size vec = new System.Drawing.Size(-160, 25);
+            //this.Component.OnPingDocument().TranslateObjects(vec, true);
+            //this.Component.OnPingDocument().DeselectAll();
 
             Grasshopper.Kernel.Special.GH_BooleanToggle toggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)otherComp;
 
             RemoSharp.RemoToggle remoToggle = new RemoToggle();
             remoToggle.CreateAttributes();
-            remoToggle.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39, pivotY + 37);
+            remoToggle.Attributes.Pivot = new System.Drawing.PointF(pivotX + 44, pivotY + 39 + 7);
+            remoToggle.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
             wsSend.CreateAttributes();
-            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24);
+            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 27);
+            wsSend.Params.RepairParamAssociations();
 
             remoToggle.Params.Input[0].AddSource((IGH_Param)toggle);
             wsSend.Params.Input[1].AddSource((IGH_Param)remoToggle.Params.Output[0]);
-            try { wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput()); }
+            Grasshopper.Kernel.Special.GH_Panel usernamePanel = null;
+            try
+            {
+                wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput(out usernamePanel));
+                remoToggle.Params.Input[1].AddSource(usernamePanel);
+            }
             catch { }
             wsSend.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
+            remoToggle.Params.Input[1].WireDisplay = GH_ParamWireDisplay.hidden;
 
             this.OnPingDocument().AddObject(remoToggle, true);
             this.OnPingDocument().AddObject(wsSend, true);
@@ -818,36 +998,44 @@ namespace RemoSharp
             int pivotX = Convert.ToInt32(compPivot.X);
             int pivotY = Convert.ToInt32(compPivot.Y);
             var otherComp = this.Component.OnPingDocument().Objects[RemoMakeindex];
-
-            GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
-
             Grasshopper.Kernel.Special.GH_Panel panel = (Grasshopper.Kernel.Special.GH_Panel)otherComp;
 
-            float panelSizeX = panel.Attributes.Bounds.Width;
-            float panelSizeY = panel.Attributes.Bounds.Height;
-            System.Drawing.Size vec = new System.Drawing.Size(-180, 25);
-            if (panelSizeX > 280 && panelSizeY < 50) vec = new System.Drawing.Size(-180, -25);
-            grip.CreateObjectData(otherComp);
+            //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
 
-            this.Component.OnPingDocument().DeselectAll();
-            this.Component.OnPingDocument().Select(grip);
-            this.Component.OnPingDocument().TranslateObjects(vec, true);
-            this.Component.OnPingDocument().DeselectAll();
 
-            
+            //float panelSizeX = panel.Attributes.Bounds.Width;
+            //float panelSizeY = panel.Attributes.Bounds.Height;
+            //System.Drawing.Size vec = new System.Drawing.Size(-180, 25);
+            //if (panelSizeX > 280 && panelSizeY < 50) vec = new System.Drawing.Size(-180, -25);
+            //grip.CreateObjectData(otherComp);
+
+            //this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().Select(grip);
+            //this.Component.OnPingDocument().TranslateObjects(vec, true);
+            //this.Component.OnPingDocument().DeselectAll();
+
+
             RemoSharp.RemoPanel remoPanel = new RemoPanel();
             remoPanel.CreateAttributes();
-            remoPanel.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39, pivotY + 37);
+            remoPanel.Attributes.Pivot = new System.Drawing.PointF(pivotX + 47 - 4, pivotY + 37 + 79 + 7);
+            remoPanel.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
             wsSend.CreateAttributes();
-            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24);
+            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24 + 101);
+            wsSend.Params.RepairParamAssociations();
 
             remoPanel.Params.Input[0].AddSource((IGH_Param)panel);
             wsSend.Params.Input[1].AddSource((IGH_Param)remoPanel.Params.Output[0]);
-            try { wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput()); }
+            Grasshopper.Kernel.Special.GH_Panel usernamePanel = null;
+            try
+            {
+                wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput(out usernamePanel));
+                remoPanel.Params.Input[1].AddSource(usernamePanel);
+            }
             catch { }
             wsSend.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
+            remoPanel.Params.Input[1].WireDisplay = GH_ParamWireDisplay.hidden;
 
             this.OnPingDocument().AddObject(remoPanel, true);
             this.OnPingDocument().AddObject(wsSend, true);
@@ -861,31 +1049,39 @@ namespace RemoSharp
             int pivotY = Convert.ToInt32(compPivot.Y);
             var otherComp = this.Component.OnPingDocument().Objects[RemoMakeindex];
 
-            GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+            //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
 
-            grip.CreateObjectData(otherComp);
+            //grip.CreateObjectData(otherComp);
 
-            this.Component.OnPingDocument().DeselectAll();
-            this.Component.OnPingDocument().Select(grip);
-            System.Drawing.Size vec = new System.Drawing.Size(-160, 35);
-            this.Component.OnPingDocument().TranslateObjects(vec, true);
-            this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().Select(grip);
+            //System.Drawing.Size vec = new System.Drawing.Size(-160, 35);
+            //this.Component.OnPingDocument().TranslateObjects(vec, true);
+            //this.Component.OnPingDocument().DeselectAll();
 
             Grasshopper.Kernel.Special.GH_ColourSwatch color = (Grasshopper.Kernel.Special.GH_ColourSwatch)otherComp;
 
             RemoSharp.RemoColorSwatch remoColor = new RemoColorSwatch();
             remoColor.CreateAttributes();
-            remoColor.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39, pivotY + 37);
+            remoColor.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39 + 15, pivotY + 37 + 17);
+            remoColor.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
             wsSend.CreateAttributes();
-            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24);
+            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24 + 7);
+            wsSend.Params.RepairParamAssociations();
 
             remoColor.Params.Input[1].AddSource((IGH_Param)color);
             wsSend.Params.Input[1].AddSource((IGH_Param)remoColor.Params.Output[0]);
-            try { wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput()); }
+            Grasshopper.Kernel.Special.GH_Panel usernamePanel = null;
+            try
+            {
+                wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput(out usernamePanel));
+                remoColor.Params.Input[2].AddSource(usernamePanel);
+            }
             catch { }
             wsSend.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
+            remoColor.Params.Input[2].WireDisplay = GH_ParamWireDisplay.hidden;
 
             this.OnPingDocument().AddObject(remoColor, true);
             this.OnPingDocument().AddObject(wsSend, true);
@@ -899,34 +1095,90 @@ namespace RemoSharp
             int pivotY = Convert.ToInt32(compPivot.Y);
             var otherComp = this.Component.OnPingDocument().Objects[RemoMakeindex];
 
-            GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
+            //GH_RelevantObjectData grip = new GH_RelevantObjectData(otherComp.Attributes.Pivot);
 
-            grip.CreateObjectData(otherComp);
+            //grip.CreateObjectData(otherComp);
 
-            this.Component.OnPingDocument().DeselectAll();
-            this.Component.OnPingDocument().Select(grip);
-            System.Drawing.Size vec = new System.Drawing.Size(-220, 35);
-            this.Component.OnPingDocument().TranslateObjects(vec, true);
-            this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().DeselectAll();
+            //this.Component.OnPingDocument().Select(grip);
+            //System.Drawing.Size vec = new System.Drawing.Size(-220, 35);
+            //this.Component.OnPingDocument().TranslateObjects(vec, true);
+            //this.Component.OnPingDocument().DeselectAll();
 
             Grasshopper.Kernel.Special.GH_NumberSlider slider = (Grasshopper.Kernel.Special.GH_NumberSlider)otherComp;
 
             RemoSharp.RemoSlider remoSlider = new RemoSlider();
             remoSlider.CreateAttributes();
-            remoSlider.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39, pivotY + 37);
+            remoSlider.Attributes.Pivot = new System.Drawing.PointF(pivotX + 39 + 13 - 8, pivotY + 37 + 17);
+            remoSlider.Params.RepairParamAssociations();
 
             RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
             wsSend.CreateAttributes();
-            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24);
+            wsSend.Attributes.Pivot = new System.Drawing.PointF(pivotX + 200, pivotY + 24 + 20);
+            wsSend.Params.RepairParamAssociations();
 
             remoSlider.Params.Input[1].AddSource((IGH_Param)slider);
             wsSend.Params.Input[1].AddSource((IGH_Param)remoSlider.Params.Output[0]);
-            try { wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput()); }
+            Grasshopper.Kernel.Special.GH_Panel usernamePanel = null;
+            try
+            {
+                wsSend.Params.Input[0].AddSource(FindWebSocketClientComponentOutput(out usernamePanel));
+                remoSlider.Params.Input[2].AddSource(usernamePanel);
+            }
             catch { }
             wsSend.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
+            remoSlider.Params.Input[2].WireDisplay = GH_ParamWireDisplay.hidden;
 
             this.OnPingDocument().AddObject(remoSlider, true);
             this.OnPingDocument().AddObject(wsSend, true);
+
+        }
+
+        private System.Guid GetComponentGuidAnd_Input_Index(
+    IGH_Param target,
+    out int paramIndex,
+    out bool isSpecial)
+        {
+            if (target.Attributes.Parent == null)
+            {
+                System.Guid compGuid = target.InstanceGuid;
+                paramIndex = -1;
+                isSpecial = true;
+                return compGuid;
+            }
+            else
+            {
+                var foundComponent = (IGH_Component)target.Attributes.Parent.DocObject;
+                int index = foundComponent.Params.Input.IndexOf(target);
+
+                paramIndex = index;
+                isSpecial = false;
+                return foundComponent.InstanceGuid;
+            }
+        }
+
+        private System.Guid GetComponentGuidAnd_Output_Index(
+          IGH_Param source,
+          out int paramIndex,
+          out bool isSpecial)
+        {
+
+            if (source.Attributes.Parent == null)
+            {
+                System.Guid compGuid = source.InstanceGuid;
+                paramIndex = -1;
+                isSpecial = true;
+                return compGuid;
+            }
+            else
+            {
+                var foundComponent = (IGH_Component)source.Attributes.Parent.DocObject;
+                int index = foundComponent.Params.Output.IndexOf(source);
+
+                paramIndex = index;
+                isSpecial = false;
+                return foundComponent.InstanceGuid;
+            }
 
         }
 

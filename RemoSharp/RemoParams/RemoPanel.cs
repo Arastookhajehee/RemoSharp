@@ -25,6 +25,8 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Panel", "Pnl", "Writing into a panel on the main remote GH_Canvas", GH_ParamAccess.list, new List<string> { "" });
+            pManager.AddTextParameter("Username_ID", "user", "The name of this canvas", GH_ParamAccess.item);
+
         }
 
         /// <summary>
@@ -42,42 +44,89 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            Component = this;
-            GrasshopperDocument = this.OnPingDocument();
-            List<string> stringList = new List<string>();
-            
-            DA.GetDataList<string>(0, stringList);
+            //Component = this;
+            //GrasshopperDocument = this.OnPingDocument();
+            //List<string> stringList = new List<string>();
+            //string username = "";
+            //DA.GetDataList<string>(0, stringList);
+            //DA.GetData(1,ref username);
 
-            if (this.Params.Input[0].Sources.Count < 1) return;
+            //if (this.Params.Input[0].Sources.Count < 1) return;
+
+            //GH_Panel panel = (GH_Panel)this.Params.Input[0].Sources[0];
+            //bool multiLine = panel.Properties.Multiline;
+            //bool drawIndicies = panel.Properties.DrawIndices;
+            //bool drawPaths = panel.Properties.DrawPaths;
+            //bool wrap = panel.Properties.Wrap;
+            //GH_Panel.Alignment alignment = panel.Properties.Alignment;
+            //float panelSizeX = panel.Attributes.Bounds.Width;
+            //float panelSizeY = panel.Attributes.Bounds.Height;
+
+            //string panelString = "";
+            //if (stringList.Count == 1) { panelString = stringList[0]; }
+            //else
+            //{
+            //    for (int i = 0; i < stringList.Count; i ++)
+            //    {
+            //        if (i < stringList.Count - 1) panelString += stringList[i] + Environment.NewLine;
+            //        else panelString += stringList[i];
+            //    }
+            //}
+            //int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -20;
+            //int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 40;
+            ////  command Index -->     4                  5                   6               7               8                          9                  10
+            //string panelOptions = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY;
+
+            //Guid panelGuid = this.Params.Input[0].Sources[0].InstanceGuid;
+
+            //string outputData = "ID_" + username + ",RemoParam,"
+            //    + coordX + ","
+            //    + coordY + ","
+            //    + "WriteToPanel," + panelOptions + "," + panelGuid.ToString() + "," + panelString;
+            //DA.SetData(0, outputData);
+
+
+            List<string> stringList = new List<string>();
+            string username = "";
+            DA.GetDataList<string>(0, stringList);
+            DA.GetData(1, ref username);
 
             GH_Panel panel = (GH_Panel)this.Params.Input[0].Sources[0];
+            Guid panelGuid = panel.InstanceGuid;
+
+
             bool multiLine = panel.Properties.Multiline;
             bool drawIndicies = panel.Properties.DrawIndices;
             bool drawPaths = panel.Properties.DrawPaths;
             bool wrap = panel.Properties.Wrap;
             GH_Panel.Alignment alignment = panel.Properties.Alignment;
-            float panelSizeX = panel.Attributes.Bounds.Width;
-            float panelSizeY = panel.Attributes.Bounds.Height;
+
+            //  command Index -->     5                  6                   7               8               9             
+            string panelOptions = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString();
+
+
+            string coordX = "1";
+            string coordY = "1";
 
             string panelString = "";
             if (stringList.Count == 1) { panelString = stringList[0]; }
             else
             {
-                for (int i = 0; i < stringList.Count; i ++)
+                for (int i = 0; i < stringList.Count; i++)
                 {
                     if (i < stringList.Count - 1) panelString += stringList[i] + Environment.NewLine;
                     else panelString += stringList[i];
                 }
             }
-            int coordX = Convert.ToInt32(this.Component.Attributes.Pivot.X) -20;
-            int coordY = Convert.ToInt32(this.Component.Attributes.Pivot.Y) - 40;
-            //  command Index -->     4                  5                   6               7               8                          9                  10
-            string panelOptions = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY;
 
-            string outputData = "RemoParam,"
+
+            string outputData = "ID_" + username + ",RemoParam,"
                 + coordX + ","
                 + coordY + ","
-                + "WriteToPanel," + panelOptions + "," + panelString;
+                + "WriteToPanel," + panelGuid + ","
+                + panelOptions + ","
+                + panelString;
+
             DA.SetData(0, outputData);
         }
 

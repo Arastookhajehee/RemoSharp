@@ -43,11 +43,11 @@ namespace RemoSharp.RemoCSharp
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("canvas", "canvas", "Canvas Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
-            pManager.AddTextParameter("bounds", "bounds", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
-            pManager.AddTextParameter("command", "command", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
-            pManager.AddTextParameter("camera", "camera", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
-            pManager.AddTextParameter("Collab_ID", "Collab_ID", "ID Number from RemoSharp's Server Manager (IP Forth Number)", GH_ParamAccess.item);
+            pManager.AddTextParameter("address01", "address01", "Canvas Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
+            pManager.AddTextParameter("address02", "address02", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
+            pManager.AddTextParameter("address03", "address03", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
+            pManager.AddTextParameter("address04", "address04", "Bounds Document Server Based on RemoSharp's Convention", GH_ParamAccess.item);
+            pManager.AddTextParameter("address05", "address05", "ID Number from RemoSharp's Server Manager (IP Forth Number)", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -69,6 +69,12 @@ namespace RemoSharp.RemoCSharp
             DA.GetData(3, ref IP_02);
             DA.GetData(4, ref Address_03);
             DA.GetData(5, ref PC_ID_04);
+
+            if (useFullAddress)
+            {
+                DA.SetData(0, fullAddress);
+                return;
+            }
 
             string canvasServerAddress = string.Format("ws://{0}.{1}.{2}.{3}:{4}/RemoSharp", IP_01, IP_02, Address_03, PC_ID_04, 18580);
             string boundsServerAddress = string.Format("ws://{0}.{1}.{2}.{3}:{4}/RemoSharp", IP_01, IP_02, Address_03, PC_ID_04, 18581);

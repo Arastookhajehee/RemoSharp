@@ -24,6 +24,7 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddBooleanParameter("Button", "Btn", "Pushes a button on the main remote GH_Canvas", GH_ParamAccess.item, true);
+            pManager.AddTextParameter("Username_ID", "user", "The name of this canvas", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -42,14 +43,18 @@ namespace RemoSharp
         {
 
             bool buttonPushed = false;
+            string username = "";
             DA.GetData(0, ref buttonPushed);
+            DA.GetData(1,ref username);
+
+            Guid buttonGuid = this.Params.Input[0].Sources[0].InstanceGuid;
 
             int coordX = Convert.ToInt32(this.Attributes.Pivot.X) -30;
             int coordY = Convert.ToInt32(this.Attributes.Pivot.Y) - 27;
-            string outputData = "RemoParam," 
+            string outputData = "ID_" + username + ",RemoParam," 
                 + coordX + ","
                 + coordY + ","
-                + "PushTheButton," + buttonPushed;
+                + "PushTheButton," + buttonPushed + "," + buttonGuid.ToString();
             DA.SetData(0, outputData);            
         }
 
