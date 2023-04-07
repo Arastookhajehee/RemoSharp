@@ -15,7 +15,7 @@ namespace RemoSharp
         /// Initializes a new instance of the RemoGeomStreamer class.
         /// </summary>
         public RemoGeomStreamer()
-          : base("RemoGeomStreamer", "RemoGeom",
+          : base("RemoGeomStreamer", "StreamGeom",
               "Streams Geometry to the Remote Main GH_Canvas",
               "RemoSharp", "RemoParams")
         {
@@ -26,7 +26,7 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("RemoGeometry", "RemoGeom", "The Geometry to be Streamed", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("RemoGeometry", "StreamGeom", "The Geometry to be Streamed", GH_ParamAccess.tree);
         }
 
         /// <summary>

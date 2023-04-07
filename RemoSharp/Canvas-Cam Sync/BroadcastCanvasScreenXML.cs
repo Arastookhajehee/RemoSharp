@@ -258,7 +258,7 @@ namespace RemoSharp
                 //this.OnPingDocument().AddObject(panel2, true);
                 this.OnPingDocument().AddObject(button2, true);
 
-                RemoSharp.RemoCommands remoCommands = new RemoSharp.RemoCommands();
+                RemoSharp.CommandExecutor remoCommands = new RemoSharp.CommandExecutor();
                 remoCommands.CreateAttributes();
                 remoCommands.Attributes.Pivot = commandReceiver;
                 remoCommands.Params.RepairParamAssociations();
