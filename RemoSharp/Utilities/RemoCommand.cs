@@ -9,8 +9,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using System.Drawing;
+using Grasshopper.Kernel;
 
-namespace RemoSharp.Utilities
+namespace RemoSharp.RemoCommandTypes
 {
 
     public enum CommandType 
@@ -64,6 +65,7 @@ namespace RemoSharp.Utilities
         public static string SerializeToJson(RemoCommand command)
         {
             return JsonConvert.SerializeObject(command,Formatting.Indented);
+            string pause = "";
         }
         public static RemoCommand DeserializeFromJson(string commandJson)
         {
@@ -153,51 +155,67 @@ namespace RemoSharp.Utilities
         }
     }
 
+    public class RemoConnectInteraction : RemoCommand
+    {
+        public IGH_Param source = null;
+        public IGH_Param target = null;
+        public int sourceOutput = -1;
+        public int targetInput = -1;
+        public bool isSourceSpecial = false;
+        public bool isTargetSpecial = false;
+        public RemoConnectType RemoConnectType = RemoConnectType.None;
+      
+        public RemoConnectInteraction()
+        {
+            // default constructor
+        }
+
+        public RemoConnectInteraction(string issuerID, IGH_Param source, IGH_Param target,
+            RemoConnectType remoConnectType)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.WireConnection;
+            this.RemoConnectType = remoConnectType;
+            this.source = source;
+            this.target = target;
+
+        }
+    }
+
     public class RemoConnect : RemoCommand
     {
-        public Guid sourceObjectGuid;
-        public Guid targetObjectGuid;
-        public int sourceOutput;
-        public int targetInput;
-        public bool isSourceSpecial;
-        public bool isTargetSpecial;
-        public RemoConnectType RemoConnectType;
-        public PointF sourceCoord;
-        public PointF targetCoord;
+        public int sourceOutput = -1;
+        public int targetInput = -1;
+        public bool isSourceSpecial = false;
+        public bool isTargetSpecial = false;
+        public Guid sourceObjectGuid = Guid.Empty;
+        public Guid targetObjectGuid = Guid.Empty;
+        public RemoConnectType RemoConnectType = RemoConnectType.None;
 
         public RemoConnect()
         {
             // default constructor
         }
 
-        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid, PointF sourceCoord, PointF targetCoord,
+        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
+            int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
             RemoConnectType remoConnectType)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.WireConnection;
             this.RemoConnectType = remoConnectType;
-            this.sourceObjectGuid = sourceObjectGuid;
-            this.targetObjectGuid = targetObjectGuid;
-            this.sourceCoord = sourceCoord;
-            this.targetCoord = targetCoord;
-        }
-
-        public RemoConnect(string issuerID,Guid sourceObjectGuid,Guid targetObjectGuid,
-            int sourceOutput, int targetInput, RemoConnectType remoConnectType,
-            bool isSourceSpecial, bool isTargetSpecial)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.WireConnection;
-            this.RemoConnectType= remoConnectType;
             this.sourceObjectGuid= sourceObjectGuid;
-            this.targetObjectGuid = targetObjectGuid;
+            this.targetObjectGuid= targetObjectGuid;
             this.sourceOutput = sourceOutput;
             this.targetInput = targetInput;
-            this.isSourceSpecial  = isSourceSpecial;
-            this.isTargetSpecial = isTargetSpecial;
+            this.isSourceSpecial = isSourceSpecial;
+            this.isTargetSpecial = isTargetSpecial;           
+
         }
-        
     }
+
+
+
     public class RemoCreate : RemoCommand
     {
         public string componentType;
@@ -279,14 +297,12 @@ namespace RemoSharp.Utilities
 
     public class RemoSelect : RemoCommand
     {
-        public bool state;
         public int timeSeconds;
-        public RemoSelect(string issuerID, Guid objectGuid, bool state, int timeSeconds)
+        public RemoSelect(string issuerID, Guid objectGuid, int timeSeconds)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Lock;
             this.objectGuid = objectGuid;
-            this.state = state;
             this.timeSeconds = timeSeconds;
         }
         public RemoSelect()
@@ -298,6 +314,7 @@ namespace RemoSharp.Utilities
     public class RemoHide : RemoCommand
     {
         public bool state;
+        public bool hidable;
         public int timeSeconds;
         public RemoHide(string issuerID, Guid objectGuid, bool state, int timeSeconds)
         {
@@ -418,10 +435,10 @@ namespace RemoSharp.Utilities
 
     public class RemoMove : RemoCommand
     {
-        public int moveX;
-        public int moveY;
+        public float moveX;
+        public float moveY;
         public int timeSeconds;
-        public RemoMove(string issuerID, Guid objectGuid, int moveX, int moveY, int timeSeconds)
+        public RemoMove(string issuerID, Guid objectGuid, float moveX, float moveY, int timeSeconds)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.MoveComponent;

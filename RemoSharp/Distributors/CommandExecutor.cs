@@ -13,8 +13,9 @@ using System.Threading;
 using GHCustomControls;
 using WPFNumericUpDown;
 
-using RemoSharp.Utilities;
+using RemoSharp.RemoCommandTypes;
 using WebSocketSharp;
+using System.Linq;
 
 namespace RemoSharp
 {
@@ -163,7 +164,7 @@ namespace RemoSharp
                 command = commandList[0];
             }
 
-            if (string.IsNullOrEmpty(command) || command == "Hello World" || command == "RemoSharp.Utilities.RemoNullCommand") return;
+            if (string.IsNullOrEmpty(command) || command == "Hello World" || command == "RemoSharp.RemoCommandTypes.RemoNullCommand") return;
 
             try
             {
@@ -192,7 +193,9 @@ namespace RemoSharp
                     grip.CreateObjectData(otherComp);
                     this.OnPingDocument().Select(grip);
 
-                    Size vec = new Size(moveCommand.moveX, moveCommand.moveY);
+                    int vecX = (int) (moveCommand.moveX - otherComp.Attributes.Pivot.X);
+                    int vecY = (int) (moveCommand.moveY - otherComp.Attributes.Pivot.Y);
+                    Size vec = new Size(vecX, vecY);
 
                     this.OnPingDocument().TranslateObjects(vec, true);
                     this.OnPingDocument().DeselectAll();
@@ -318,6 +321,31 @@ namespace RemoSharp
 
                 case (CommandType.Create):
                     RemoCreate createCommand = (RemoCreate)remoCommand;
+
+
+                    //var objectExists = this.OnPingDocument().Objects
+                    //    .OfType<IGH_DocumentObject>()
+                    //    .Where(currentObject => currentObject.InstanceGuid == createCommand.objectGuid)
+                    //    .ToList();
+
+                    //int currentObjectCount = objectExists.Count;
+                    //bool nullGuid = createCommand.objectGuid == Guid.Empty;
+
+                    int currentObjectCount = 0;
+                    bool nullGuid = false;
+
+                    foreach (IGH_DocumentObject item in this.OnPingDocument().Objects)
+                    {
+                        if (item.InstanceGuid == createCommand.objectGuid || createCommand.objectGuid == null)
+                        {
+                            nullGuid = true;
+                            currentObjectCount++;
+                        }
+                    }
+
+
+                    if (currentObjectCount > 0 || nullGuid) return;
+
                     string typeName = createCommand.componentType;
 
                     if (typeName.Contains("RemoSharp.WsClientCat")) return;
@@ -334,8 +362,17 @@ namespace RemoSharp
                     try
                     {
                         PointF tempPivot = new PointF(pivotX, pivotY);
-                        var currentObject = this.OnPingDocument().FindObject(tempPivot, 2);
-                        if (currentObject != null)
+                        //var currentObject = this.OnPingDocument().FindObject(tempPivot, 2);
+
+                        // find all groups that this object is in.
+                        var currentObject = OnPingDocument()
+                            .Objects
+                            .OfType<IGH_DocumentObject>()
+                            .Where(obj => obj.InstanceGuid == newCompGuid)
+                            .ToList();
+                            
+
+                        if (currentObject.Count > 0)
                         {
                             if (currentObject.GetType().ToString().Equals(typeName)) return;
                         }
@@ -568,8 +605,10 @@ namespace RemoSharp
                     RemoHide hideCommand = (RemoHide)remoCommand;
                     try
                     {
-                        var hideComponent = (IGH_Component)this.OnPingDocument().FindObject(hideCommand.objectGuid, false);
-                        hideComponent.Hidden = hideCommand.state;
+                        IGH_DocumentObject hideComponent = (IGH_DocumentObject)this.OnPingDocument().FindObject(hideCommand.objectGuid, false);
+                        GH_Component gh_component = hideComponent as GH_Component;
+                        if(gh_component != null) gh_component.Hidden = hideCommand.state;
+                        
                     }
                     catch
                     {
@@ -609,19 +648,11 @@ namespace RemoSharp
                     RemoSelect selectionCommand = (RemoSelect)remoCommand;
 
                     var selectionComp = this.OnPingDocument().FindObject(selectionCommand.objectGuid, false);
-                    GH_RelevantObjectData selectionGrip = new GH_RelevantObjectData(selectionComp.Attributes.Pivot);
-
-                    if (!selectionComp.Attributes.Selected)
-                    {
-
-                        selectionGrip.CreateObjectData(selectionComp);
-                        this.OnPingDocument().Select(selectionGrip, true, false);
-                    }
-                    else if (selectionComp.Attributes.Selected)
-                    {
-                        selectionGrip.CreateObjectData(selectionComp);
-                        this.OnPingDocument().Select(selectionGrip, false, true);
-                    }
+                    this.OnPingDocument().DeselectAll();
+                    GH_RelevantObjectData selectionGrip = new GH_RelevantObjectData(selectionComp.Attributes.Pivot);                   
+                    selectionGrip.CreateObjectData(selectionComp);
+                    
+                    this.OnPingDocument().Select(selectionGrip, true, false);            
 
                     return;
 
@@ -876,7 +907,7 @@ namespace RemoSharp
             {
                 //var otherComp = this.OnPingDocument().Objects[deletionIndex];
                 var otherComp = this.OnPingDocument().FindObject(compGuid, false);
-                this.OnPingDocument().RemoveObject(otherComp, true);
+                if (otherComp != null) this.OnPingDocument().RemoveObject(otherComp, true);
             }
             catch (Exception e)
             {

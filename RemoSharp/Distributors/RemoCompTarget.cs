@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using GHCustomControls;
 using WPFNumericUpDown;
 
-using RemoSharp.Utilities;
+using RemoSharp.RemoCommandTypes;
+using Grasshopper.Kernel.Types;
 
 namespace RemoSharp
 {
@@ -309,255 +310,54 @@ namespace RemoSharp
 
             if (cmd.commandType == CommandType.WireConnection)
             {
-                RemoConnect connectCommand = (RemoConnect)cmd;
-                Guid sourceGuid = connectCommand.sourceObjectGuid;
-                Guid targetGuid = connectCommand.targetObjectGuid;
+                RemoConnectInteraction connectionInteraction = (RemoConnectInteraction)cmd;
 
-                var sourceComp = (IGH_Param)this.OnPingDocument().FindObject(sourceGuid, false);
-                var targetComp = (IGH_Param)this.OnPingDocument().FindObject(targetGuid, false);
 
-                var sourceDocComp = sourceComp.Attributes.DocObject;
-                var targetDocComp = targetComp.Attributes.DocObject;
+                int outIndex = -1;
+                bool outIsSpecial = false;
+                System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                  connectionInteraction.source, out outIndex, out outIsSpecial);
 
-                string sourceType = sourceComp.Attributes.DocObject.GetType().ToString();
-                string targetType = targetComp.Attributes.DocObject.GetType().ToString();
+                //connectionInteraction.sourceOutput = outIndex;
+                //connectionInteraction.isSourceSpecial = outIsSpecial;
+                //connectionInteraction.sourceObjectGuid = outGuid;
 
-                string sourceCommand = "";
-                string targetCommand = "";
+                int inIndex = -1;
+                bool inIsSpecial = false;
+                System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                  connectionInteraction.target, out inIndex, out inIsSpecial);
 
-                if (
-                  sourceType == "Grasshopper.Kernel.Special.GH_NumberSlider"
-                  || sourceType == "Grasshopper.Kernel.Special.GH_ButtonObject"
-                  || sourceType == "Grasshopper.Kernel.Special.GH_BooleanToggle"
-                  || sourceType == "Grasshopper.Kernel.Special.GH_ColourSwatch"
-                  )
-                {
-                    connectCommand.sourceOutput = -1;
-                    connectCommand.isSourceSpecial = true;
+                //connectionInteraction.targetInput = inIndex;
+                //connectionInteraction.isTargetSpecial = inIsSpecial;
+                //connectionInteraction.targetObjectGuid = inGuid;
 
-                    GH_ParamKind targetKind = targetComp.Kind;
-                    if (targetKind == GH_ParamKind.floating)
-                    {
-                        connectCommand.targetInput = -1;
-                        connectCommand.isTargetSpecial= true;
-                    }
-                    else
-                    {
-                        int inIndex = -1;
-                        bool inIsSpecial = false;
-                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                          targetComp, out inIndex, out inIsSpecial);
+                RemoConnect remoConnect = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
 
-                        connectCommand.targetInput = inIndex;
-                        connectCommand.isTargetSpecial = inIsSpecial;
-                        connectCommand.targetObjectGuid = inGuid;
-                    }
-
-                }
-                else if (sourceComp.Kind == GH_ParamKind.output)
-                {
-
-                    int outIndex = -1;
-                    bool outIsSpecial = false;
-                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                      sourceComp, out outIndex, out outIsSpecial);
-
-                    connectCommand.sourceOutput = outIndex;
-                    connectCommand.isSourceSpecial = outIsSpecial;
-                    connectCommand.sourceObjectGuid = outGuid;
-
-                    int inIndex = -1;
-                    bool inIsSpecial = false;
-                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                      targetComp, out inIndex, out inIsSpecial);
-
-                    connectCommand.targetInput = inIndex;
-                    connectCommand.isTargetSpecial = inIsSpecial;
-                    connectCommand.targetObjectGuid = inGuid;
-
-                }
-                else if (targetComp.Kind == GH_ParamKind.input)
-                {
-
-                    int outIndex = -1;
-                    bool outIsSpecial = false;
-                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                      sourceComp, out outIndex, out outIsSpecial);
-                    connectCommand.sourceOutput = outIndex;
-                    connectCommand.isSourceSpecial = outIsSpecial;
-                    connectCommand.sourceObjectGuid = outGuid;
-
-                    int inIndex = -1;
-                    bool inIsSpecial = false;
-                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                      targetComp, out inIndex, out inIsSpecial);
-
-                    connectCommand.targetInput = inIndex;
-                    connectCommand.isTargetSpecial = inIsSpecial;
-                    connectCommand.targetObjectGuid = inGuid;
-
-                }
-                else if (targetComp.Kind == GH_ParamKind.output)
-                {
-
-                    int outIndex = -1;
-                    bool outIsSpecial = false;
-                    System.Guid outGuid = GetComponentGuidAnd_Input_Index(
-                      sourceComp, out outIndex, out outIsSpecial);
-
-                    int inIndex = -1;
-                    bool inIsSpecial = false;
-                    System.Guid inGuid = GetComponentGuidAnd_Output_Index(
-                      targetComp, out inIndex, out inIsSpecial);
-
-                    connectCommand.sourceOutput = outIndex;
-                    connectCommand.isSourceSpecial = outIsSpecial;
-                    connectCommand.sourceObjectGuid = outGuid;
-                    connectCommand.targetInput = inIndex;
-                    connectCommand.isTargetSpecial = inIsSpecial;
-                    connectCommand.targetObjectGuid = inGuid;
-
-                }
-                else if (sourceComp.Kind == GH_ParamKind.input)
-                {
-
-                    int outIndex = -1;
-                    bool outIsSpecial = false;
-                    System.Guid outGuid = GetComponentGuidAnd_Input_Index(
-                      sourceComp, out outIndex, out outIsSpecial);
-
-                    int inIndex = -1;
-                    bool inIsSpecial = false;
-                    System.Guid inGuid = GetComponentGuidAnd_Output_Index(
-                      targetComp, out inIndex, out inIsSpecial);
-
-                    connectCommand.sourceOutput = outIndex;
-                    connectCommand.isSourceSpecial = outIsSpecial;
-                    connectCommand.sourceObjectGuid = outGuid;
-                    connectCommand.targetInput = inIndex;
-                    connectCommand.isTargetSpecial = inIsSpecial;
-                    connectCommand.targetObjectGuid = inGuid;
-
-                }
-                else if (
-                  targetType == "Grasshopper.Kernel.Special.GH_NumberSlider"
-                  || targetType == "Grasshopper.Kernel.Special.GH_ButtonObject"
-                  || targetType == "Grasshopper.Kernel.Special.GH_BooleanToggle"
-                  || targetType == "Grasshopper.Kernel.Special.GH_ColourSwatch"
-                  )
-                {
-
-                    connectCommand.sourceOutput = -1;
-                    connectCommand.isSourceSpecial = true;
-
-                    if (sourceComp.Kind == GH_ParamKind.floating)
-                    {
-                        connectCommand.targetInput = -1;
-                        connectCommand.isTargetSpecial = true;
-                    }
-                    else
-                    {
-                        int inIndex = -1;
-                        bool inIsSpecial = false;
-                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                          targetComp, out inIndex, out inIsSpecial);
-
-                        connectCommand.targetInput = inIndex;
-                        connectCommand.isTargetSpecial = inIsSpecial;
-                        connectCommand.targetObjectGuid = inGuid;
-
-                    }
-
-                }
-                else if (
-                  targetType == "Grasshopper.Kernel.Special.GH_Panel"
-                  )
-                {
-                    int targetX = (int)connectCommand.targetCoord.X;
-                    int panelPivotX = (int)targetComp.Attributes.Pivot.X;
-
-                    if (targetX > panelPivotX)
-                    {
-                        connectCommand.sourceOutput = -1;
-                        connectCommand.isSourceSpecial = true;
-
-                        int inIndex = -1;
-                        bool inIsSpecial = false;
-                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                          sourceComp, out inIndex, out inIsSpecial);
-
-                        connectCommand.targetInput = inIndex;
-                        connectCommand.isTargetSpecial = inIsSpecial;
-                        connectCommand.targetObjectGuid = inGuid;
-                    }
-                    else
-                    {
-
-                        int outIndex = -1;
-                        bool outIsSpecial = false;
-                        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                          sourceComp, out outIndex, out outIsSpecial);
-
-                        connectCommand.sourceOutput = outIndex;
-                        connectCommand.isSourceSpecial = outIsSpecial;
-                        connectCommand.sourceObjectGuid = outGuid;
-                        connectCommand.targetInput = -1;
-                        connectCommand.isTargetSpecial = true;
-                    }
-
-                }
-                else if (
-                  sourceType == "Grasshopper.Kernel.Special.GH_Panel"
-                  )
-                {
-                    int targetX = (int)connectCommand.targetCoord.X;
-                    int panelPivotX = (int)targetComp.Attributes.Pivot.X;
-
-                    if (targetX > panelPivotX)
-                    {
-                        connectCommand.sourceOutput = -1;
-                        connectCommand.isSourceSpecial = true;
-
-                        int inIndex = -1;
-                        bool inIsSpecial = false;
-                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                          sourceComp, out inIndex, out inIsSpecial);
-
-                        connectCommand.targetInput = inIndex;
-                        connectCommand.isTargetSpecial = inIsSpecial;
-                        connectCommand.targetObjectGuid = inGuid;
-
-                    }
-                    else
-                    {
-
-                        int outIndex = -1;
-                        bool outIsSpecial = false;
-                        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                          sourceComp, out outIndex, out outIsSpecial);
-
-                        connectCommand.sourceOutput = outIndex;
-                        connectCommand.isSourceSpecial = outIsSpecial;
-                        connectCommand.sourceObjectGuid = outGuid;
-                        connectCommand.targetInput = -1;
-                        connectCommand.isTargetSpecial = true;
-                    }
-
-                }
-
-                cmdJson = RemoCommand.SerializeToJson(connectCommand);
+                cmdJson = RemoCommand.SerializeToJson(remoConnect);
+                string hi = "";
             }
 
-
+            // 50%
             if (hide)
             {
-                var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
-                int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
-
-                Guid selectionGuid = this.OnPingDocument().SelectedObjects()[0].InstanceGuid;
                 
-                cmd = new RemoHide(cmd.issuerID, selectionGuid, hide,DateTime.Now.Second);
+                bool state = true;
+
+                IGH_DocumentObject selection = this.OnPingDocument().SelectedObjects()[0];
+                if (selection is GH_Component)
+                {
+                   GH_Component hideComponent = (GH_Component)selection;
+                    state = !hideComponent.Hidden;
+                    hideComponent.Hidden = state;
+                }
+                //else if (selection is GH_PersistentParam)
+                //{
+                //    GH_PersistentParam hideComponent = (GH_PersistentParam)selection;
+                //    state = !hideComponent.Hidden;
+                //    hideComponent.Hidden = state;
+                //}
+
+                cmd = new RemoHide(cmd.issuerID, selection.InstanceGuid, state,DateTime.Now.Second);
                 cmdJson = RemoCommand.SerializeToJson(cmd);
                 DA.SetData(0, cmdJson);
                 hide = false;
@@ -565,14 +365,14 @@ namespace RemoSharp
 
             if (select)
             {
-                var thisCompPivot = this.Component.Attributes.Pivot;
-                int thisCompX = Convert.ToInt32(thisCompPivot.X) + 15;
-                int thisCompY = Convert.ToInt32(thisCompPivot.Y) - 27;
 
-                Guid selectionGuid = this.OnPingDocument().SelectedObjects()[0].InstanceGuid;
-                cmd = new RemoSelect(cmd.issuerID, selectionGuid, hide, DateTime.Now.Second);
+                IGH_DocumentObject selection = this.OnPingDocument().SelectedObjects()[0];
+                
+                Guid selectionGuid = selection.InstanceGuid;
+                cmd = new RemoSelect(cmd.issuerID, selectionGuid, DateTime.Now.Second);
                 cmdJson = RemoCommand.SerializeToJson(cmd);
                 DA.SetData(0, cmdJson);
+                
                 select = false;
             }
 

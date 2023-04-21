@@ -185,7 +185,7 @@ namespace RemoSharp
                 commandWsSendComp.Params.RepairParamAssociations();
 
 
-                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -290, -48, true);
+                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -290, -48, true);
 
 
                 this.OnPingDocument().ScheduleSolution(1, (GH_Document.GH_ScheduleDelegate)(doc =>

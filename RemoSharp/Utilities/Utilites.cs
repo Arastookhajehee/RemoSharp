@@ -18,7 +18,7 @@ using Grasshopper.Kernel.Special;
 using ScriptComponents;
 using System.Net.NetworkInformation;
 
-namespace RemoSharp.Utilities
+namespace RemoSharp.RemoCommandTypes
 {
     public class Utilites
     {
@@ -26,7 +26,7 @@ namespace RemoSharp.Utilities
         public static IGH_Param[] CreateServerMakerComponent(GH_Document document, System.Drawing.PointF pivot, int shiftX, int shiftY, bool IncludeAddressIP) 
         {
 
-            var networkList = RemoSharp.Utilities.Utilites.GetNetworkListDataFromPC();
+            var networkList = RemoSharp.RemoCommandTypes.Utilites.GetNetworkListDataFromPC();
 
             int addressIndex = 0;
             for (int i = 0; i < networkList.Count; i++)

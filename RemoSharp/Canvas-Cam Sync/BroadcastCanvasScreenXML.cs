@@ -143,7 +143,7 @@ namespace RemoSharp
                 var guid = this.InstanceGuid;
 
 
-                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -350, -38, false);
+                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -350, -38, false);
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>

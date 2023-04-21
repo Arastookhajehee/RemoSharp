@@ -83,7 +83,7 @@ namespace RemoSharp
                 wsRecv.Attributes.Pivot = wsRecvPivot;
                 wsRecv.Params.RepairParamAssociations();
 
-                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -474, -69, true);
+                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -474, -69, true);
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
