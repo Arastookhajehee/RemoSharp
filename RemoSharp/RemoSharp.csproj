@@ -112,6 +112,7 @@
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
     <Compile Include="RemoGeom\RemoGeomParser.cs" />
     <Compile Include="RemoGeom\RemoGeomStreamer.cs" />
+    <Compile Include="RemoParams\RemoParam.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoParams\RemoSlider.cs" />
@@ -259,12 +260,6 @@
     <None Include="Resources\RemoSharpIcon.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Machina_NET_KUKA_Online\src\Machina\Machina.csproj">
-      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
-      <Name>Machina</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="images\ReadMachinaStream.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -281,6 +276,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\ID.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Machina.NET\src\Machina\Machina.csproj">
+      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
+      <Name>Machina</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

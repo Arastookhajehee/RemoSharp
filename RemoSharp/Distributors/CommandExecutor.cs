@@ -639,10 +639,10 @@ namespace RemoSharp
                     });
                     return;
 
-                case (CommandType.RemoParam):
-                    DA.SetData(0, remoCommand.ToString());
+                //case (CommandType.RemoParam):
+                //    DA.SetData(0, remoCommand.ToString());
 
-                    break;
+                //    break;
                 case (CommandType.Select):
 
                     RemoSelect selectionCommand = (RemoSelect)remoCommand;

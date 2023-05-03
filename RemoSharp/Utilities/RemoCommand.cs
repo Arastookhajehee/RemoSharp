@@ -10,6 +10,11 @@ using Newtonsoft.Json.Linq;
 
 using System.Drawing;
 using Grasshopper.Kernel;
+using Rhino.Geometry;
+using Grasshopper.Kernel.Special;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Parameters;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -23,20 +28,24 @@ namespace RemoSharp.RemoCommandTypes
         Lock = 4, // done
         Hide = 5, // done
         WireConnection = 6, //done
-        RemoParam = 7, // done
+        RemoParamNone = 7, // done
         Select = 8,
-        StreamGeom = 9
+        StreamGeom = 9,
+        RemoSlider = 10, // done
+        RemoButton = 11, // done
+        RemoToggle = 12, // done
+        RemoPanel = 13, // done
+        RemoColor = 14, // done
+        RemoMDSlider = 15,
+        RemoPoint3d = 16,
+        RemoVector3d = 17,
+        RemoPlane = 18
     }
-    public enum RemoParamType
-    {
-        None = 0,
-        Slider = 1, // done
-        Button = 2, // done
-        Toggle = 3, // done
-        Panel = 4, // done
-        Color = 5, // done
-        MDSlider = 6
-    }
+    //public enum RemoParamType
+    //{
+    //    None = 0,
+        
+    //}
     public enum RemoConnectType
     {
         None = 0,
@@ -44,18 +53,6 @@ namespace RemoSharp.RemoCommandTypes
         Replace = 2,
         Remove = 3
     }
-
-    public enum ButtonState
-    {
-        ButtonDown = 1,
-        ButtonUp = 0
-    }
-    public enum ToggleState
-    {
-        ToggleTrue = 1,
-        ToggleFalse = 0
-    }
-
     abstract public class RemoCommand
     {
         public string issuerID;
@@ -65,7 +62,6 @@ namespace RemoSharp.RemoCommandTypes
         public static string SerializeToJson(RemoCommand command)
         {
             return JsonConvert.SerializeObject(command,Formatting.Indented);
-            string pause = "";
         }
         public static RemoCommand DeserializeFromJson(string commandJson)
         {
@@ -117,21 +113,42 @@ namespace RemoSharp.RemoCommandTypes
                 remoCommand = JsonConvert.DeserializeObject<RemoLock>(commandJson);
                 
                     break;
-            case (int) CommandType.RemoParam:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoParam>(commandJson);
-                
+                case (int) CommandType.RemoSlider:
+                remoCommand = JsonConvert.DeserializeObject<RemoParamSlider>(commandJson);
                     break;
-            case (int) CommandType.StreamGeom:
+                case (int)CommandType.RemoButton:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamButton>(commandJson);
+                    break;
+                case (int)CommandType.RemoToggle:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamToggle>(commandJson);
+                    break;
+                case (int)CommandType.RemoPanel:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamPanel>(commandJson);
+                    break;
+                case (int)CommandType.RemoColor:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamColor>(commandJson);
+                    break;
+                case (int)CommandType.RemoMDSlider:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamMDSlider>(commandJson);
+                    break;
+                case (int)CommandType.RemoPoint3d:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamPoint3d>(commandJson);
+                    break;
+                case (int)CommandType.RemoVector3d:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamVector3d>(commandJson);
+                    break;
+                case (int)CommandType.RemoPlane:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamPlane>(commandJson);
+                    break;
+
+                case (int) CommandType.StreamGeom:
             
                 return null;
-                
-                    break;
+                    //break;
             case (int) CommandType.NullCommand:
             
                 return null;
-                
-                    break;
+                    //break;
             default:
                     break;
         }
@@ -213,8 +230,6 @@ namespace RemoSharp.RemoCommandTypes
 
         }
     }
-
-
 
     public class RemoCreate : RemoCommand
     {
@@ -330,107 +345,241 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
-    public class RemoParam : RemoCommand
+    public class RemoParamSlider : RemoCommand
     {
-        public RemoParamType remoParamType;
+        // for slider *
+        public decimal sliderValue;
+        public decimal sliderminBound;
+        public decimal slidermaxBound;
+        public int decimalPlaces;
+        public int sliderType;
+
+        RemoParamSlider() { }
+        public RemoParamSlider(string issuerID,
+            GH_NumberSlider slider)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoSlider;
+            this.objectGuid = slider.InstanceGuid;
+            this.sliderValue = slider.CurrentValue;
+            this.sliderminBound = slider.Slider.Minimum;
+            this.slidermaxBound = slider.Slider.Maximum;
+            this.decimalPlaces = slider.Slider.DecimalPlaces;
+            this.sliderType = (int)slider.Slider.Type;
+        }
+    }
+
+    // for buttons
+    public class RemoParamButton: RemoCommand
+    {
         // for button *
         public bool buttonValue;
+
+        public RemoParamButton() { }
+        public RemoParamButton(string issuerID, GH_ButtonObject button
+            )
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoButton;
+            this.objectGuid = button.InstanceGuid;
+            this.buttonValue = button.ButtonDown;
+        }
+    }
+
+    public class RemoParamToggle : RemoCommand
+    {
+        public RemoParamToggle() { }
         // for toggle *
         public bool toggleValue;
-        // for panel *
+        // for toggles
+        public RemoParamToggle(string issuerID, GH_BooleanToggle toggle)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoToggle;
+            this.objectGuid = toggle.InstanceGuid;
+            this.toggleValue = toggle.Value;
+        }
+
+    }
+
+    // for panel *
+    public class RemoParamPanel : RemoCommand
+    {
         public bool panelMultiLine;
         public bool panelDrawIndecies;
         public bool panelDrawPaths;
         public bool panelWrap;
         public int panelAlignment;
         public string panelContent;
+
+        public RemoParamPanel() { }
+
+        // for panels
+        public RemoParamPanel(string issuerID, GH_Panel panel)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoPanel;
+            this.objectGuid = panel.InstanceGuid;
+            this.panelMultiLine = panel.Properties.Multiline;
+            this.panelDrawIndecies = panel.Properties.DrawIndices;
+            this.panelDrawPaths = panel.Properties.DrawPaths;
+            this.panelWrap = panel.Properties.Wrap;
+            this.panelAlignment = (int) panel.Properties.Alignment;
+            this.panelContent = panel.UserText;
+        }
+    }
+
+    public class RemoParamColor : RemoCommand
+    {
         // for color *
         public int colorRed;
         public int colorGreen;
         public int colorBlue;
         public int colorAlpha;
-        // for slider *
-        public decimal sliderValue;
-        public decimal sliderminBound;
-        public decimal slidermaxBound;
-        public int sliderAccuracy;
-        public int sliderType;
-
-
-        public RemoParam()
-        {
-            // default constructor
-        }
-
-        // for buttons
-        public RemoParam(string issuerID, Guid objectGuid,
-            ButtonState buttonState
-            )
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.RemoParam;
-            this.objectGuid = objectGuid;
-            this.remoParamType = RemoParamType.Button;
-            this.buttonValue = Convert.ToBoolean(buttonState);
-        }
-        // for toggles
-        public RemoParam(string issuerID, Guid objectGuid,
-            ToggleState toggleState
-            )
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.RemoParam;
-            this.objectGuid = objectGuid;
-            this.remoParamType = RemoParamType.Toggle;
-            this.toggleValue = Convert.ToBoolean(toggleState);
-        }
-        // for panels
-        public RemoParam(string issuerID, Guid objectGuid,
-        bool panelMultiLine, bool panelDrawIndecies,
-        bool panelDrawPaths, bool panelWrap,
-        int panelAlignment, string panelContent)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.RemoParam;
-            this.objectGuid = objectGuid;
-            this.remoParamType = RemoParamType.Panel;
-            this.panelMultiLine = panelMultiLine;
-            this.panelDrawIndecies = panelDrawIndecies;
-            this.panelDrawPaths = panelDrawPaths;
-            this.panelWrap = panelWrap;
-            this.panelAlignment = panelAlignment;
-            this.panelContent = panelContent;
-        }
-
-        // slider
-        public RemoParam(string issuerID, Guid objectGuid,
-            decimal sliderminBound, decimal slidermaxBound, decimal sliderValue,
-            int sliderAccuracy, GH_SliderAccuracy sliderType)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.RemoParam;
-            this.objectGuid = objectGuid;
-            this.remoParamType = RemoParamType.Slider;
-            this.sliderValue = sliderValue;
-            this.sliderminBound = sliderminBound;
-            this.slidermaxBound = slidermaxBound;
-            this.sliderAccuracy = sliderAccuracy;
-            this.sliderType = (int)sliderType;
-        }
+        public RemoParamColor() { }
 
         // color
-        public RemoParam(string issuerID, Guid objectGuid,
-            int colorRed, int colorGreen, int colorBlue, int colorAlpha)
+        public RemoParamColor(string issuerID, GH_ColourSwatch colourSwatch)
         {
             this.issuerID = issuerID;
-            this.commandType = CommandType.RemoParam;
-            this.objectGuid = objectGuid;
-            this.remoParamType = RemoParamType.Color;
-            this.colorRed = colorRed;
-            this.colorGreen = colorGreen;
-            this.colorBlue = colorBlue;
-            this.colorAlpha = colorAlpha;
+            this.commandType = CommandType.RemoColor;
+            this.objectGuid = colourSwatch.InstanceGuid;
+            this.colorRed = colourSwatch.SwatchColour.R;
+            this.colorGreen = colourSwatch.SwatchColour.G;
+            this.colorBlue = colourSwatch.SwatchColour.B;
+            this.colorAlpha = colourSwatch.SwatchColour.A;
         }
+    }
+
+    public class RemoParamMDSlider : RemoCommand
+    {
+        // for md slider
+        public double mdSliderValueX;
+        public double mdSliderValueY;
+        public double mdSliderminBoundX;
+        public double mdSlidermaxBoundX;
+        public double mdSliderminBoundY;
+        public double mdSlidermaxBoundY;
+        public RemoParamMDSlider() { }
+
+        public RemoParamMDSlider(string issuerID,
+            GH_MultiDimensionalSlider mdSlider, bool approximate)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoMDSlider;
+            this.objectGuid = mdSlider.InstanceGuid;
+            this.mdSliderValueX = approximate ? Math.Round(mdSlider.Value.X): mdSlider.Value.X;
+            this.mdSliderValueY = approximate ? Math.Round(mdSlider.Value.Y) : mdSlider.Value.Y;
+            this.mdSliderminBoundX = mdSlider.XInterval.Min;
+            this.mdSlidermaxBoundX = mdSlider.XInterval.Max;
+            this.mdSliderminBoundY = mdSlider.YInterval.Min;
+            this.mdSlidermaxBoundY = mdSlider.YInterval.Max;
+        }
+    }
+
+    public class RemoParamPoint3d : RemoCommand
+    {
+        // for point3d
+        public List<string> points_and_TreePath;
+        public RemoParamPoint3d() { }
+        public RemoParamPoint3d(string issuerID, Param_Point pointComponent, GH_Structure<IGH_Goo> pntTree, bool approximate)
+        {
+            
+            List<string> pointsAndTreePath = new List<string>();
+            foreach (GH_Path path in pntTree.Paths)
+            {
+                var branch = pntTree.get_Branch(path);
+                foreach (var item in branch)
+                {
+                    GH_Point pnt = (GH_Point)item;
+                    string coordPath = string.Format("{0},{1},{2}:{3}"
+                        , approximate? Math.Round(pnt.Value.X,3): pnt.Value.X
+                        , approximate ? Math.Round(pnt.Value.Y, 3) : pnt.Value.Y
+                        , approximate ? Math.Round(pnt.Value.Z, 3) : pnt.Value.Z
+                        , path.ToString().Substring(1, path.ToString().Length - 2));
+
+                    pointsAndTreePath.Add(coordPath);
+                }
+            }
+
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoPoint3d;
+            this.objectGuid = pointComponent.InstanceGuid;
+            this.points_and_TreePath = pointsAndTreePath;
+        }
+    }
+    public class RemoParamVector3d : RemoCommand
+    {
+        // for vector3d
+        public List<string> vectors_and_TreePath;
+        public RemoParamVector3d() { }
+        public RemoParamVector3d(string issuerID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
+        {
+
+            List<string> vectorsAndTreePath = new List<string>();
+            foreach (GH_Path path in vecTree.Paths)
+            {
+                var branch = vecTree.get_Branch(path);
+                foreach (var item in branch)
+                {
+                    GH_Vector vec = (GH_Vector)item;
+                    string coordPath = string.Format("{0},{1},{2}:{3}"
+                        , approximate ? Math.Round(vec.Value.X, 3) : vec.Value.X
+                        , approximate ? Math.Round(vec.Value.Y, 3) : vec.Value.Y
+                        , approximate ? Math.Round(vec.Value.Z, 3) : vec.Value.Z
+                        , path.ToString().Substring(1, path.ToString().Length - 2));
+
+                    vectorsAndTreePath.Add(coordPath);
+                }
+            }
+
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoPoint3d;
+            this.objectGuid = vectorComponent.InstanceGuid;
+            this.vectors_and_TreePath = vectorsAndTreePath;
+        }
+    }
+    public class RemoParamPlane : RemoCommand
+    {
+        // for plane
+        public List<string> planes_and_TreePath;
+
+        public RemoParamPlane() { }
+        public RemoParamPlane(string issuerID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
+        {
+
+            List<string> planesAndTreePath = new List<string>();
+            foreach (GH_Path path in planeTree.Paths)
+            {
+                var branch = planeTree.get_Branch(path);
+                foreach (var item in branch)
+                {
+                    GH_Plane plane = (GH_Plane)item;
+                    string coordPath = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8}:{9}"
+                        , approximate ? Math.Round(plane.Value.Origin.X, 3) : plane.Value.Origin.X
+                        , approximate ? Math.Round(plane.Value.Origin.Y, 3) : plane.Value.Origin.Y
+                        , approximate ? Math.Round(plane.Value.Origin.Z, 3) : plane.Value.Origin.Z
+
+                        , approximate ? Math.Round(plane.Value.XAxis.X, 3) : plane.Value.XAxis.X
+                        , approximate ? Math.Round(plane.Value.XAxis.Y, 3) : plane.Value.XAxis.Y
+                        , approximate ? Math.Round(plane.Value.XAxis.Z, 3) : plane.Value.XAxis.Z
+
+                        , approximate ? Math.Round(plane.Value.YAxis.X, 3) : plane.Value.YAxis.X
+                        , approximate ? Math.Round(plane.Value.YAxis.Y, 3) : plane.Value.YAxis.Y
+                        , approximate ? Math.Round(plane.Value.YAxis.Z, 3) : plane.Value.YAxis.Z
+
+                        , path.ToString().Substring(1, path.ToString().Length - 2));
+
+                    planesAndTreePath.Add(coordPath);
+                }
+            }
+
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoPoint3d;
+            this.objectGuid = planeComponent.InstanceGuid;
+            this.planes_and_TreePath = planesAndTreePath;
+        }
+
     }
 
     public class RemoMove : RemoCommand
