@@ -468,8 +468,8 @@ namespace RemoSharp.RemoCommandTypes
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoMDSlider;
             this.objectGuid = mdSlider.InstanceGuid;
-            this.mdSliderValueX = approximate ? Math.Round(mdSlider.Value.X): mdSlider.Value.X;
-            this.mdSliderValueY = approximate ? Math.Round(mdSlider.Value.Y) : mdSlider.Value.Y;
+            this.mdSliderValueX = approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
+            this.mdSliderValueY = approximate ? Math.Round(mdSlider.Value.Y,3) : mdSlider.Value.Y;
             this.mdSliderminBoundX = mdSlider.XInterval.Min;
             this.mdSlidermaxBoundX = mdSlider.XInterval.Max;
             this.mdSliderminBoundY = mdSlider.YInterval.Min;

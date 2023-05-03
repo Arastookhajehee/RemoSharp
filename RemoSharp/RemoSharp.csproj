@@ -103,11 +103,8 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="RemoCSharp\ServerAddress.cs" />
-    <Compile Include="RemoParams\RemoButton.cs" />
-    <Compile Include="RemoParams\RemoColorSwatch.cs" />
     <Compile Include="Distributors\RemoCompSource.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
-    <Compile Include="RemoParams\RemoPanel.cs" />
     <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
     <Compile Include="RemoGeom\RemoGeomParser.cs" />
@@ -115,8 +112,6 @@
     <Compile Include="RemoParams\RemoParam.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RemoParams\RemoSlider.cs" />
-    <Compile Include="RemoParams\RemoToggle.cs" />
     <Compile Include="RemoCSharp\Script_Checker.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
     <Compile Include="RemoCSharp\TextNumber.cs" />
