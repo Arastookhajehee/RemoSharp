@@ -15,6 +15,7 @@ using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Parameters;
+using System.Windows.Forms;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -280,15 +281,14 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoDelete : RemoCommand
     {
-        public RemoDelete(string issuerID, Guid objectGuid)
+        public List<Guid> objectGuids;
+        public RemoDelete() { }
+        public RemoDelete(string issuerID, List<Guid> objectGuids)
         {
             this.issuerID= issuerID;
             this.commandType= CommandType.Delete;
-            this.objectGuid= objectGuid;
-        }
-        public RemoDelete()
-        {
-            // default constructor
+            this.objectGuid= Guid.Empty;
+            this.objectGuids = objectGuids;
         }
     }
 
@@ -313,12 +313,14 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoSelect : RemoCommand
     {
         public int timeSeconds;
-        public RemoSelect(string issuerID, Guid objectGuid, int timeSeconds)
+        public List<Guid> selectionGuids;
+        public RemoSelect(string issuerID, List<Guid> objectGuids, int timeSeconds)
         {
             this.issuerID = issuerID;
-            this.commandType = CommandType.Lock;
-            this.objectGuid = objectGuid;
+            this.commandType = CommandType.Select;
+            this.objectGuid = Guid.Empty;
             this.timeSeconds = timeSeconds;
+            this.selectionGuids = objectGuids;
         }
         public RemoSelect()
         {
@@ -360,12 +362,12 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoSlider;
-            this.objectGuid = slider.InstanceGuid;
-            this.sliderValue = slider.CurrentValue;
-            this.sliderminBound = slider.Slider.Minimum;
-            this.slidermaxBound = slider.Slider.Maximum;
-            this.decimalPlaces = slider.Slider.DecimalPlaces;
-            this.sliderType = (int)slider.Slider.Type;
+            this.objectGuid = slider == null ?Guid.Empty: slider.InstanceGuid;
+            this.sliderValue = slider == null ? 0:slider.CurrentValue;
+            this.sliderminBound = slider == null ? 0:slider.Slider.Minimum;
+            this.slidermaxBound = slider == null ? 0 : slider.Slider.Maximum;
+            this.decimalPlaces = slider == null ? 0 : slider.Slider.DecimalPlaces;
+            this.sliderType = slider == null ? 0 : (int)slider.Slider.Type;
         }
     }
 
@@ -381,8 +383,8 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoButton;
-            this.objectGuid = button.InstanceGuid;
-            this.buttonValue = button.ButtonDown;
+            this.objectGuid = button == null ? Guid.Empty : button.InstanceGuid;
+            this.buttonValue = button == null ? false : button.ButtonDown;
         }
     }
 
@@ -396,8 +398,8 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoToggle;
-            this.objectGuid = toggle.InstanceGuid;
-            this.toggleValue = toggle.Value;
+            this.objectGuid = toggle == null ? Guid.Empty : toggle.InstanceGuid;
+            this.toggleValue = toggle == null ? false : toggle.Value;
         }
 
     }
@@ -405,11 +407,11 @@ namespace RemoSharp.RemoCommandTypes
     // for panel *
     public class RemoParamPanel : RemoCommand
     {
-        public bool panelMultiLine;
-        public bool panelDrawIndecies;
-        public bool panelDrawPaths;
-        public bool panelWrap;
-        public int panelAlignment;
+        public bool MultiLine;
+        public bool DrawIndecies;
+        public bool DrawPaths;
+        public bool Wrap;
+        public int Alignment;
         public string panelContent;
 
         public RemoParamPanel() { }
@@ -419,23 +421,23 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoPanel;
-            this.objectGuid = panel.InstanceGuid;
-            this.panelMultiLine = panel.Properties.Multiline;
-            this.panelDrawIndecies = panel.Properties.DrawIndices;
-            this.panelDrawPaths = panel.Properties.DrawPaths;
-            this.panelWrap = panel.Properties.Wrap;
-            this.panelAlignment = (int) panel.Properties.Alignment;
-            this.panelContent = panel.UserText;
+            this.objectGuid = panel == null ? Guid.Empty : panel.InstanceGuid;
+            this.MultiLine = panel == null ? false : panel.Properties.Multiline;
+            this.DrawIndecies = panel == null ? false : panel.Properties.DrawIndices;
+            this.DrawPaths = panel == null ? false : panel.Properties.DrawPaths;
+            this.Wrap = panel == null ? false : panel.Properties.Wrap;
+            this.Alignment = panel == null ? 0 : (int) panel.Properties.Alignment;
+            this.panelContent = panel == null ? "" : panel.UserText;
         }
     }
 
     public class RemoParamColor : RemoCommand
     {
         // for color *
-        public int colorRed;
-        public int colorGreen;
-        public int colorBlue;
-        public int colorAlpha;
+        public int Red;
+        public int Green;
+        public int Blue;
+        public int Alpha;
         public RemoParamColor() { }
 
         // color
@@ -443,23 +445,23 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoColor;
-            this.objectGuid = colourSwatch.InstanceGuid;
-            this.colorRed = colourSwatch.SwatchColour.R;
-            this.colorGreen = colourSwatch.SwatchColour.G;
-            this.colorBlue = colourSwatch.SwatchColour.B;
-            this.colorAlpha = colourSwatch.SwatchColour.A;
+            this.objectGuid = colourSwatch == null ? Guid.Empty : colourSwatch.InstanceGuid;
+            this.Red = colourSwatch == null ? 0 : colourSwatch.SwatchColour.R;
+            this.Green = colourSwatch == null ? 0 : colourSwatch.SwatchColour.G;
+            this.Blue = colourSwatch == null ? 0 : colourSwatch.SwatchColour.B;
+            this.Alpha = colourSwatch == null ? 0 : colourSwatch.SwatchColour.A;
         }
     }
 
     public class RemoParamMDSlider : RemoCommand
     {
         // for md slider
-        public double mdSliderValueX;
-        public double mdSliderValueY;
-        public double mdSliderminBoundX;
-        public double mdSlidermaxBoundX;
-        public double mdSliderminBoundY;
-        public double mdSlidermaxBoundY;
+        public double ValueX;
+        public double ValueY;
+        public double minBoundX;
+        public double maxBoundX;
+        public double minBoundY;
+        public double maxBoundY;
         public RemoParamMDSlider() { }
 
         public RemoParamMDSlider(string issuerID,
@@ -467,20 +469,20 @@ namespace RemoSharp.RemoCommandTypes
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoMDSlider;
-            this.objectGuid = mdSlider.InstanceGuid;
-            this.mdSliderValueX = approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
-            this.mdSliderValueY = approximate ? Math.Round(mdSlider.Value.Y,3) : mdSlider.Value.Y;
-            this.mdSliderminBoundX = mdSlider.XInterval.Min;
-            this.mdSlidermaxBoundX = mdSlider.XInterval.Max;
-            this.mdSliderminBoundY = mdSlider.YInterval.Min;
-            this.mdSlidermaxBoundY = mdSlider.YInterval.Max;
+            this.objectGuid = mdSlider == null ? Guid.Empty : mdSlider.InstanceGuid;
+            this.ValueX = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
+            this.ValueY = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.Y,3) : mdSlider.Value.Y;
+            this.minBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Min;
+            this.maxBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Max;
+            this.minBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Min;
+            this.maxBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Max;
         }
     }
 
     public class RemoParamPoint3d : RemoCommand
     {
         // for point3d
-        public List<string> points_and_TreePath;
+        public List<string> pointsAndTreePath;
         public RemoParamPoint3d() { }
         public RemoParamPoint3d(string issuerID, Param_Point pointComponent, GH_Structure<IGH_Goo> pntTree, bool approximate)
         {
@@ -505,13 +507,13 @@ namespace RemoSharp.RemoCommandTypes
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoPoint3d;
             this.objectGuid = pointComponent.InstanceGuid;
-            this.points_and_TreePath = pointsAndTreePath;
+            this.pointsAndTreePath = pointsAndTreePath;
         }
     }
     public class RemoParamVector3d : RemoCommand
     {
         // for vector3d
-        public List<string> vectors_and_TreePath;
+        public List<string> vectorsAndTreePath;
         public RemoParamVector3d() { }
         public RemoParamVector3d(string issuerID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
         {
@@ -534,15 +536,15 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
-            this.commandType = CommandType.RemoPoint3d;
+            this.commandType = CommandType.RemoVector3d;
             this.objectGuid = vectorComponent.InstanceGuid;
-            this.vectors_and_TreePath = vectorsAndTreePath;
+            this.vectorsAndTreePath = vectorsAndTreePath;
         }
     }
     public class RemoParamPlane : RemoCommand
     {
         // for plane
-        public List<string> planes_and_TreePath;
+        public List<string> planesAndTreePath;
 
         public RemoParamPlane() { }
         public RemoParamPlane(string issuerID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
@@ -575,9 +577,9 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
-            this.commandType = CommandType.RemoPoint3d;
+            this.commandType = CommandType.RemoPlane;
             this.objectGuid = planeComponent.InstanceGuid;
-            this.planes_and_TreePath = planesAndTreePath;
+            this.planesAndTreePath = planesAndTreePath;
         }
 
     }

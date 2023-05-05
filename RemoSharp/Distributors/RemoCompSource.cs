@@ -573,26 +573,24 @@ namespace RemoSharp
                 this.OnPingDocument().ObjectsDeleted += (object sender, GH_DocObjectEventArgs e) =>
                 {
 
+                    List<Guid> deleteGuids = new List<Guid>();
                     var objs = e.Objects;
                     foreach (var obj in objs)
                     {
                         string name = obj.Name;
+                        deleteGuids.Add(obj.InstanceGuid);
 
-                        var compGuid = obj.InstanceGuid;
-                        var compTypeString = obj.GetType().ToString();
-                        var pivot = obj.Attributes.Pivot;
-                        //command = "Deletion,True" + "," + ((int)pivot.X + 1) + "," + ((int)pivot.Y + 1) + "," + compGuid;
-
-                        command = new RemoDelete(username, compGuid);
-                        commandJson = RemoCommand.SerializeToJson(command);
-
-                        downPnt[0] = 0;
-                        downPnt[1] = 0;
-                        upPnt[0] = 0;
-                        upPnt[1] = 0;
-                        interaction = null;
-                        commandReset = 0;
                     }
+
+                    command = new RemoDelete(username, deleteGuids);
+                    commandJson = RemoCommand.SerializeToJson(command);
+
+                    downPnt[0] = 0;
+                    downPnt[1] = 0;
+                    upPnt[0] = 0;
+                    upPnt[1] = 0;
+                    interaction = null;
+                    commandReset = 0;
                 };
                 #endregion
 

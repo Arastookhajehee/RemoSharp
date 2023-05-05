@@ -40,10 +40,10 @@ namespace RemoSharp.RemoParams
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Websocket Objects", "WSC", "websocket objects", GH_ParamAccess.item);
-            pManager.AddTextParameter("username","user","The username of the current GH document",GH_ParamAccess.item,"");
             pManager.AddGenericParameter("param", "param", "parameter to be shared across computers", GH_ParamAccess.tree);
             pManager.AddBooleanParameter("resend", "resend", "resend the current parameter", GH_ParamAccess.item, false);
+            pManager.AddGenericParameter("Websocket Objects", "WSC", "websocket objects", GH_ParamAccess.item);
+            pManager.AddTextParameter("username","user","The username of the current GH document",GH_ParamAccess.item,"");
 
             pushButton1 = new PushButton("Set Up",
                         "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
@@ -60,11 +60,11 @@ namespace RemoSharp.RemoParams
             int sourceCompIndex = -1;
             int targetCompIndex = -1;
 
-            this.Params.Input[0].WireDisplay = GH_ParamWireDisplay.hidden;
-            this.Params.Input[1].WireDisplay = GH_ParamWireDisplay.hidden;
+            this.Params.Input[2].WireDisplay = GH_ParamWireDisplay.hidden;
+            this.Params.Input[3].WireDisplay = GH_ParamWireDisplay.hidden;
 
-            this.Params.Input[0].Sources.Clear();
-            this.Params.Input[1].Sources.Clear();
+            this.Params.Input[2].Sources.Clear();
+            this.Params.Input[3].Sources.Clear();
 
             var objects = this.OnPingDocument().Objects;
             for (int i = 0; i < objects.Count; i++)
@@ -78,19 +78,12 @@ namespace RemoSharp.RemoParams
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
                 RemoCompTarget targetComp = (RemoCompTarget)objects[targetCompIndex];
-                foreach (IGH_Param tempComp in targetComp.Params.Output[0].Recipients)
-                {
-                    if (tempComp.Attributes.Parent.DocObject.GetType()
-                    .ToString().Equals("RemoSharp.WsClientCat.WsClientSend"))
-                    {
-                        WsClientSend sendComp = (WsClientSend) tempComp.Attributes.Parent.DocObject;
-                        this.Params.Input[0].AddSource(sendComp.Params.Input[0].Sources[0]);
-                    }
-                }
+                WsClientSend sendComp = (WsClientSend)targetComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
+                this.Params.Input[2].AddSource(sendComp.Params.Input[0].Sources[0]);
 
                 RemoCompSource sourceComp = (RemoCompSource)objects[sourceCompIndex];
                 GH_Panel userPanel = (GH_Panel)sourceComp.Params.Input[0].Sources[0];
-                this.Params.Input[1].AddSource(userPanel);
+                this.Params.Input[3].AddSource(userPanel);
 
             });
 
@@ -134,25 +127,25 @@ namespace RemoSharp.RemoParams
             WsObject wscObj = new WsObject();
             string remoCommandJson = "Hello World";
 
-            if (!DA.GetData(0, ref wscObj)) return;
+            if (!DA.GetData(2, ref wscObj)) return;
 
-            if (this.Params.Input[0].Sources[0].Attributes.Parent == null ||
-                !this.Params.Input[0].Sources[0].Attributes.Parent.DocObject.GetType()
+            if (this.Params.Input[2].Sources[0].Attributes.Parent == null ||
+                !this.Params.Input[2].Sources[0].Attributes.Parent.DocObject.GetType()
                 .ToString().Equals("RemoSharp.WsClientCat.WsClientStart"))
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
             }
 
-            if (!this.Params.Input[1].Sources[0].GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
+            if (!this.Params.Input[3].Sources[0].GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
             }
 
 
             string username = "";
-            DA.GetData(1, ref username);
+            DA.GetData(3, ref username);
 
-            var inputCompSources = this.Params.Input[2].Sources;
+            var inputCompSources = this.Params.Input[0].Sources;
             if (inputCompSources.Count == 0)
             {
                 this.Message = "";
@@ -171,8 +164,8 @@ namespace RemoSharp.RemoParams
             {
                 case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
                     GH_NumberSlider slider = (GH_NumberSlider)inputComp;
-                    RemoParamSlider remoParam = new RemoParamSlider(username, slider);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoParam);
+                    RemoParamSlider remoSlider = new RemoParamSlider(username, slider);
+                    remoCommandJson = RemoCommand.SerializeToJson(remoSlider);
                     this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
@@ -204,9 +197,10 @@ namespace RemoSharp.RemoParams
                     RemoParamMDSlider remoMDSlider = new RemoParamMDSlider(username, mdSlider, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(remoMDSlider);
 
-                    this.Message = this.approximateCoords ? "Approximate" : "Absolute";
+                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                    IGH_Param paramComp = (IGH_Param)inputComp;
                     Param_Point pointComponent = (Param_Point)inputComp;
                     GH_Structure<IGH_Goo> pntTree = new GH_Structure<IGH_Goo>();
                     DA.GetDataTree<IGH_Goo>(0, out pntTree);
@@ -214,7 +208,9 @@ namespace RemoSharp.RemoParams
                     RemoParamPoint3d points = new RemoParamPoint3d(username, pointComponent, pntTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(points);
 
-                    this.Message = this.approximateCoords ? "Approximate" : "Absolute";
+                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
+                    if (!inputComp.Attributes.Selected) remoCommandJson = "";
+                    if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Vector"):
                     Param_Vector vectorComponent = (Param_Vector)inputComp;
@@ -225,7 +221,7 @@ namespace RemoSharp.RemoParams
                     remoCommandJson = RemoCommand.SerializeToJson(vectors);
 
 
-                    this.Message = this.approximateCoords ? "Approximate" : "Absolute";
+                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Plane"):
                     Param_Plane planeComponent = (Param_Plane)inputComp;
@@ -235,7 +231,7 @@ namespace RemoSharp.RemoParams
                     RemoParamPlane planes = new RemoParamPlane(username, planeComponent, planeTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(planes);
 
-                    this.Message = this.approximateCoords ? "Approximate" : "Absolute";
+                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
                     break;
 
                 default:
@@ -244,7 +240,7 @@ namespace RemoSharp.RemoParams
                         "number slider, button, toggle\n" +
                         "panel, colourswatch, MDslider\n" +
                         "point, vector, plane");
-                    break;
+                    return;
             }
 
             if (string.IsNullOrEmpty(remoCommandJson)) return;

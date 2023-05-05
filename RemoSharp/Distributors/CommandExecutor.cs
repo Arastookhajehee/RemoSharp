@@ -16,6 +16,11 @@ using WPFNumericUpDown;
 using RemoSharp.RemoCommandTypes;
 using WebSocketSharp;
 using System.Linq;
+using Microsoft.Win32;
+using RemoSharp.WsClientCat;
+using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 
 namespace RemoSharp
 {
@@ -24,9 +29,9 @@ namespace RemoSharp
 
         PushButton pushButton1;
         private string currentXMLString = "";
-        private int otherCompInx = -1;
         public int deletionIndex = -1;
         public Guid compGuid = Guid.Empty;
+        public List<Guid> deletionGuids = new List<Guid>();
 
         // public RemoParam Persistent Variables
         public decimal val = 0;
@@ -56,8 +61,6 @@ namespace RemoSharp
         bool replaceConnections = false;
         public Guid sourceGuid = Guid.Empty;
         public Guid targetGuid = Guid.Empty;
-        int outputIndex = -1;
-        int inputIndex = -1;
 
         public string currentStringCommand = "";
 
@@ -83,7 +86,7 @@ namespace RemoSharp
             pushButton1.OnValueChanged += PushButton1_OnValueChanged;
             AddCustomControl(pushButton1);
 
-            pManager.AddTextParameter("Command", "Cmd", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.list, new List<string> { "" });
+            pManager.AddTextParameter("Command", "Cmd", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.item,"");
             pManager.AddTextParameter("Username", "User", "This PC's Username", GH_ParamAccess.item, "");
         }
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -148,20 +151,16 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<string> commandList = new List<string>();
             string command = "";
             string username = "";
-            if (!DA.GetDataList<string>(0, commandList)) return;
+            if (!DA.GetData(0, ref command)) return;
             if (!DA.GetData(1, ref username)) return;
 
-            if (commandList.Count > 1)
+            if (this.Params.Input[0].Sources.Count > 1)
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "This Component Accepts Only a Single Input." + Environment.NewLine
                     + "Make Sure Only One Wire With A Single Text Block Command is Connected.");
-            }
-            else
-            {
-                command = commandList[0];
+                return;
             }
 
             if (string.IsNullOrEmpty(command) || command == "Hello World" || command == "RemoSharp.RemoCommandTypes.RemoNullCommand") return;
@@ -179,6 +178,7 @@ namespace RemoSharp
 
             switch (remoCommand.commandType)
             {
+                #region moveComp
                 case (CommandType.MoveComponent):
 
                     RemoMove moveCommand = (RemoMove)remoCommand;
@@ -207,10 +207,10 @@ namespace RemoSharp
                         this.OnPingDocument().Select(grip, true, false);
                     }
                     return;
-                    
+                #endregion
                 case (CommandType.NullCommand):
                     return;
-
+                #region wireconnection
                 case (CommandType.WireConnection):
                     RemoConnect wireCommand = (RemoConnect)remoCommand;
 
@@ -318,7 +318,9 @@ namespace RemoSharp
                         }
                     }
                     return;
-
+                #endregion
+                
+                #region componentCreation
                 case (CommandType.Create):
                     RemoCreate createCommand = (RemoCreate)remoCommand;
 
@@ -581,25 +583,31 @@ namespace RemoSharp
                     }
 
                     return;
+                #endregion
 
+                #region deleteComponent
                 case (CommandType.Delete):
-
-                    compGuid = remoCommand.objectGuid;
+                    RemoDelete remoDelete = (RemoDelete)remoCommand;
+                    deletionGuids.Clear();
+                    deletionGuids.AddRange(remoDelete.objectGuids);
                     try
                     {
-                        var deletionComponent = this.OnPingDocument().FindObject(compGuid, false);
                         this.OnPingDocument().ScheduleSolution(0, DeleteComponent);
                     }
                     catch
                     {
                     }
                     return;
+                #endregion
 
+                #region GeometryStream
                 case (CommandType.StreamGeom):
                     DA.SetData(0, remoCommand.ToString());
 
                     break;
+                #endregion
 
+                #region hide
                 case (CommandType.Hide):
 
                     RemoHide hideCommand = (RemoHide)remoCommand;
@@ -615,7 +623,9 @@ namespace RemoSharp
 
                     }
                     return;
+                #endregion
 
+                #region lock
                 case (CommandType.Lock):
 
                     RemoLock lockCommand = (RemoLock)remoCommand;
@@ -638,179 +648,215 @@ namespace RemoSharp
                         }
                     });
                     return;
+                #endregion
 
-                //case (CommandType.RemoParam):
-                //    DA.SetData(0, remoCommand.ToString());
+                #region RemoParamSlider
+                case (CommandType.RemoSlider):
+                    RemoParamSlider remoSlider = (RemoParamSlider)remoCommand;
+                    if (remoSlider.objectGuid == Guid.Empty) return;
+                    GH_NumberSlider sliderComp = (GH_NumberSlider) this.OnPingDocument().FindObject(remoSlider.objectGuid, false);
 
-                //    break;
+                    sliderComp.Slider.Minimum = remoSlider.sliderminBound;
+                    sliderComp.Slider.Maximum = remoSlider.slidermaxBound;
+                    sliderComp.Slider.DecimalPlaces = remoSlider.decimalPlaces;
+                    sliderComp.Slider.Type = (GH_SliderAccuracy)remoSlider.sliderType;
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        sliderComp.SetSliderValue(remoSlider.sliderValue);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamButton
+                case (CommandType.RemoButton):
+                    RemoParamButton remoButton = (RemoParamButton)remoCommand;
+                    if (remoButton.objectGuid == Guid.Empty) return;
+                    GH_ButtonObject buttonComp = (GH_ButtonObject)this.OnPingDocument().FindObject(remoButton.objectGuid, false);
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        buttonComp.ButtonDown = remoButton.buttonValue;
+                        buttonComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamToggle
+                case (CommandType.RemoToggle):
+                    RemoParamToggle remoToggle = (RemoParamToggle)remoCommand;
+                    if (remoToggle.objectGuid == Guid.Empty) return;
+                    GH_BooleanToggle toggleComp = (GH_BooleanToggle)this.OnPingDocument().FindObject(remoToggle.objectGuid, false);
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        toggleComp.Value = remoToggle.toggleValue;
+                        toggleComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamPanel
+                case (CommandType.RemoPanel):
+                    RemoParamPanel remoPanel = (RemoParamPanel)remoCommand;
+                    if (remoPanel.objectGuid == Guid.Empty) return;
+                    GH_Panel panelComp = (GH_Panel)this.OnPingDocument().FindObject(remoPanel.objectGuid, false);
+
+                    panelComp.Properties.Multiline = remoPanel.MultiLine;
+                    panelComp.Properties.DrawIndices = remoPanel.DrawIndecies;
+                    panelComp.Properties.DrawPaths = remoPanel.DrawPaths;
+                    panelComp.Properties.Wrap = remoPanel.Wrap;
+                    panelComp.Properties.Alignment = (GH_Panel.Alignment) remoPanel.Alignment;
+                    
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        panelComp.SetUserText(remoPanel.panelContent);
+                        panelComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamColor
+                case (CommandType.RemoColor):
+                    RemoParamColor remoColor = (RemoParamColor)remoCommand;
+                    if (remoColor.objectGuid == Guid.Empty) return;
+                    GH_ColourSwatch colorComp = (GH_ColourSwatch)this.OnPingDocument().FindObject(remoColor.objectGuid, false);
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        colorComp.SwatchColour = Color.FromArgb(remoColor.Alpha,remoColor.Red, remoColor.Green, remoColor.Blue);
+                        colorComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamMDSlider
+                case (CommandType.RemoMDSlider):
+                    RemoParamMDSlider remoMDSlider = (RemoParamMDSlider)remoCommand;
+                    if (remoMDSlider.objectGuid == Guid.Empty) return;
+                    GH_MultiDimensionalSlider mdSliderComp = (GH_MultiDimensionalSlider)this.OnPingDocument().FindObject(remoMDSlider.objectGuid, false);
+
+                    mdSliderComp.XInterval = new Interval(remoMDSlider.minBoundX,remoMDSlider.maxBoundX);
+                    mdSliderComp.YInterval = new Interval(remoMDSlider.minBoundY,remoMDSlider.maxBoundY);
+                    
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        mdSliderComp.Value = new Point3d(remoMDSlider.ValueX, remoMDSlider.ValueY, 0);
+                        mdSliderComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamPoint3d
+                case (CommandType.RemoPoint3d):
+                    RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
+                    if (remoPoint3d.objectGuid == Guid.Empty) return;
+                    IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
+                    Param_Point pointParamComp = (Param_Point)pointComp;
+
+                    GH_Structure<GH_Point> pointTree = new GH_Structure<GH_Point>();
+                    foreach (string item in remoPoint3d.pointsAndTreePath)
+                    {
+                        string[] coordsAndPath = item.Split(':');
+                        string[] coordsStrings = coordsAndPath[0].Split(',');
+                        string[] pathStrings = coordsAndPath[1].Split(',');
+                        double[] coords = coordsStrings.Select(double.Parse).ToArray();
+                        int[] path = pathStrings.Select(int.Parse).ToArray();
+
+
+                        pointTree.Append(new GH_Point(new Point3d(coords[0], coords[1], coords[2])),new GH_Path(path));
+                    }
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        pointComp.Attributes.Selected = false;
+                        pointParamComp.SetPersistentData(pointTree);
+                        pointParamComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region RemoParamVector3d
+                case (CommandType.RemoVector3d):
+                    RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
+                    if (remoVector3d.objectGuid == Guid.Empty) return;
+                    IGH_Param vectorComp = (IGH_Param)this.OnPingDocument().FindObject(remoVector3d.objectGuid, false);
+                    Param_Vector vectorParamComp = (Param_Vector)vectorComp;
+
+                    GH_Structure<GH_Vector> vectorTree = new GH_Structure<GH_Vector>();
+                    foreach (string item in remoVector3d.vectorsAndTreePath)
+                    {
+                        string[] coordsAndPath = item.Split(':');
+                        string[] coordsStrings = coordsAndPath[0].Split(',');
+                        string[] pathStrings = coordsAndPath[1].Split(',');
+                        double[] coords = coordsStrings.Select(double.Parse).ToArray();
+                        int[] path = pathStrings.Select(int.Parse).ToArray();
+
+
+                        vectorTree.Append(new GH_Vector(new Vector3d(coords[0], coords[1], coords[2])), new GH_Path(path));
+                    }
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        vectorParamComp.SetPersistentData(vectorTree);
+                        vectorParamComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+
+                #region RemoParamPlane
+                case (CommandType.RemoPlane):
+                    RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
+                    if (remoPlane.objectGuid == Guid.Empty) return;
+                    IGH_Param planeComp = (IGH_Param)this.OnPingDocument().FindObject(remoPlane.objectGuid, false);
+                    Param_Plane planeParamComp = (Param_Plane)planeComp;
+
+                    GH_Structure<GH_Plane> planeTree = new GH_Structure<GH_Plane>();
+                    foreach (string item in remoPlane.planesAndTreePath)
+                    {
+                        string[] coordsAndPath = item.Split(':');
+                        string[] coordsStrings = coordsAndPath[0].Split(',');
+                        string[] pathStrings = coordsAndPath[1].Split(',');
+                        double[] coords = coordsStrings.Select(double.Parse).ToArray();
+                        int[] path = pathStrings.Select(int.Parse).ToArray();
+
+                        Point3d planeOrigin = new Point3d(coords[0], coords[1], coords[2]);
+                        Vector3d planeVecX = new Vector3d(coords[3], coords[4], coords[5]);
+                        Vector3d planeVecY = new Vector3d(coords[6], coords[7], coords[8]);
+                        planeTree.Append(new GH_Plane(new Plane(planeOrigin, planeVecX, planeVecY)), new GH_Path(path));
+                    }
+
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                        planeParamComp.SetPersistentData(planeTree);
+                        planeParamComp.ExpireSolution(true);
+                    });
+                    return;
+                #endregion
+
+                #region select
                 case (CommandType.Select):
 
                     RemoSelect selectionCommand = (RemoSelect)remoCommand;
 
-                    var selectionComp = this.OnPingDocument().FindObject(selectionCommand.objectGuid, false);
                     this.OnPingDocument().DeselectAll();
-                    GH_RelevantObjectData selectionGrip = new GH_RelevantObjectData(selectionComp.Attributes.Pivot);                   
-                    selectionGrip.CreateObjectData(selectionComp);
+                    foreach (Guid guid in selectionCommand.selectionGuids)
+                    {
+                        var selectionComp = this.OnPingDocument().FindObject(guid, false);
+                        selectionComp.Attributes.Selected = true;
+                    }
                     
-                    this.OnPingDocument().Select(selectionGrip, true, false);            
+                    //GH_RelevantObjectData selectionGrip = new GH_RelevantObjectData(selectionComp.Attributes.Pivot);                   
+                    //selectionGrip.CreateObjectData(selectionComp);
+
+                    //this.OnPingDocument().Select(selectionGrip, true, false);            
 
                     return;
-
+                #endregion
                 default:
                     break;
             }
-
-
-
-            return;
-
-            string[] cmds = command.Split(',');
-
-
-
-            if (cmds[0] == "MoveComponent")
-            {
-
-                
-            }
-
-            if (cmds[0] == "Create")
-            {
-
-                
-            }
-
-            if (cmds[0] == "Hide" || cmds[0] == "RemoUnhide")
-            {
-                
-            }
-
-            if (cmds[0] == "Lock")
-            {
-               
-            }
-
-            if (cmds[0] == "WireConnection")
-            {
-                
-            }
-
-
-            if (cmds[0].Equals("RemoParam"))
-            {
-                int compLocX = Convert.ToInt32(cmds[1]);
-                int compLocY = Convert.ToInt32(cmds[2]);
-
-                if (cmds[3].Equals("PushTheButton"))
-                {
-                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ButtonObject");
-                    buttonVal = Convert.ToBoolean(cmds[4]);
-                    remoParamGuid = Guid.Parse(cmds[5]);
-                    this.OnPingDocument().ScheduleSolution(0, PushTheButton);
-                    return;
-                }
-                if (cmds[3].Equals("ToggleBooleanToggle"))
-                {
-                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_BooleanToggle");
-                    toggleVal = Convert.ToBoolean(cmds[4]);
-                    remoParamGuid = Guid.Parse(cmds[5]);
-                    this.OnPingDocument().ScheduleSolution(0, ToggleBooleanToggle);
-                    return;
-                }
-                if (cmds[3].Equals("WriteToPanel"))
-                {
-                    remoParamGuid = Guid.Parse(cmds[4]);
-
-                    //RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_Panel");
-                    text = "";
-
-                    bool multiLine = Convert.ToBoolean(cmds[5]);
-                    bool drawIndicies = Convert.ToBoolean(cmds[6]);
-                    bool drawPaths = Convert.ToBoolean(cmds[7]);
-                    bool wrap = Convert.ToBoolean(cmds[8]);
-                    GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), cmds[9]);
-                    //int boundSizeX = Convert.ToInt32(cmds[9]);
-                    //int boundSizeY = Convert.ToInt32(cmds[10]);
-
-                    //GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().Objects[RemoParamIndex];
-                    GH_Panel panelComponent = (GH_Panel)this.OnPingDocument().FindObject(remoParamGuid, false);
-
-                    //panelComponent.CreateAttributes();
-                    //panelComponent.Attributes.Pivot = new PointF(compLocX + 10, compLocY + 5);
-                    panelComponent.Properties.Multiline = multiLine;
-                    panelComponent.Properties.DrawIndices = drawIndicies;
-                    panelComponent.Properties.DrawPaths = drawPaths;
-                    panelComponent.Properties.Wrap = wrap;
-                    panelComponent.Properties.Alignment = alignment;
-                    //panelComponent.Attributes.Bounds = new RectangleF(compLocX + 10, compLocY + 5, boundSizeX, boundSizeY);
-
-                    for (int i = 10; i < cmds.Length; i++)
-                    {
-                        if (i < cmds.Length - 1)
-                        {
-                            text += cmds[i] + ",";
-                        }
-                        else
-                        {
-                            text += cmds[i];
-                        }
-                    }
-
-                    
-                    this.OnPingDocument().ScheduleSolution(0, WriteToPanel);
-                    return;
-                }
-                if (cmds[3].Equals("ColorSwatchChange"))
-                {
-                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_ColourSwatch");
-                    int rVal = Convert.ToInt32(cmds[4]);
-                    int gVal = Convert.ToInt32(cmds[5]);
-                    int bVal = Convert.ToInt32(cmds[6]);
-                    int aVal = Convert.ToInt32(cmds[7]);
-                    remoParamGuid = Guid.Parse(cmds[8]);
-                    colorVal = Color.FromArgb(aVal, rVal, gVal, bVal);
-                    this.OnPingDocument().ScheduleSolution(0, ColorSwatchChange);
-                    return;
-                }
-                if (cmds[3].Equals("AddValueToSlider"))
-                {
-
-                    RemoParamIndex = RemoParamFindObjectOnCanvasByCoordinates(compLocX, compLocY, "GH_NumberSlider");
-                    val = Convert.ToDecimal(cmds[4]);
-
-                    decimal minBound = Convert.ToDecimal(cmds[4]);
-                    decimal maxBound = Convert.ToDecimal(cmds[5]);
-                    val = Convert.ToDecimal(cmds[6]);
-                    int accuracy = Convert.ToInt32(cmds[7]);
-                    GH_SliderAccuracy sliderType = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), cmds[8]);
-
-                    remoParamGuid = Guid.Parse(cmds[9]);
-
-                    GH_NumberSlider panelComponent = (GH_NumberSlider)this.OnPingDocument().Objects[RemoParamIndex];
-                    panelComponent.Slider.Minimum = minBound;
-                    panelComponent.Slider.Maximum = maxBound;
-                    panelComponent.Slider.DecimalPlaces = accuracy;
-                    panelComponent.Slider.Type = sliderType;
-
-                    this.OnPingDocument().ScheduleSolution(0, AddValueToSlider);
-                    return;
-                }
-
-
-            }
-
-            if (cmds[0].Equals("Selection"))
-            {
-                
-            }
-            else if (cmds[0].Equals("Deletion"))
-            {
-                
-            }
-
-
-
-
         }
 
         /// <summary>
@@ -834,80 +880,16 @@ namespace RemoSharp
             get { return new Guid("6b7b7c9e-0e81-4195-93b4-279099080880"); }
         }
 
-        private int FindComponentOnCanvasByCoordinates(int compX, int compY)
-        {
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.OnPingDocument();
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = new System.Drawing.PointF(compX, compY);
-
-            // finding the closest component
-            double minDistance = double.MaxValue;
-            int objIndex = -1;
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X) * (thisCompLoc.X - pivot.X) + (thisCompLoc.Y - pivot.Y) * (thisCompLoc.Y - pivot.Y));
-                    if (distance < minDistance && !component.GetType().ToString().Equals("RemoSharp.RemoCompTarget"))
-                    {
-                        // getting the type of the component via the ToString() method
-                        // later the ToString() method is better to be changed to something more reliable
-                        minDistance = distance;
-                        objIndex = i;
-
-                    }
-                }
-            }
-            catch { }
-            return objIndex;
-        }
-
-        private int DeletionCommandFindComponentOnCanvasByCoordinates(int compX, int compY)
-        {
-            // getting the active instances of the GH document and current component
-            // also we need the list of all of the objects on the canvas
-            var ghDoc = this.OnPingDocument();
-            var ghObjects = ghDoc.Objects;
-            var thisCompLoc = new System.Drawing.PointF(compX, compY);
-
-            // finding the closest component
-            double minDistance = double.MaxValue;
-            int objIndex = -1;
-            try
-            {
-                for (int i = 0; i < ghObjects.Count; i++)
-                {
-                    var component = ghObjects[i];
-                    var pivot = component.Attributes.Pivot;
-                    double distance = Math.Sqrt((thisCompLoc.X - pivot.X) * (thisCompLoc.X - pivot.X) + (thisCompLoc.Y - pivot.Y) * (thisCompLoc.Y - pivot.Y));
-                    if (distance > 0)
-                    {
-                        if (distance < minDistance)
-                        {
-                            // getting the type of the component via the ToString() method
-                            // later the ToString() method is better to be changed to something more reliable
-                            minDistance = distance;
-                            objIndex = i;
-
-                        }
-                    }
-                }
-            }
-            catch { }
-            return objIndex;
-        }
-
         private void DeleteComponent(GH_Document doc)
         {
             try
             {
                 //var otherComp = this.OnPingDocument().Objects[deletionIndex];
-                var otherComp = this.OnPingDocument().FindObject(compGuid, false);
-                if (otherComp != null) this.OnPingDocument().RemoveObject(otherComp, true);
+                foreach (Guid item in deletionGuids)
+                {
+                    var otherComp = this.OnPingDocument().FindObject(item, false);
+                    if (otherComp != null) this.OnPingDocument().RemoveObject(otherComp, true);
+                }
             }
             catch (Exception e)
             {
