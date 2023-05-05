@@ -33,7 +33,6 @@ namespace RemoSharp
         //bool delete = false;
         bool hide = false;
         bool lockThis = false;
-        bool remoParam = false;
 
 
         // remoParam public variables
@@ -241,8 +240,8 @@ namespace RemoSharp
                 //else if (selection is GH_PersistentParam)
                 //{
                 //    GH_PersistentParam hideComponent = (GH_PersistentParam)selection;
-                //    state = !hideComponent.Hidden;
-                //    hideComponent.Hidden = state;
+                //    hoverComponentGuid = !hideComponent.Hidden;
+                //    hideComponent.Hidden = hoverComponentGuid;
                 //}
 
                 cmd = new RemoHide(cmd.issuerID, selection.InstanceGuid, state,DateTime.Now.Second);

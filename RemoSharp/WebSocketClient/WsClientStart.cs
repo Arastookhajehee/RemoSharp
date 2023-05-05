@@ -197,7 +197,7 @@ namespace RemoSharp.WsClientCat
 				if (this.ghDocument != null)
 				{
 					this.ghDocument.ObjectsDeleted += documentOnObjectsDeleted;
-					GH_InstanceServer.DocumentServer.DocumentRemoved += documentServerOnDocumentClosed;
+                    Instances.DocumentServer.DocumentRemoved += documentServerOnDocumentClosed;
 				}
 
 				this.ObjectChanged += this.onObjectChanged;

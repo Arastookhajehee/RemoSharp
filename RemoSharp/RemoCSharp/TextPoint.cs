@@ -5,10 +5,9 @@ using System.Collections.Generic;
 
 namespace RemoSharp
 {
+    [Obsolete("Will be reworked into RemoSharp RemoPy RemoVB components similar to Current RemoParam rework")]
     public class TextPoint : GH_Component
     {
-        GH_Document GrasshopperDocument;
-        IGH_Component Component;
 
         /// <summary>
         /// Initializes a new instance of the TextPoint class.

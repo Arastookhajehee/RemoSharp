@@ -28,7 +28,6 @@ namespace RemoSharp
     {
 
         PushButton pushButton1;
-        private string currentXMLString = "";
         public int deletionIndex = -1;
         public Guid compGuid = Guid.Empty;
         public List<Guid> deletionGuids = new List<Guid>();
@@ -324,262 +323,99 @@ namespace RemoSharp
                 case (CommandType.Create):
                     RemoCreate createCommand = (RemoCreate)remoCommand;
 
+                    var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
 
-                    //var objectExists = this.OnPingDocument().Objects
-                    //    .OfType<IGH_DocumentObject>()
-                    //    .Where(currentObject => currentObject.InstanceGuid == createCommand.objectGuid)
-                    //    .ToList();
-
-                    //int currentObjectCount = objectExists.Count;
-                    //bool nullGuid = createCommand.objectGuid == Guid.Empty;
-
-                    int currentObjectCount = 0;
-                    bool nullGuid = false;
-
-                    foreach (IGH_DocumentObject item in this.OnPingDocument().Objects)
+                    for (int i = 0; i < createCommand.guids.Count; i++)
                     {
-                        if (item.InstanceGuid == createCommand.objectGuid || createCommand.objectGuid == null)
+
+                        Guid newCompGuid = createCommand.guids[i];
+                        string typeName = createCommand.componentTypes[i];
+                        int pivotX = createCommand.Xs[i];
+                        int pivotY = createCommand.Ys[i];
+                        string specialContent = createCommand.specialParameters_s[i];
+                        if (gh_components.Contains(newCompGuid)) continue;
+                        try
                         {
-                            nullGuid = true;
-                            currentObjectCount++;
-                        }
-                    }
-
-
-                    if (currentObjectCount > 0 || nullGuid) return;
-
-                    string typeName = createCommand.componentType;
-
-                    if (typeName.Contains("RemoSharp.WsClientCat")) return;
-                    if (typeName.Equals("RemoSharp.RemoButton") ||
-                        typeName.Equals("RemoSharp.RemoColorSwatch") ||
-                        typeName.Equals("RemoSharp.RemoPanel") ||
-                        typeName.Equals("RemoSharp.RemoToggle") ||
-                        typeName.Equals("RemoSharp.RemoSlider")) return;
-
-                    Guid newCompGuid = createCommand.objectGuid;
-                    int pivotX = createCommand.X;
-                    int pivotY = createCommand.Y;
-
-                    try
-                    {
-                        PointF tempPivot = new PointF(pivotX, pivotY);
-                        //var currentObject = this.OnPingDocument().FindObject(tempPivot, 2);
-
-                        // find all groups that this object is in.
-                        var currentObject = OnPingDocument()
-                            .Objects
-                            .OfType<IGH_DocumentObject>()
-                            .Where(obj => obj.InstanceGuid == newCompGuid)
-                            .ToList();
-                            
-
-                        if (currentObject.Count > 0)
-                        {
-                            if (currentObject.GetType().ToString().Equals(typeName)) return;
-                        }
-                    }
-                    catch
-                    {
-                    }
-
-                    try
-                    {
-                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
-                        {
-
-                            string[] specialParams = createCommand.specialParameters.Split(',');
-
-                            decimal minBound = Convert.ToDecimal(specialParams[0]);
-                            decimal maxBound = Convert.ToDecimal(specialParams[1]);
-                            decimal currentValue = Convert.ToDecimal(specialParams[2]);
-                            int accuracy = Convert.ToInt32(specialParams[3]);
-                            GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), specialParams[4]);
-                            GH_NumberSlider sliderComponent = new GH_NumberSlider();
-                            //sliderComponent.NewInstanceGuid(new Guid(newGuid));
-                            sliderComponent.CreateAttributes();
-                            sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
-                            sliderComponent.Slider.Minimum = minBound;
-                            sliderComponent.Slider.Maximum = maxBound;
-                            sliderComponent.Slider.Value = currentValue;
-                            sliderComponent.Slider.DecimalPlaces = accuracy;
-                            sliderComponent.Slider.Type = acc;
-                            sliderComponent.Attributes.Selected = false;
-                            sliderComponent.NewInstanceGuid(newCompGuid);
-
-                            this.OnPingDocument().AddObject(sliderComponent, false);
-
-                            //var obj = sliderComponent;
-                            //GH_RelevantObjectData grip = new GH_RelevantObjectData(obj.Attributes.Pivot);
-                            //this.OnPingDocument().Select(grip, false, true);
-                            return;
-                        }
-                        if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                        {
-
-                            string[] specialParams = createCommand.specialParameters.Split(',');
-
-
-                            bool multiLine = Convert.ToBoolean(specialParams[0]);
-                            bool drawIndicies = Convert.ToBoolean(specialParams[1]);
-                            bool drawPaths = Convert.ToBoolean(specialParams[2]);
-                            bool wrap = Convert.ToBoolean(specialParams[3]);
-                            GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), specialParams[4]);
-                            int boundSizeX = Convert.ToInt32(specialParams[5]);
-                            int boundSizeY = Convert.ToInt32(specialParams[6]);
-
-                            string contentText = "";
-                            for (int i = 7; i < specialParams.Length; i++)
+                            if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
                             {
-                                if (i < specialParams.Length - 1)
-                                {
-                                    contentText += specialParams[i] + ",";
-                                }
-                                else
-                                {
-                                    contentText += specialParams[i];
-                                }
+
+                                string[] specialParams = specialContent.Split(',');
+
+                                decimal minBound = Convert.ToDecimal(specialParams[0]);
+                                decimal maxBound = Convert.ToDecimal(specialParams[1]);
+                                decimal currentValue = Convert.ToDecimal(specialParams[2]);
+                                int accuracy = Convert.ToInt32(specialParams[3]);
+                                GH_SliderAccuracy acc = (GH_SliderAccuracy)Enum.Parse(typeof(GH_SliderAccuracy), specialParams[4]);
+                                GH_NumberSlider sliderComponent = new GH_NumberSlider();
+
+                                sliderComponent.CreateAttributes();
+                                sliderComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
+                                sliderComponent.Slider.Minimum = minBound;
+                                sliderComponent.Slider.Maximum = maxBound;
+                                sliderComponent.Slider.Value = currentValue;
+                                sliderComponent.Slider.DecimalPlaces = accuracy;
+                                sliderComponent.Slider.Type = acc;
+                                sliderComponent.Attributes.Selected = false;
+                                sliderComponent.NewInstanceGuid(newCompGuid);
+
+                                this.OnPingDocument().AddObject(sliderComponent, false);
+
+                                return;
                             }
-
-                            GH_Panel panelComponent = new GH_Panel();
-                            //panelComponent.NewInstanceGuid(new Guid(newGuid));
-                            panelComponent.CreateAttributes();
-                            panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
-                            panelComponent.Properties.Multiline = multiLine;
-                            panelComponent.Properties.DrawIndices = drawIndicies;
-                            panelComponent.Properties.DrawPaths = drawPaths;
-                            panelComponent.Properties.Wrap = wrap;
-                            panelComponent.Properties.Alignment = alignment;
-                            panelComponent.SetUserText(contentText);
-                            panelComponent.Attributes.Bounds = new RectangleF(pivotX, pivotY, boundSizeX, boundSizeY);
-                            panelComponent.Attributes.Selected = false;
-                            panelComponent.NewInstanceGuid(newCompGuid);
-
-                            this.OnPingDocument().AddObject(panelComponent, false);
-                            //var obj = panelComponent;
-                            //GH_RelevantObjectData grip = new GH_RelevantObjectData(obj.Attributes.Pivot);
-                            //this.OnPingDocument().Select(grip, false, true);
-                            return;
-                        }
-                        else if (typeName.Equals("RemoSharp.RemoGeomStreamer"))
-                        {
-                            string address = createCommand.specialParameters;
-                            System.Drawing.PointF pivot = new System.Drawing.PointF(pivotX, pivotY);
-                            System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 75, pivot.Y - 80);
-                            System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 100, pivot.Y - 40);
-                            System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 34, pivot.Y + 50);
-                            System.Drawing.PointF wsRecvPivot = new System.Drawing.PointF(pivot.X + 36, pivot.Y + 40);
-
-                            Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                            panel.CreateAttributes();
-                            panel.Attributes.Pivot = panelPivot;
-                            panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 55, 20);
-                            panel.SetUserText(address);
-                            panel.Attributes.Selected = false;
-
-                            Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                            button.CreateAttributes();
-                            button.Attributes.Pivot = buttnPivot;
-                            button.Attributes.Selected = false;
-
-                            RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
-                            wss.CreateAttributes();
-                            wss.Attributes.Pivot = wssPivot;
-                            wss.Attributes.Selected = false;
-
-                            RemoSharp.WsClientCat.WsClientRecv wsRecv = new WsClientCat.WsClientRecv();
-                            wsRecv.CreateAttributes();
-                            wsRecv.Attributes.Pivot = wsRecvPivot;
-                            wsRecv.Attributes.Selected = false;
-
-                            RemoSharp.RemoGeomParser remoGeomParser = new RemoGeomParser();
-                            remoGeomParser.CreateAttributes();
-                            remoGeomParser.Attributes.Pivot = pivot;
-                            remoGeomParser.Params.RepairParamAssociations();
-                            remoGeomParser.Attributes.Selected = false;
-                            remoGeomParser.NewInstanceGuid(newCompGuid);
-
-                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                            if (typeName.Equals("Grasshopper.Kernel.Special.GH_Panel"))
                             {
-                                this.OnPingDocument().AddObject(panel, true);
-                                this.OnPingDocument().AddObject(button, true);
-                                this.OnPingDocument().AddObject(wss, true);
-                                this.OnPingDocument().AddObject(wsRecv, true);
-                                this.OnPingDocument().AddObject(remoGeomParser, true);
 
-                                wss.Params.Input[2].AddSource((IGH_Param)button);
-                                wsRecv.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                                remoGeomParser.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
-                                wss.Params.Input[0].AddSource((IGH_Param)panel);
-                            });
+                                string[] specialParams = specialContent.Split(',');
 
-                            //var obj = remoGeomParser;
-                            //GH_RelevantObjectData grip = new GH_RelevantObjectData(obj.Attributes.Pivot);
-                            //this.OnPingDocument().Select(grip, false, true);
-                        }
-                        else if (typeName.Equals("RemoSharp.RemoGeomParser"))
-                        {
-                            string address = createCommand.specialParameters;
-                            System.Drawing.PointF pivot = new System.Drawing.PointF(pivotX, pivotY);
-                            System.Drawing.PointF panelPivot = new System.Drawing.PointF(pivot.X - 375, pivot.Y - 121);
-                            System.Drawing.PointF buttnPivot = new System.Drawing.PointF(pivot.X - 290, pivot.Y - 85);
-                            System.Drawing.PointF wssPivot = new System.Drawing.PointF(pivot.X + 42, pivot.Y - 92);
-                            System.Drawing.PointF wsSendPivot = new System.Drawing.PointF(pivot.X + 226, pivot.Y - 14);
 
-                            Grasshopper.Kernel.Special.GH_Panel panel = new Grasshopper.Kernel.Special.GH_Panel();
-                            panel.CreateAttributes();
-                            panel.Attributes.Pivot = panelPivot;
-                            panel.Attributes.Bounds = new System.Drawing.RectangleF(panelPivot.X, panelPivot.Y, 300, 20);
-                            panel.SetUserText(address);
-                            panel.Attributes.Selected = false;
+                                bool multiLine = Convert.ToBoolean(specialParams[0]);
+                                bool drawIndicies = Convert.ToBoolean(specialParams[1]);
+                                bool drawPaths = Convert.ToBoolean(specialParams[2]);
+                                bool wrap = Convert.ToBoolean(specialParams[3]);
+                                GH_Panel.Alignment alignment = (GH_Panel.Alignment)Enum.Parse(typeof(GH_Panel.Alignment), specialParams[4]);
+                                int boundSizeX = Convert.ToInt32(specialParams[5]);
+                                int boundSizeY = Convert.ToInt32(specialParams[6]);
 
-                            Grasshopper.Kernel.Special.GH_ButtonObject button = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                            button.CreateAttributes();
-                            button.Attributes.Pivot = buttnPivot;
-                            button.Attributes.Selected = false;
+                                string contentText = "";
+                                for (int j = 7; j < specialParams.Length; j++)
+                                {
+                                    if (j < specialParams.Length - 1)
+                                    {
+                                        contentText += specialParams[j] + ",";
+                                    }
+                                    else
+                                    {
+                                        contentText += specialParams[j];
+                                    }
+                                }
 
-                            RemoSharp.WsClientCat.WsClientStart wss = new WsClientCat.WsClientStart();
-                            wss.CreateAttributes();
-                            wss.Attributes.Pivot = wssPivot;
-                            wss.Attributes.Selected = false;
+                                GH_Panel panelComponent = new GH_Panel();
 
-                            RemoSharp.WsClientCat.WsClientSend wsSend = new WsClientCat.WsClientSend();
-                            wsSend.CreateAttributes();
-                            wsSend.Attributes.Pivot = wsSendPivot;
-                            wsSend.Attributes.Selected = false;
+                                panelComponent.CreateAttributes();
+                                panelComponent.Attributes.Pivot = new PointF(pivotX, pivotY);
+                                panelComponent.Properties.Multiline = multiLine;
+                                panelComponent.Properties.DrawIndices = drawIndicies;
+                                panelComponent.Properties.DrawPaths = drawPaths;
+                                panelComponent.Properties.Wrap = wrap;
+                                panelComponent.Properties.Alignment = alignment;
+                                panelComponent.SetUserText(contentText);
+                                panelComponent.Attributes.Bounds = new RectangleF(pivotX, pivotY, boundSizeX, boundSizeY);
+                                panelComponent.Attributes.Selected = false;
+                                panelComponent.NewInstanceGuid(newCompGuid);
 
-                            RemoSharp.RemoGeomStreamer remoGeom = new RemoGeomStreamer();
-                            remoGeom.CreateAttributes();
-                            remoGeom.Attributes.Pivot = pivot;
-                            remoGeom.Params.RepairParamAssociations();
-                            remoGeom.Attributes.Selected = false;
-                            remoGeom.NewInstanceGuid(newCompGuid);
+                                this.OnPingDocument().AddObject(panelComponent, false);
 
-                            this.OnPingDocument().ScheduleSolution(1, doc =>
+                                return;
+                            }
+                            else
                             {
-                                this.OnPingDocument().AddObject(panel, true);
-                                this.OnPingDocument().AddObject(button, true);
-                                this.OnPingDocument().AddObject(wss, true);
-                                this.OnPingDocument().AddObject(wsSend, true);
-                                this.OnPingDocument().AddObject(remoGeom, true);
-
-                                wss.Params.Input[2].AddSource((IGH_Param)button);
-                                wsSend.Params.Input[0].AddSource((IGH_Param)wss.Params.Output[0]);
-                                wsSend.Params.Input[1].AddSource((IGH_Param)remoGeom.Params.Output[0]);
-                                wss.Params.Input[0].AddSource((IGH_Param)panel);
-                            });
-                            //var obj = remoGeom;
-                            //GH_RelevantObjectData grip = new GH_RelevantObjectData(obj.Attributes.Pivot);
-                            //this.OnPingDocument().Select(grip, false, true);
+                                RecognizeAndMake(typeName, pivotX, pivotY, newCompGuid);
+                            }
                         }
-                        else
+                        catch (Exception e)
                         {
-                            RecognizeAndMake(typeName, pivotX, pivotY, newCompGuid);
+                            this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                     }
 
                     return;
@@ -724,6 +560,7 @@ namespace RemoSharp
 
                     this.OnPingDocument().ScheduleSolution(1, doc =>
                     {
+                        colorComp.Attributes.Selected = false;
                         colorComp.SwatchColour = Color.FromArgb(remoColor.Alpha,remoColor.Red, remoColor.Green, remoColor.Blue);
                         colorComp.ExpireSolution(true);
                     });

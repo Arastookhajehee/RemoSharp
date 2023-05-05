@@ -17,13 +17,18 @@ using System.ComponentModel;
 using Rhino.NodeInCode;
 using Rhino.UI;
 using System.Windows.Forms;
+using static System.Windows.Forms.AxHost;
+using Grasshopper.GUI.Canvas.Interaction;
 
 namespace RemoSharp.RemoParams
 {
     public class RemoParam : WsClientComponent
     {
-        PushButton pushButton1;
-        bool approximateCoords = true;
+        PushButton setupButton;
+        bool approximateCoords = false;
+        int setupIndex = 0;
+        Guid hoverComponentGuid = Guid.Empty;
+        bool mouseLeftDown = false;
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
         /// </summary>
@@ -45,14 +50,14 @@ namespace RemoSharp.RemoParams
             pManager.AddGenericParameter("Websocket Objects", "WSC", "websocket objects", GH_ParamAccess.item);
             pManager.AddTextParameter("username","user","The username of the current GH document",GH_ParamAccess.item,"");
 
-            pushButton1 = new PushButton("Set Up",
+            setupButton = new PushButton("Set Up",
                         "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            setupButton.OnValueChanged += seupButton_OnValueChanged;
+            AddCustomControl(setupButton);
 
         }
 
-        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void seupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
             if (!currentValue) return;
@@ -94,7 +99,6 @@ namespace RemoSharp.RemoParams
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            //pManager.AddTextParameter("command", "cmd", "RemoParam Command", GH_ParamAccess.item);
         }
 
         // http://james-ramsden.com/append-menu-items-to-grasshopper-components-with-c/
@@ -123,6 +127,13 @@ namespace RemoSharp.RemoParams
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            if (setupIndex ==0)
+            {
+                Grasshopper.Instances.ActiveCanvas.MouseDown += ActiveCanvas_MouseDown;
+                Grasshopper.Instances.ActiveCanvas.MouseUp += ActiveCanvas_MouseUp;
+                setupIndex++;
+            }
+
 
             WsObject wscObj = new WsObject();
             string remoCommandJson = "Hello World";
@@ -166,18 +177,28 @@ namespace RemoSharp.RemoParams
                     GH_NumberSlider slider = (GH_NumberSlider)inputComp;
                     RemoParamSlider remoSlider = new RemoParamSlider(username, slider);
                     remoCommandJson = RemoCommand.SerializeToJson(remoSlider);
+
+                    bool interactingWithSlider = hoverComponentGuid == slider.InstanceGuid && mouseLeftDown;
+                    if (!interactingWithSlider) remoCommandJson = "";
                     this.Message = "";
+                    
                     break;
                 case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
                     GH_ButtonObject button = (GH_ButtonObject)inputComp;
                     RemoParamButton remoButton = new RemoParamButton(username, button);
                     remoCommandJson = RemoCommand.SerializeToJson(remoButton);
+
+                    if (hoverComponentGuid != button.InstanceGuid) remoCommandJson = "";
+
                     this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
                     GH_BooleanToggle toggle = (GH_BooleanToggle)inputComp;
                     RemoParamToggle remoToggle = new RemoParamToggle(username, toggle);
                     remoCommandJson = RemoCommand.SerializeToJson(remoToggle);
+
+                    if (hoverComponentGuid != toggle.InstanceGuid) remoCommandJson = "";
+
                     this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_Panel"):
@@ -190,6 +211,13 @@ namespace RemoSharp.RemoParams
                     GH_ColourSwatch colourSwatch = (GH_ColourSwatch)inputComp;
                     RemoParamColor remoColor = new RemoParamColor(username, colourSwatch);
                     remoCommandJson = RemoCommand.SerializeToJson(remoColor);
+
+                    if (!colourSwatch.Attributes.Selected)
+                    {
+                        remoCommandJson = "";
+                        this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Color Component does not send data!");
+                    }
+
                     this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
@@ -197,7 +225,10 @@ namespace RemoSharp.RemoParams
                     RemoParamMDSlider remoMDSlider = new RemoParamMDSlider(username, mdSlider, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(remoMDSlider);
 
-                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
+                    bool interactingWithMDSlider = hoverComponentGuid == mdSlider.InstanceGuid && mouseLeftDown;
+                    if (!interactingWithMDSlider) remoCommandJson = "";
+
+                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Point"):
                     IGH_Param paramComp = (IGH_Param)inputComp;
@@ -208,7 +239,7 @@ namespace RemoSharp.RemoParams
                     RemoParamPoint3d points = new RemoParamPoint3d(username, pointComponent, pntTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(points);
 
-                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
+                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     if (!inputComp.Attributes.Selected) remoCommandJson = "";
                     if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
                     break;
@@ -221,7 +252,7 @@ namespace RemoSharp.RemoParams
                     remoCommandJson = RemoCommand.SerializeToJson(vectors);
 
 
-                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
+                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Plane"):
                     Param_Plane planeComponent = (Param_Plane)inputComp;
@@ -231,7 +262,7 @@ namespace RemoSharp.RemoParams
                     RemoParamPlane planes = new RemoParamPlane(username, planeComponent, planeTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(planes);
 
-                    this.Message = this.approximateCoords ? "Approximate\nto 3 decimals" : "Absolute";
+                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
 
                 default:
@@ -242,11 +273,45 @@ namespace RemoSharp.RemoParams
                         "point, vector, plane");
                     return;
             }
-
             if (string.IsNullOrEmpty(remoCommandJson)) return;
 
             wscObj.send(remoCommandJson);
 
+        }
+
+        private void ActiveCanvas_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                mouseLeftDown = false;
+            }
+        }
+        private void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                float[] mouseCoords = PointFromCanvasMouseInteraction(Grasshopper.Instances.ActiveCanvas.Viewport, e);
+                var hoverObject = this.OnPingDocument().FindObject(new System.Drawing.PointF(mouseCoords[0], mouseCoords[1]), 1);
+                if (hoverObject == null) hoverComponentGuid = Guid.Empty;
+                else
+                {
+                    hoverComponentGuid = hoverObject.InstanceGuid;
+                    mouseLeftDown = true;
+                }
+            }
+            else
+            {
+                hoverComponentGuid = Guid.Empty;
+            }
+        }
+
+        float[] PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e)
+        {
+            Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
+            float x = mouseEvent.CanvasX;
+            float y = mouseEvent.CanvasY;
+            float[] coords = { x, y };
+            return coords;
         }
 
         /// <summary>

@@ -60,9 +60,13 @@ namespace RemoSharp.RemoCommandTypes
         public CommandType commandType;
         public Guid objectGuid;
 
-        public static string SerializeToJson(RemoCommand command)
+        public static string SerializeToJson(List<RemoCommand> commands)
         {
-            return JsonConvert.SerializeObject(command,Formatting.Indented);
+            return JsonConvert.SerializeObject(commands, Formatting.Indented);
+        }
+        public static string SerializeToJson(RemoCommand commands)
+        {
+            return JsonConvert.SerializeObject(commands, Formatting.Indented);
         }
         public static RemoCommand DeserializeFromJson(string commandJson)
         {
@@ -234,47 +238,34 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoCreate : RemoCommand
     {
-        public string componentType;
-        public int X;
-        public int Y;
-        public bool isSpecial;
-        public string specialParameters;
+        public List<Guid> guids;
+        public List<string> componentTypes;
+        public List<int> Xs;
+        public List<int> Ys;
+        public List<bool> isSpecials;
+        public List<string> specialParameters_s;
 
         public RemoCreate()
         {
             // default constructor
         }
         // a constructor for general components
-        public RemoCreate(string issuerID, Guid objectGuid,
-            string componentType,
-            int X,
-            int Y)
+        public RemoCreate(string issuerID, List<Guid> guids,
+            List<string> componentTypes,
+            List<int> Xs,
+            List<int> Ys,
+            List<bool> isSpecials,
+            List<string> specialParameters_s)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Create;
-            this.objectGuid= objectGuid;
-            this.componentType = componentType;
-            this.X = X;
-            this.Y = Y;
-            this.isSpecial= false;
-        }
-
-        // a constructor for special components like sliders, panels, etc.
-        public RemoCreate(string issuerID, Guid objectGuid,
-            string componentType,
-            int X,
-            int Y,
-            string specialParameters
-            )
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.Create;
-            this.componentType = componentType;
-            this.objectGuid = objectGuid;
-            this.X = X;
-            this.Y = Y;
-            this.isSpecial= true;
-            this.specialParameters = specialParameters;
+            this.objectGuid= Guid.Empty;
+            this.guids = guids;
+            this.componentTypes = componentTypes;
+            this.Xs= Xs;
+            this.Ys= Ys;
+            this.isSpecials = isSpecials;
+            this.specialParameters_s= specialParameters_s;
         }
 
     }
