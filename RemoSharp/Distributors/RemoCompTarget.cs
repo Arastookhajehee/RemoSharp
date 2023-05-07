@@ -200,53 +200,135 @@ namespace RemoSharp
             {
                 RemoConnectInteraction connectionInteraction = (RemoConnectInteraction)cmd;
 
+                if (connectionInteraction.source == null || connectionInteraction.target == null) 
+                {
+                    cmdJson = "";
+                }
+                else
+                {
+                    int outIndex = -1;
+                    bool outIsSpecial = false;
+                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                      connectionInteraction.source, out outIndex, out outIsSpecial);
 
-                int outIndex = -1;
-                bool outIsSpecial = false;
-                System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                  connectionInteraction.source, out outIndex, out outIsSpecial);
+                    //connectionInteraction.sourceOutput = outIndex;
+                    //connectionInteraction.isSourceSpecial = outIsSpecial;
+                    //connectionInteraction.sourceObjectGuid = outGuid;
 
-                //connectionInteraction.sourceOutput = outIndex;
-                //connectionInteraction.isSourceSpecial = outIsSpecial;
-                //connectionInteraction.sourceObjectGuid = outGuid;
+                    int inIndex = -1;
+                    bool inIsSpecial = false;
+                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                      connectionInteraction.target, out inIndex, out inIsSpecial);
 
-                int inIndex = -1;
-                bool inIsSpecial = false;
-                System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                  connectionInteraction.target, out inIndex, out inIsSpecial);
+                    //connectionInteraction.targetInput = inIndex;
+                    //connectionInteraction.isTargetSpecial = inIsSpecial;
+                    //connectionInteraction.targetObjectGuid = inGuid;
 
-                //connectionInteraction.targetInput = inIndex;
-                //connectionInteraction.isTargetSpecial = inIsSpecial;
-                //connectionInteraction.targetObjectGuid = inGuid;
+                    RemoConnect remoConnect = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
 
-                RemoConnect remoConnect = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
-
-                cmdJson = RemoCommand.SerializeToJson(remoConnect);
+                    cmdJson = RemoCommand.SerializeToJson(remoConnect);
+                }
             }
 
             // 50%
             if (hide)
             {
-                
-                bool state = true;
 
-                IGH_DocumentObject selection = this.OnPingDocument().SelectedObjects()[0];
-                if (selection is GH_Component)
+                List<bool> states = new List<bool>();
+                List<Guid> guids = new List<Guid>();
+                bool notFound = false;
+                var selectionObjs = this.OnPingDocument().SelectedObjects();
+                foreach ( var selection in selectionObjs ) 
                 {
-                   GH_Component hideComponent = (GH_Component)selection;
-                    state = !hideComponent.Hidden;
-                    hideComponent.Hidden = state;
-                }
-                //else if (selection is GH_PersistentParam)
-                //{
-                //    GH_PersistentParam hideComponent = (GH_PersistentParam)selection;
-                //    hoverComponentGuid = !hideComponent.Hidden;
-                //    hideComponent.Hidden = hoverComponentGuid;
-                //}
+                    guids.Add(selection.InstanceGuid);
+                    if (selection is GH_Component)
+                    {
+                       GH_Component hideComponent = (GH_Component)selection;
+                        states.Add(!hideComponent.Hidden);
+                        hideComponent.Hidden = !hideComponent.Hidden;
+                    }
+                    else if (selection.SubCategory == "Geometry")
+                    {
+                        switch (selection.GetType().ToString())
+                        {
+                            case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                                Grasshopper.Kernel.Parameters.Param_Point paramComponentParam_Point = (Grasshopper.Kernel.Parameters.Param_Point)selection;
+                                states.Add(!paramComponentParam_Point.Hidden);
+                                paramComponentParam_Point.Hidden = !paramComponentParam_Point.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Circle"):
+                                Grasshopper.Kernel.Parameters.Param_Circle paramComponentParam_Circle = (Grasshopper.Kernel.Parameters.Param_Circle) selection;
+                                states.Add(!paramComponentParam_Circle.Hidden);
+                                paramComponentParam_Circle.Hidden = !paramComponentParam_Circle.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Arc"):
+                                Grasshopper.Kernel.Parameters.Param_Arc paramComponentParam_Arc = (Grasshopper.Kernel.Parameters.Param_Arc) selection;
+                                states.Add(!paramComponentParam_Arc.Hidden);
+                                paramComponentParam_Arc.Hidden = !paramComponentParam_Arc.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Curve"):
+                                Grasshopper.Kernel.Parameters.Param_Curve paramComponentParam_Curve = (Grasshopper.Kernel.Parameters.Param_Curve) selection;
+                                states.Add(!paramComponentParam_Curve.Hidden);
+                                paramComponentParam_Curve.Hidden = !paramComponentParam_Curve.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Line"):
+                                Grasshopper.Kernel.Parameters.Param_Line paramComponentParam_Line = (Grasshopper.Kernel.Parameters.Param_Line) selection;
+                                states.Add(!paramComponentParam_Line.Hidden);
+                                paramComponentParam_Line.Hidden = !paramComponentParam_Line.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Plane"):
+                                Grasshopper.Kernel.Parameters.Param_Plane paramComponentParam_Plane = (Grasshopper.Kernel.Parameters.Param_Plane) selection;
+                                states.Add(!paramComponentParam_Plane.Hidden);
+                                paramComponentParam_Plane.Hidden = !paramComponentParam_Plane.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Rectangle"):
+                                Grasshopper.Kernel.Parameters.Param_Rectangle paramComponentParam_Rectangle = (Grasshopper.Kernel.Parameters.Param_Rectangle) selection;
+                                states.Add(!paramComponentParam_Rectangle.Hidden);
+                                paramComponentParam_Rectangle.Hidden = !paramComponentParam_Rectangle.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Box"):
+                                Grasshopper.Kernel.Parameters.Param_Box paramComponentParam_Box = (Grasshopper.Kernel.Parameters.Param_Box) selection;
+                                states.Add(!paramComponentParam_Box.Hidden);
+                                paramComponentParam_Box.Hidden = !paramComponentParam_Box.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Surface"):
+                                Grasshopper.Kernel.Parameters.Param_Surface paramComponentParam_Surface = (Grasshopper.Kernel.Parameters.Param_Surface) selection;
+                                states.Add(!paramComponentParam_Surface.Hidden);
+                                paramComponentParam_Surface.Hidden = !paramComponentParam_Surface.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Brep"):
+                                Grasshopper.Kernel.Parameters.Param_Brep paramComponentParam_Brep = (Grasshopper.Kernel.Parameters.Param_Brep) selection;
+                                states.Add(!paramComponentParam_Brep.Hidden);
+                                paramComponentParam_Brep.Hidden = !paramComponentParam_Brep.Hidden;
+                                break;
+                            case ("Grasshopper.Kernel.Parameters.Param_Mesh"):
+                                Grasshopper.Kernel.Parameters.Param_Mesh paramComponentParam_Mesh = (Grasshopper.Kernel.Parameters.Param_Mesh) selection;
+                                states.Add(!paramComponentParam_Mesh.Hidden);
+                                paramComponentParam_Mesh.Hidden = !paramComponentParam_Mesh.Hidden;
+                                break;
+                            default:
+                                notFound = true;
+                                break;
+                        }
+                    
+                    }
+                    else
+                    {
+                        guids.Add(Guid.Empty);
+                        states.Add(false);
 
-                cmd = new RemoHide(cmd.issuerID, selection.InstanceGuid, state,DateTime.Now.Second);
-                cmdJson = RemoCommand.SerializeToJson(cmd);
-                DA.SetData(0, cmdJson);
+                    }
+                
+                }
+
+
+
+                if (!notFound)
+                {
+                    cmd = new RemoHide(cmd.issuerID, guids, states, DateTime.Now.Second);
+                    cmdJson = RemoCommand.SerializeToJson(cmd);
+                    DA.SetData(0, cmdJson);
+                }
                 hide = false;
             }
 

@@ -323,8 +323,28 @@ namespace RemoSharp
                 case (CommandType.Create):
                     RemoCreate createCommand = (RemoCreate)remoCommand;
 
-                    var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
+                    // important to find the source component to prevent recursive component creation commands
+                    GH_Panel usernamePanel = (GH_Panel) this.Params.Input[1].Sources[0];
+                    var panelRecipients = usernamePanel.Recipients;
+                    foreach (IGH_DocumentObject item in panelRecipients)
+                    {
+                        if (item.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoCompSource"))
+                        {
+                            RemoCompSource sourceComponent = (RemoCompSource)item.Attributes.Parent.DocObject;
+                            sourceComponent.remoCreatedcomponens.AddRange(createCommand.guids);
+                            while (sourceComponent.remoCreatedcomponens.Count > 65)
+                            {
+                                sourceComponent.remoCreatedcomponens.RemoveAt(0);
+                            }
+                            break;
+                        }
+                    }
+                    
+                    //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
 
+                    this.OnPingDocument().ScheduleSolution(1, doc =>
+                    {
+                    
                     for (int i = 0; i < createCommand.guids.Count; i++)
                     {
 
@@ -333,7 +353,9 @@ namespace RemoSharp
                         int pivotX = createCommand.Xs[i];
                         int pivotY = createCommand.Ys[i];
                         string specialContent = createCommand.specialParameters_s[i];
-                        if (gh_components.Contains(newCompGuid)) continue;
+                        
+                        //temporary cleared to test new method
+                        //if (gh_components.Contains(newCompGuid)) continue;
                         try
                         {
                             if (typeName.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
@@ -410,6 +432,11 @@ namespace RemoSharp
                             else
                             {
                                 RecognizeAndMake(typeName, pivotX, pivotY, newCompGuid);
+                                string makingDone = "";
+                                if (makingDone == null)
+                                {
+
+                                }
                             }
                         }
                         catch (Exception e)
@@ -417,7 +444,65 @@ namespace RemoSharp
                             this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                         }
                     }
+                    for (int i = 0; i < createCommand.guids.Count; i++)
+                    {
+                        Guid newCompGuid = createCommand.guids[i];
+                        WireHistory wireHistory = createCommand.wireHistorys[i];
 
+                        var obj = this.OnPingDocument().FindObject(newCompGuid, false);
+                        if (obj is IGH_Param)
+                        {
+                            IGH_Param igh_param = (IGH_Param)obj;
+                            if (!igh_param.Attributes.HasInputGrip) continue;
+                            WireConnection item = wireHistory.wireHistory[0];
+                            
+                                for (int j = 0; j < item.sourceGuids.Count; j++)
+                                {
+                                    var sourceObj = this.OnPingDocument().FindObject(item.sourceGuids[j], false);
+                                    if (item.sourceIndecies[j] == -1)
+                                    {
+
+                                        igh_param.AddSource((IGH_Param)sourceObj);
+                                    }
+                                    else
+                                    {
+
+                                        IGH_Component igh_component = (IGH_Component)sourceObj;
+                                        int outputIndex = item.sourceIndecies[j];
+                                        igh_param.AddSource(igh_component.Params.Output[outputIndex]);
+
+                                    }
+                                }
+                        }
+                        else
+                        {
+                            IGH_Component igh_Component = (IGH_Component)obj;
+                            for (int k = 0; k < igh_Component.Params.Input.Count; k++)
+                            {
+                                WireConnection item = wireHistory.wireHistory[k];
+                               
+                                    for (int j = 0; j < item.sourceGuids.Count; j++)
+                                    {
+                                        var sourceObj = this.OnPingDocument().FindObject(item.sourceGuids[j], false);
+                                        if (item.sourceIndecies[j] == -1)
+                                        {
+
+                                            igh_Component.Params.Input[k].AddSource((IGH_Param)sourceObj);
+                                        }
+                                        else
+                                        {
+
+                                            IGH_Component igh_component = (IGH_Component)sourceObj;
+                                            int outputIndex = item.sourceIndecies[j];
+                                            igh_Component.Params.Input[k].AddSource(igh_component.Params.Output[outputIndex]);
+
+                                        }
+                                    }
+                            }
+                        }
+
+                    }
+                    });
                     return;
                 #endregion
 
@@ -447,16 +532,73 @@ namespace RemoSharp
                 case (CommandType.Hide):
 
                     RemoHide hideCommand = (RemoHide)remoCommand;
-                    try
-                    {
-                        IGH_DocumentObject hideComponent = (IGH_DocumentObject)this.OnPingDocument().FindObject(hideCommand.objectGuid, false);
-                        GH_Component gh_component = hideComponent as GH_Component;
-                        if(gh_component != null) gh_component.Hidden = hideCommand.state;
-                        
-                    }
-                    catch
-                    {
 
+                    for (int i = 0; i < hideCommand.guids.Count; i++)
+                    {
+                        Guid compGuid = hideCommand.guids[i];
+                        bool hiddenState = hideCommand.states[i];
+
+                        if (compGuid == Guid.Empty) continue;
+
+                        IGH_DocumentObject selection = (IGH_DocumentObject)this.OnPingDocument().FindObject(compGuid, false);
+
+                        if (selection is GH_Component)
+                        {
+                            GH_Component hideComponent = (GH_Component)selection;
+                            hideComponent.Hidden = hiddenState;
+                        }
+                        else if (selection.SubCategory == "Geometry")
+                        {
+                            switch (selection.GetType().ToString())
+                            {
+                                case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                                    Grasshopper.Kernel.Parameters.Param_Point paramComponentParam_Point = (Grasshopper.Kernel.Parameters.Param_Point)selection;
+                                    paramComponentParam_Point.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Circle"):
+                                    Grasshopper.Kernel.Parameters.Param_Circle paramComponentParam_Circle = (Grasshopper.Kernel.Parameters.Param_Circle)selection;
+                                    paramComponentParam_Circle.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Arc"):
+                                    Grasshopper.Kernel.Parameters.Param_Arc paramComponentParam_Arc = (Grasshopper.Kernel.Parameters.Param_Arc)selection;
+                                    paramComponentParam_Arc.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Curve"):
+                                    Grasshopper.Kernel.Parameters.Param_Curve paramComponentParam_Curve = (Grasshopper.Kernel.Parameters.Param_Curve)selection;
+                                    paramComponentParam_Curve.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Line"):
+                                    Grasshopper.Kernel.Parameters.Param_Line paramComponentParam_Line = (Grasshopper.Kernel.Parameters.Param_Line)selection;
+                                    paramComponentParam_Line.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Plane"):
+                                    Grasshopper.Kernel.Parameters.Param_Plane paramComponentParam_Plane = (Grasshopper.Kernel.Parameters.Param_Plane)selection;
+                                    paramComponentParam_Plane.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Rectangle"):
+                                    Grasshopper.Kernel.Parameters.Param_Rectangle paramComponentParam_Rectangle = (Grasshopper.Kernel.Parameters.Param_Rectangle)selection;
+                                    paramComponentParam_Rectangle.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Box"):
+                                    Grasshopper.Kernel.Parameters.Param_Box paramComponentParam_Box = (Grasshopper.Kernel.Parameters.Param_Box)selection;
+                                    paramComponentParam_Box.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Surface"):
+                                    Grasshopper.Kernel.Parameters.Param_Surface paramComponentParam_Surface = (Grasshopper.Kernel.Parameters.Param_Surface)selection;
+                                    paramComponentParam_Surface.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Brep"):
+                                    Grasshopper.Kernel.Parameters.Param_Brep paramComponentParam_Brep = (Grasshopper.Kernel.Parameters.Param_Brep)selection;
+                                    paramComponentParam_Brep.Hidden = hiddenState;
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Mesh"):
+                                    Grasshopper.Kernel.Parameters.Param_Mesh paramComponentParam_Mesh = (Grasshopper.Kernel.Parameters.Param_Mesh)selection;
+                                    paramComponentParam_Mesh.Hidden = hiddenState;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
                     }
                     return;
                 #endregion

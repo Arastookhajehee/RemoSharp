@@ -286,7 +286,7 @@ namespace RemoSharp.RemoParams
                 mouseLeftDown = false;
             }
         }
-        private void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
+        public void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {

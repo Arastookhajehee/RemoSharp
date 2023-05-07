@@ -25,6 +25,8 @@ using RemoSharp.RemoCommandTypes;
 using Rhino.Commands;
 
 using Newtonsoft.Json;
+using Grasshopper.GUI.Canvas;
+using RemoSharp.RemoParams;
 
 namespace RemoSharp
 {
@@ -35,14 +37,15 @@ namespace RemoSharp
         Grasshopper.GUI.Canvas.GH_Canvas canvas;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
         RemoCommand command = null;
-        string commandJson = "";
         
+        public List<Guid> remoCreatedcomponens = new List<Guid>();
+
         string username = "";
 
         float[] downPnt = {0,0};
         float[] upPnt = { 0, 0 };
 
-        PushButton pushButton1;
+        PushButton setupButton;
 
 
         float[] PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e)
@@ -69,20 +72,22 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("Set Up",
+            setupButton = new PushButton("Set Up",
                    "Creates The Required RemoSharp Components to Connect to a Session.", "Set Up");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            setupButton.OnValueChanged += SetupButton_OnValueChanged;
+            AddCustomControl(setupButton);
 
             pManager.AddTextParameter("Username", "user", "This Computer's Username", GH_ParamAccess.item, "");
 
         }
 
-        private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void SetupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
             if (currentValue)
             {
+                this.NickName = "RemoSetup";
+
                 int xShift = 2;
                 PointF pivot = this.Attributes.Pivot;
                 PointF bffButtonPivot = new PointF(pivot.X + xShift - 214, pivot.Y - 227);
@@ -105,13 +110,13 @@ namespace RemoSharp
                 Grasshopper.Kernel.Special.GH_ButtonObject bffButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
                 bffButton.CreateAttributes();
                 bffButton.Attributes.Pivot = bffButtonPivot;
-                bffButton.NickName = "RemoSharp";
+                bffButton.NickName = "RemoSetup";
 
                 // toggle
                 Grasshopper.Kernel.Special.GH_BooleanToggle bffToggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
                 bffToggle.CreateAttributes();
                 bffToggle.Attributes.Pivot = bffTogglePivot;
-                bffToggle.NickName = "RemoSharp";
+                bffToggle.NickName = "RemoSetup";
                 bffToggle.Value = true;
                 bffToggle.ExpireSolution(false);
 
@@ -120,6 +125,7 @@ namespace RemoSharp
                 bffComp.CreateAttributes();
                 bffComp.Attributes.Pivot = bffPivot;
                 bffComp.Params.RepairParamAssociations();
+                bffComp.NickName = "RemoSetup";
 
 
                 // bff trigger
@@ -129,6 +135,7 @@ namespace RemoSharp
                 bffTrigger.NickName = "RemoSharp WSBFF";
                 bffTrigger.Interval = 1000;
                 var bffTriggerTarget = bffComp.InstanceGuid;
+                bffTrigger.NickName = "RemoSetup";
 
                 // RemoSharp trigger
                 var trigger = new Grasshopper.Kernel.Special.GH_Timer();
@@ -137,12 +144,13 @@ namespace RemoSharp
                 trigger.NickName = "RemoSharp";
                 trigger.Interval = 100;
                 var triggerTarget = this.InstanceGuid;
-
+                trigger.NickName = "RemoSetup";
                 // componentName
                 var targetComp = new RemoSharp.RemoCompTarget();
                 targetComp.CreateAttributes();
                 targetComp.Attributes.Pivot = targetPivot;
                 targetComp.Params.RepairParamAssociations();
+                targetComp.NickName = "RemoSetup";
 
                 // componentName
                 var panel = new Grasshopper.Kernel.Special.GH_Panel();
@@ -150,30 +158,35 @@ namespace RemoSharp
                 panel.Attributes.Pivot = panelPivot;
                 panel.Attributes.Bounds = new Rectangle((int) panelPivot.X, (int) panelPivot.Y, 100, 45);
                 panel.SetUserText("");
+                panel.NickName = "RemoSetup";
 
                 // componentName
                 var wscComp = new RemoSharp.WsClientCat.WsClientStart();
                 wscComp.CreateAttributes();
                 wscComp.Attributes.Pivot = wscPivot;
                 wscComp.Params.RepairParamAssociations();
+                wscComp.NickName = "RemoSetup";
 
                 // componentName
                 var listenComp = new RemoSharp.WsClientCat.WsClientRecv();
                 listenComp.CreateAttributes();
                 listenComp.Attributes.Pivot = listenPivot;
                 listenComp.Params.RepairParamAssociations();
+                listenComp.NickName = "RemoSetup";
 
                 // componentName
                 var sendComp = new RemoSharp.WsClientCat.WsClientSend();
                 sendComp.CreateAttributes();
                 sendComp.Attributes.Pivot = sendPivot;
                 sendComp.Params.RepairParamAssociations();
+                sendComp.NickName = "RemoSetup";
 
                 // componentName
                 var commandComp = new RemoSharp.CommandExecutor();
                 commandComp.CreateAttributes();
                 commandComp.Attributes.Pivot = commandPivot;
                 commandComp.Params.RepairParamAssociations();
+                commandComp.NickName = "RemoSetup";
 
                 #endregion
 
@@ -295,12 +308,12 @@ namespace RemoSharp
                                 //PointF sourceCoords = source.Attributes.Pivot;
                                 //PointF targetCoords = target.Attributes.Pivot;
 
-                                //Guid sourceGuid = source.InstanceGuid;
+                                //Guid sourceGuids = source.InstanceGuid;
                                 //Guid targetGuid = target.InstanceGuid;
 
                                 //command = "WireConnection"
                                 //  + "," + conDiscon
-                                //  + "," + sourceGuid
+                                //  + "," + sourceGuids
                                 //  + "," + targetGuid;
 
                                 if (source.Attributes.HasInputGrip)
@@ -328,7 +341,6 @@ namespace RemoSharp
                                     command = new RemoConnectInteraction(username, source, target, remoConnectType);
                                 }
                                 
-                                commandJson = RemoCommand.SerializeToJson(command);
                                 commandReset = 0;
 
                             }
@@ -359,8 +371,7 @@ namespace RemoSharp
 
                                         Guid selectionGuid = selection[0].InstanceGuid;
                                         command = new RemoMove(username, selectionGuid, upPntX, upPntY, DateTime.Now.Second);
-                                        commandJson = RemoCommand.SerializeToJson(command);
-                                        //command = "MoveComponent," + downPntX + "," + downPntY + "," + moveX + "," + moveY;
+
                                         downPnt[0] = 0;
                                         downPnt[1] = 0;
                                         upPnt[0] = 0;
@@ -392,7 +403,7 @@ namespace RemoSharp
                     List<int> Ys = new List<int>();
                     List<bool> isSpecials = new List<bool>();
                     List<string> specialParameters_s = new List<string>();
-
+                    List<WireHistory> wireHistories= new List<WireHistory>();
                     
 
                     var objs = e.Objects;
@@ -403,11 +414,29 @@ namespace RemoSharp
                         var compTypeString = obj.GetType().ToString();
                         var pivot = obj.Attributes.Pivot;
 
+                        // check to see if this component has been created from remocreate command coming from outsite
+                        if (remoCreatedcomponens.Contains(newCompGuid)) continue;
+                        else
+                        {
+                            remoCreatedcomponens.Add(newCompGuid);
+                        }
                         //adding info for RemoCreate Command
                         guids.Add(newCompGuid);
                         componentTypes.Add(compTypeString);
                         Xs.Add((int)pivot.X);
                         Ys.Add((int)pivot.Y);
+                        wireHistories.Add(new WireHistory(obj));
+
+
+                        if (obj is IGH_Component)
+                        {
+                            IGH_Component objComponent = (IGH_Component)obj;
+                            
+                        }
+                        else if (obj is IGH_Param)
+                        {
+                            IGH_Param objParam = (IGH_Param)obj;
+                        }
 
 
                         if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
@@ -449,10 +478,15 @@ namespace RemoSharp
 
                     }
 
-
-                    command = new RemoCreate(username, guids, componentTypes,
-                    Xs, Ys, isSpecials, specialParameters_s);
-                    commandJson = RemoCommand.SerializeToJson(command);
+                    if (guids.Count > 0)
+                    {
+                        command = new RemoCreate(username, guids, componentTypes,
+                        Xs, Ys, isSpecials, specialParameters_s, wireHistories);
+                    }
+                    else
+                    {
+                        command = null;
+                    }
 
                     downPnt[0] = 0;
                     downPnt[1] = 0;
@@ -471,12 +505,22 @@ namespace RemoSharp
                     var objs = e.Objects;
                     foreach (var obj in objs)
                     {
+                        // a part of the recursive component creation message sending check
+                        if (this.remoCreatedcomponens.Contains(obj.InstanceGuid))
+                        {
+                            remoCreatedcomponens.Remove(obj.InstanceGuid);
+                        }
                         deleteGuids.Add(obj.InstanceGuid);
+                        
+                        if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
+                        {
+                            RemoParam remoParamDeleted = (RemoParam)obj;
+                            Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
+                        }
 
                     }
 
                     command = new RemoDelete(username, deleteGuids);
-                    commandJson = RemoCommand.SerializeToJson(command);
 
                     downPnt[0] = 0;
                     downPnt[1] = 0;

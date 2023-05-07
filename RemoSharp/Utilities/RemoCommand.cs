@@ -66,7 +66,7 @@ namespace RemoSharp.RemoCommandTypes
         }
         public static string SerializeToJson(RemoCommand commands)
         {
-            return JsonConvert.SerializeObject(commands, Formatting.Indented);
+            return JsonConvert.SerializeObject(commands, Formatting.None);
         }
         public static RemoCommand DeserializeFromJson(string commandJson)
         {
@@ -244,6 +244,7 @@ namespace RemoSharp.RemoCommandTypes
         public List<int> Ys;
         public List<bool> isSpecials;
         public List<string> specialParameters_s;
+        public List<WireHistory> wireHistorys;
 
         public RemoCreate()
         {
@@ -255,17 +256,19 @@ namespace RemoSharp.RemoCommandTypes
             List<int> Xs,
             List<int> Ys,
             List<bool> isSpecials,
-            List<string> specialParameters_s)
+            List<string> specialParameters_s,
+            List<WireHistory> wireHistorys)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Create;
-            this.objectGuid= Guid.Empty;
+            this.objectGuid = Guid.Empty;
             this.guids = guids;
             this.componentTypes = componentTypes;
-            this.Xs= Xs;
-            this.Ys= Ys;
+            this.Xs = Xs;
+            this.Ys = Ys;
             this.isSpecials = isSpecials;
-            this.specialParameters_s= specialParameters_s;
+            this.specialParameters_s = specialParameters_s;
+            this.wireHistorys = wireHistorys;   
         }
 
     }
@@ -321,15 +324,17 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoHide : RemoCommand
     {
-        public bool state;
+        public List<bool> states;
+        public List<Guid> guids;
         public bool hidable;
         public int timeSeconds;
-        public RemoHide(string issuerID, Guid objectGuid, bool state, int timeSeconds)
+        public RemoHide(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Hide;
-            this.objectGuid = objectGuid;
-            this.state = state;
+            this.objectGuid = Guid.Empty;
+            this.states = states;
+            this.guids = guids;
             this.timeSeconds= timeSeconds;
         }
         public RemoHide()
@@ -595,7 +600,78 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class WireHistory
+    {
+        public List<WireConnection> wireHistory;
 
+        public WireHistory() { }
+        public WireHistory(IGH_DocumentObject component)
+        {
+            List<WireConnection> wireHistory = new List<WireConnection>();
+
+            if (component is IGH_Param)
+            {
+                wireHistory.Add(new WireConnection((IGH_Param)component));
+                this.wireHistory = wireHistory;
+            }
+            else
+            {
+                IGH_Component gh_component = (IGH_Component)component;
+                foreach (IGH_Param item in gh_component.Params.Input)
+                {
+                    wireHistory.Add(new WireConnection(item));
+                }
+                this.wireHistory = wireHistory;
+            }
+
+        }
+
+    }
     
+    public class WireConnection
+    {
+        public int inputIndex;
+        public List<Guid> sourceGuids;
+        public List<int> sourceIndecies;
+        
+
+        public WireConnection() { }
+        public WireConnection(IGH_Param input) 
+        {
+            
+            
+            List<Guid> sourceGuids = new List<Guid>();
+            List<int> sourceIndecies = new List<int>();
+
+            var inputs = input.Sources;
+            for (int i = 0; i < inputs.Count; i++)
+            {
+                IGH_Param output= inputs[i];
+
+                if (output.Attributes.Parent == null)
+                {
+                    sourceGuids.Add(output.InstanceGuid);
+                    sourceIndecies.Add(-1);
+                }
+                else
+                {
+                    sourceGuids.Add(output.Attributes.Parent.DocObject.InstanceGuid);
+                    IGH_Component parent = (IGH_Component)output.Attributes.Parent.DocObject;
+                    sourceIndecies.Add(parent.Params.Output.IndexOf(output));
+                }
+            }
+
+            this.sourceGuids= sourceGuids;
+            this.sourceIndecies = sourceIndecies;
+
+            if (input.Attributes.Parent == null) this.inputIndex = -1;
+            else
+            {
+                IGH_Component parent = (IGH_Component)input.Attributes.Parent.DocObject;
+                this.inputIndex = parent.Params.Input.IndexOf(input);
+            }
+
+        }
+    }
 
 }

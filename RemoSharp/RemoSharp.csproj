@@ -114,8 +114,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoCSharp\Script_Checker.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
-    <Compile Include="RemoCSharp\TextNumber.cs" />
-    <Compile Include="RemoCSharp\TextPoint.cs" />
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />

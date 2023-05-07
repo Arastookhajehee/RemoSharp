@@ -30,7 +30,7 @@ namespace RemoSharp
     }
     public class BroadcastCanvasScreenXML : GHCustomComponent
     {
-        PushButton pushButton1;
+        //PushButton setupButton;
 
         /// <summary>
         /// Initializes a new instance of the BroadcastCanvasScreenXML class.
@@ -47,10 +47,10 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            //pushButton1 = new PushButton("WS_Client",
+            //setupButton = new PushButton("WS_Client",
             //       "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
-            //pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            //AddCustomControl(pushButton1);
+            //setupButton.OnValueChanged += SetupButton_OnValueChanged;
+            //AddCustomControl(setupButton);
 
             //pManager.AddBooleanParameter("Broadcast", "BrdCst",
             //    "Creates and broadcasts the current GH_Canvas screenshot in a text format.",
@@ -77,7 +77,7 @@ namespace RemoSharp
         //    }
         //}
 
-        //private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //private void SetupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         //{
         //    bool currentValue = Convert.ToBoolean(e.Value);
         //    if (currentValue)
