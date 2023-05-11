@@ -71,7 +71,7 @@ namespace RemoSharp
         public CommandExecutor()
           : base("CommandExecutor", "CmdExe",
               "Excecution of Remote Commands for all manipulations from the client side remotely.",
-              "RemoSharp", "RemoMakers")
+              "RemoSharp", "RemoSetup")
         {
         }
 
@@ -607,22 +607,25 @@ namespace RemoSharp
                 case (CommandType.Lock):
 
                     RemoLock lockCommand = (RemoLock)remoCommand;
-                    Guid lockCompGuid = lockCommand.objectGuid;
-                    bool state = lockCommand.state;
 
                     this.OnPingDocument().ScheduleSolution(1, doc =>
                     {
-                        try
+                        for (int i = 0; i < lockCommand.guids.Count; i++)
                         {
-                            var lockComponent = (IGH_Component)this.OnPingDocument().FindObject(lockCompGuid, false);
-                            lockComponent.Locked = state;
-                            lockComponent.ExpireSolution(false);
-                        }
-                        catch
-                        {
-                            var lockComponent = (IGH_Param)this.OnPingDocument().FindObject(lockCompGuid, false);
-                            lockComponent.Locked = state;
-                            lockComponent.ExpireSolution(false);
+                            Guid guid = lockCommand.guids[i];
+                            var lockComponent = this.OnPingDocument().FindObject(guid, false);
+                            if (lockComponent is GH_Component)
+                            {
+                                GH_Component lockComp = (GH_Component)lockComponent;
+                                lockComp.Locked = lockCommand.states[i];
+                                lockComp.ExpireSolution(false);
+                            }
+                            else if (lockComponent is IGH_Param)
+                            {
+                                IGH_Param lockParam = (IGH_Param)lockComponent;
+                                lockParam.Locked = lockCommand.states[i];
+                                lockParam.ExpireSolution(false);
+                            }
                         }
                     });
                     return;

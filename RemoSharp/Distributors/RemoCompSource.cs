@@ -61,10 +61,11 @@ namespace RemoSharp
         /// Initializes a new instance of the RemoCompSource class.
         /// </summary>
         public RemoCompSource()
-          : base("RemoCompSource", "RemoCompS",
+          : base("RemoCompSource", "RemoSetup",
               "Creates, connects, disconnects, and moves components remotely on the main remote GH_Canvas",
-              "RemoSharp", "RemoMakers")
+              "RemoSharp", "RemoSetup")
         {
+            this.NickName = "RemoSetup";
         }
 
         /// <summary>
@@ -86,8 +87,6 @@ namespace RemoSharp
             bool currentValue = Convert.ToBoolean(e.Value);
             if (currentValue)
             {
-                this.NickName = "RemoSetup";
-
                 int xShift = 2;
                 PointF pivot = this.Attributes.Pivot;
                 PointF bffButtonPivot = new PointF(pivot.X + xShift - 214, pivot.Y - 227);
@@ -190,7 +189,7 @@ namespace RemoSharp
 
                 #endregion
 
-                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -119, -318, false);
+                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -119, -318, true);
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>

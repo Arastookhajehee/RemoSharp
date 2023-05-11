@@ -59,7 +59,7 @@ namespace RemoSharp
         public RemoCompTarget()
           : base("RemoCompTarget", "RemoCompT",
               "Creates, connects, disconnects, and moves components remotely on the main remote GH_Canvas",
-              "RemoSharp", "RemoMakers")
+              "RemoSharp", "RemoSetup")
         {
         }
 
@@ -351,15 +351,41 @@ namespace RemoSharp
 
             if (lockThis)
             {
-                
 
-                Guid selectionGuid = this.OnPingDocument().SelectedObjects()[0].InstanceGuid;
-                cmd = new RemoLock(cmd.issuerID, selectionGuid, hide, DateTime.Now.Second);
-                cmdJson = RemoCommand.SerializeToJson(cmd);
-                DA.SetData(0, cmdJson);
-                lockThis = false;
+
+                List<bool> states = new List<bool>();
+                List<Guid> guids = new List<Guid>();
+
+                var selectionObjs = this.OnPingDocument().SelectedObjects();
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    foreach (IGH_DocumentObject selection in selectionObjs)
+                    {
+                        guids.Add(selection.InstanceGuid);
+                        if (selection is GH_Component)
+                        {
+                            GH_Component LockComponent = (GH_Component)selection;
+                            states.Add(!LockComponent.Locked);
+                            LockComponent.Locked = !LockComponent.Locked;
+                        }
+                        else if (selection is IGH_Param)
+                        {
+                            IGH_Param LockComponent = (IGH_Param)selection;
+                            states.Add(!LockComponent.Locked);
+                            LockComponent.Locked = !LockComponent.Locked;
+                        }
+                        
+                    }
+
+                    cmd = new RemoLock(cmd.issuerID, guids, states, DateTime.Now.Second);
+                    cmdJson = RemoCommand.SerializeToJson(cmd);
+                    DA.SetData(0, cmdJson);
+                    lockThis = false;
+                    
+                });
+
             }
-
             //if (remoParam)
             //{
 

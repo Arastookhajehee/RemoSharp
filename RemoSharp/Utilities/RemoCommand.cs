@@ -288,14 +288,16 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoLock : RemoCommand
     {
-        public bool state;
+        public List<bool> states;
+        public List<Guid> guids;
         public int timeSeconds;
-        public RemoLock(string issuerID, Guid objectGuid,bool state, int timeSeconds)
+        public RemoLock(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Lock;
-            this.objectGuid = objectGuid;
-            this.state = state;
+            this.objectGuid = Guid.Empty;
+            this.states = states;
+            this.guids = guids;
             this.timeSeconds = timeSeconds;
         }
         public RemoLock()
@@ -326,7 +328,6 @@ namespace RemoSharp.RemoCommandTypes
     {
         public List<bool> states;
         public List<Guid> guids;
-        public bool hidable;
         public int timeSeconds;
         public RemoHide(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
         {

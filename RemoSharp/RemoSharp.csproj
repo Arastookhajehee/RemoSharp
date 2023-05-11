@@ -86,7 +86,6 @@
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
     <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
     <Compile Include="Distributors\CommandExecutor.cs" />
-    <Compile Include="Distributors\UserNameSettings.cs" />
     <Compile Include="GeometryStreamIPSet.cs">
       <SubType>Form</SubType>
     </Compile>
