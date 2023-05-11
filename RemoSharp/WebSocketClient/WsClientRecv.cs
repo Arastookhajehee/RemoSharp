@@ -161,7 +161,7 @@ public class WsClientRecv : WsClientComponent
         if (this.isAutoUpdate && ghDocument.SolutionState != GH_ProcessStep.Process && wscObj != null && !isAskingNewSolution)
         {
             
-            GH_InstanceServer.DocumentEditor.BeginInvoke((Action)delegate()
+            Instances.DocumentEditor.BeginInvoke((Action)delegate()
             {
                 if (ghDocument.SolutionState != GH_ProcessStep.Process)
                 {

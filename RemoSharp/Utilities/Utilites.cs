@@ -18,7 +18,7 @@ using Grasshopper.Kernel.Special;
 using ScriptComponents;
 using System.Net.NetworkInformation;
 
-namespace RemoSharp.Utilities
+namespace RemoSharp.RemoCommandTypes
 {
     public class Utilites
     {
@@ -26,7 +26,7 @@ namespace RemoSharp.Utilities
         public static IGH_Param[] CreateServerMakerComponent(GH_Document document, System.Drawing.PointF pivot, int shiftX, int shiftY, bool IncludeAddressIP) 
         {
 
-            var networkList = RemoSharp.Utilities.Utilites.GetNetworkListDataFromPC();
+            var networkList = RemoSharp.RemoCommandTypes.Utilites.GetNetworkListDataFromPC();
 
             int addressIndex = 0;
             for (int i = 0; i < networkList.Count; i++)
@@ -63,29 +63,32 @@ namespace RemoSharp.Utilities
             serverAddress.CreateAttributes();
             serverAddress.Attributes.Pivot = serverAddressPivot;
             serverAddress.Params.RepairParamAssociations();
+            serverAddress.NickName = "RemoSetup";
 
             Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new GH_BooleanToggle();
             toggle.CreateAttributes();
             toggle.Attributes.Pivot = togglePivot;
-            toggle.NickName = "RemoSharp";
+            toggle.NickName = "RemoSetup";
 
             RemoSharp.WS_Server_Samples wS_Server_Samples = new RemoSharp.WS_Server_Samples();
             wS_Server_Samples.CreateAttributes();
             wS_Server_Samples.Attributes.Pivot = serverSamplesPivot;
             wS_Server_Samples.Params.RepairParamAssociations();
+            wS_Server_Samples.NickName = "RemoSetup";
+
 
             GH_Panel ipPanel01 = new GH_Panel();
             ipPanel01.CreateAttributes();
             ipPanel01.Attributes.Pivot = ip01PanelPivot;
             ipPanel01.Attributes.Bounds = new System.Drawing.RectangleF(ip01PanelPivot.X, ip01PanelPivot.Y, 80, 20);
-            ipPanel01.NickName = "RemoSharp";
+            ipPanel01.NickName = "RemoSetup";
             ipPanel01.SetUserText(IP_01);
 
             GH_Panel ipPanel02 = new GH_Panel();
             ipPanel02.CreateAttributes();
             ipPanel02.Attributes.Pivot = ip02PanelPivot;
             ipPanel02.Attributes.Bounds = new System.Drawing.RectangleF(ip02PanelPivot.X, ip02PanelPivot.Y, 80, 20);
-            ipPanel02.NickName = "RemoSharp";
+            ipPanel02.NickName = "RemoSetup";
             ipPanel02.SetUserText(IP_02);
 
 
@@ -93,7 +96,7 @@ namespace RemoSharp.Utilities
             ipPanel03.CreateAttributes();
             ipPanel03.Attributes.Pivot = ip03PanelPivot;
             ipPanel03.Attributes.Bounds = new System.Drawing.RectangleF(ip03PanelPivot.X, ip03PanelPivot.Y, 150, 20);
-            ipPanel03.NickName = "RemoSharp Address";
+            ipPanel03.NickName = "RemoSetup";
             ipPanel03.SetUserText(IP_03);
             ipPanel03.Properties.Colour = System.Drawing.Color.FromArgb(165, 0, 0, 110);
 
@@ -101,7 +104,7 @@ namespace RemoSharp.Utilities
             ipPanel04.CreateAttributes();
             ipPanel04.Attributes.Pivot = ip04PanelPivot;
             ipPanel04.Attributes.Bounds = new System.Drawing.RectangleF(ip04PanelPivot.X, ip04PanelPivot.Y, 150, 20);
-            ipPanel04.NickName = "RemoSharp ID";
+            ipPanel04.NickName = "RemoSetup";
             ipPanel04.SetUserText(IP_04);
             ipPanel04.Properties.Colour = System.Drawing.Color.FromArgb(165, 0, 0, 110);
 

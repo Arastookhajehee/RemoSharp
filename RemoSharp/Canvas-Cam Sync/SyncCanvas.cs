@@ -50,7 +50,6 @@ namespace RemoSharp
                 //StreamIPSet canvasAddress = new StreamIPSet();
                 //canvasAddress.DialougeTitle.Text = "Please Set Your Canvas Content Sync Server Address";
                 //canvasAddress.ShowDialog();
-                string address = "";
 
                 int shiftX = -20;
                 System.Drawing.PointF pivot = this.Attributes.Pivot;
@@ -83,7 +82,7 @@ namespace RemoSharp
                 wsRecv.Attributes.Pivot = wsRecvPivot;
                 wsRecv.Params.RepairParamAssociations();
 
-                var addressOutPuts = RemoSharp.Utilities.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -474, -69, true);
+                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -474, -69, true);
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>

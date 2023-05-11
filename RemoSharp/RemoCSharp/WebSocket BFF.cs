@@ -172,6 +172,7 @@ namespace RemoSharp
             {
 
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Please Connect a Button the \"Reset Button\" input");
+                return;
             }
 
             // finding the wsc component from the reciepients of the button component

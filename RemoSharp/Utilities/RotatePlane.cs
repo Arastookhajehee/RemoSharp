@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace RemoSharp.Utilities
+namespace RemoSharp.RemoCommandTypes
 {
     public class RotatePlane : GH_Component
     {

@@ -103,7 +103,7 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("State","state", "Result of Camera Sync", GH_ParamAccess.item);
+            pManager.AddTextParameter("State","hoverComponentGuid", "Result of Camera Sync", GH_ParamAccess.item);
         }
 
         /// <summary>

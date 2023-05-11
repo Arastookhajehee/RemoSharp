@@ -4,7 +4,7 @@ using System.IO;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace RemoSharp.Utilities
+namespace RemoSharp.RemoCommandTypes
 {
     public class GHL : GH_Component
     {

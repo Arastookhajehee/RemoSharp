@@ -33,7 +33,7 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("RemoGeometry", "RemoGeom", "Geometry Tree from Remote Client", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("RemoGeometry", "StreamGeom", "Geometry Tree from Remote Client", GH_ParamAccess.tree);
         }
 
         /// <summary>

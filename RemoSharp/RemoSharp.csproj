@@ -85,8 +85,7 @@
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
     <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
-    <Compile Include="Distributors\RemoCommands.cs" />
-    <Compile Include="Distributors\UserNameSettings.cs" />
+    <Compile Include="Distributors\CommandExecutor.cs" />
     <Compile Include="GeometryStreamIPSet.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -103,29 +102,24 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="RemoCSharp\ServerAddress.cs" />
-    <Compile Include="RemoParams\RemoButton.cs" />
-    <Compile Include="RemoParams\RemoColorSwatch.cs" />
     <Compile Include="Distributors\RemoCompSource.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
-    <Compile Include="RemoParams\RemoPanel.cs" />
     <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
     <Compile Include="RemoGeom\RemoGeomParser.cs" />
     <Compile Include="RemoGeom\RemoGeomStreamer.cs" />
+    <Compile Include="RemoParams\RemoParam.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RemoParams\RemoSlider.cs" />
-    <Compile Include="RemoParams\RemoToggle.cs" />
     <Compile Include="RemoCSharp\Script_Checker.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
-    <Compile Include="RemoCSharp\TextNumber.cs" />
-    <Compile Include="RemoCSharp\TextPoint.cs" />
     <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
     <Compile Include="RT Robotics\Deserialize_Machina_Actions.cs" />
     <Compile Include="RT Robotics\Serialize_Machina_Action.cs" />
     <Compile Include="TabProperties.cs" />
+    <Compile Include="Utilities\RemoCommand.cs" />
     <Compile Include="Utilities\GHL.cs" />
     <Compile Include="Utilities\RotatePlane.cs" />
     <Compile Include="Utilities\Utilites.cs" />
@@ -258,12 +252,6 @@
     <None Include="Resources\RemoSharpIcon.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Machina_NET_KUKA_Online\src\Machina\Machina.csproj">
-      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
-      <Name>Machina</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="images\ReadMachinaStream.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -280,6 +268,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\ID.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Machina.NET\src\Machina\Machina.csproj">
+      <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
+      <Name>Machina</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

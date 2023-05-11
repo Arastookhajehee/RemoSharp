@@ -14,5 +14,9 @@ namespace RemoSharp.WsClientCat
             : base(name, nickname, description, "RemoSharp", "Com_Tools")
         {
         }
+        public WsClientComponent(string name, string nickname, string description, string category)
+            : base(name, nickname, description, "RemoSharp", category)
+        {
+        }
     }//eoc
 }//eons
