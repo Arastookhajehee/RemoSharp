@@ -187,7 +187,6 @@ namespace RemoSharp
             if (cmd == null) return;
             // parsing the incoming command
 
-            //string[] cmds = cmd.Split(',');
 
             if (cmd.commandType == CommandType.MoveComponent) 
             {
@@ -196,39 +195,31 @@ namespace RemoSharp
             }
 
 
-            if (cmd.commandType == CommandType.WireConnection)
-            {
-                RemoConnectInteraction connectionInteraction = (RemoConnectInteraction)cmd;
+            //if (cmd.commandType == CommandType.WireConnection)
+            //{
+            //    RemoConnectInteraction connectionInteraction = (RemoConnectInteraction)cmd;
 
-                if (connectionInteraction.source == null || connectionInteraction.target == null) 
-                {
-                    cmdJson = "";
-                }
-                else
-                {
-                    int outIndex = -1;
-                    bool outIsSpecial = false;
-                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                      connectionInteraction.source, out outIndex, out outIsSpecial);
+            //    if (connectionInteraction.source == null || connectionInteraction.target == null) 
+            //    {
+            //        cmdJson = "";
+            //    }
+            //    else
+            //    {
+            //        int outIndex = -1;
+            //        bool outIsSpecial = false;
+            //        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+            //          connectionInteraction.source, out outIndex, out outIsSpecial);
 
-                    //connectionInteraction.sourceOutput = outIndex;
-                    //connectionInteraction.isSourceSpecial = outIsSpecial;
-                    //connectionInteraction.sourceObjectGuid = outGuid;
+            //        int inIndex = -1;
+            //        bool inIsSpecial = false;
+            //        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+            //          connectionInteraction.target, out inIndex, out inIsSpecial);
 
-                    int inIndex = -1;
-                    bool inIsSpecial = false;
-                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                      connectionInteraction.target, out inIndex, out inIsSpecial);
+            //        RemoConnect remoConnect = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
 
-                    //connectionInteraction.targetInput = inIndex;
-                    //connectionInteraction.isTargetSpecial = inIsSpecial;
-                    //connectionInteraction.targetObjectGuid = inGuid;
-
-                    RemoConnect remoConnect = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
-
-                    cmdJson = RemoCommand.SerializeToJson(remoConnect);
-                }
-            }
+            //        cmdJson = RemoCommand.SerializeToJson(remoConnect);
+            //    }
+            //}
 
             // 50%
             if (hide)
@@ -386,54 +377,25 @@ namespace RemoSharp
                 });
 
             }
-            //if (remoParam)
-            //{
-
-            //    componentType = FindClosestObjectTypeOnCanvas(out compPivot, out RemoMakeindex);
-            //    if (componentType.Equals("Grasshopper.Kernel.Special.GH_ButtonObject"))
-            //    {
-            //        this.Component.OnPingDocument().ScheduleSolution(0, MakeRemoButton);
-            //    }
-            //    else if (componentType.Equals("Grasshopper.Kernel.Special.GH_BooleanToggle"))
-            //    {
-            //        this.Component.OnPingDocument().ScheduleSolution(0, MakeRemoToggle);
-            //    }
-            //    else if (componentType.Equals("Grasshopper.Kernel.Special.GH_Panel"))
-            //    {
-            //        this.Component.OnPingDocument().ScheduleSolution(0, MakeRemoPanel);
-            //    }
-            //    else if (componentType.Equals("Grasshopper.Kernel.Special.GH_ColourSwatch"))
-            //    {
-            //        this.Component.OnPingDocument().ScheduleSolution(0, MakeRemoColorSwatch);
-            //    }
-            //    else if (componentType.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
-            //    {
-            //        this.Component.OnPingDocument().ScheduleSolution(0, MakeRemoSlider);
-            //    }
-            //    remoParam = false;
-            //    return;
-            //}
-
             
-
-            //string[] outGoingCommand = cmd.Split(',');
             int commandRepeatCount = 6;
 
-            if (cmd.commandType == CommandType.WireConnection)
-            {
+            //if (cmd.commandType == CommandType.WireConnection)
+            //{
 
-                con_DisConCounter = 0;
-                currentConnectString = cmdJson;
-                persistentCommand = cmdJson;
+            //    con_DisConCounter = 0;
+            //    currentConnectString = cmdJson;
+            //    persistentCommand = cmdJson;
 
 
-            }
-            else if (
+            //}
+            if (
                 cmd.commandType == CommandType.MoveComponent
                 || cmd.commandType == CommandType.Create
                 || cmd.commandType == CommandType.Hide
                 || cmd.commandType == CommandType.Lock
-                || cmd.commandType == CommandType.Delete)
+                || cmd.commandType == CommandType.Delete
+                || cmd.commandType == CommandType.WireConnection)
             {
 
                 con_DisConCounter = 0;

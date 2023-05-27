@@ -38,7 +38,8 @@ namespace RemoSharp.RT_Robotics
         ExternalAxis,
         CustomCode,
         ArmAngle,
-        ArcMotion
+        ArcMotion,
+        RG6Gripper
     }
 
     public class Deserialize_Machina_Actions : GH_Component
@@ -337,11 +338,10 @@ namespace RemoSharp.RT_Robotics
                                 );
                         break;
                     case 27:
-                        //actionList.Add(
-                        //        Newtonsoft.Json.JsonConvert.DeserializeObject
-                        //        <Machina.ActionExternalAxis>
-                        //        (data.ToString())
-                        //        );
+
+                        ActionRG6Gripper gripperAction = JsonConvert.DeserializeObject<ActionRG6Gripper>(data.ToString());
+
+                        actionList.Add(gripperAction);
                         break;
                     case 28:
                         //actionList.Add(

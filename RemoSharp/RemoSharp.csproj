@@ -81,6 +81,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
     <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
@@ -125,8 +126,10 @@
     <Compile Include="Utilities\Utilites.cs" />
     <Compile Include="WebSocketClient\WsAddress.cs" />
     <Compile Include="WebSocketClient\WsClientComponent.cs" />
+    <Compile Include="WebSocketClient\WSClientListen.cs" />
     <Compile Include="WebSocketClient\WsClientRecv.cs" />
     <Compile Include="WebSocketClient\WsClientSend.cs" />
+    <Compile Include="WebSocketClient\WSClientSendMsg.cs" />
     <Compile Include="WebSocketClient\WsClientStart.cs" />
     <Compile Include="WebSocketClient\WsObject.cs" />
   </ItemGroup>
