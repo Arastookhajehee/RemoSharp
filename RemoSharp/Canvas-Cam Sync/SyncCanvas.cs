@@ -33,15 +33,15 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("Set Up Visualizer",
-            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up Visualizer");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            //pushButton1 = new PushButton("Set Up Visualizer",
+            //"Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up Visualizer");
+            //pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            //AddCustomControl(pushButton1);
 
             pManager.AddTextParameter("XML_GH_Stream", "GH_DocXML", "XML text representation of the server's canvas Grasshopper document.",
                 GH_ParamAccess.item, "");
         }
-
+        /*
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -154,6 +154,10 @@ namespace RemoSharp
                 syncView.Params.Input[0].AddSource((IGH_Param)wsRecv.Params.Output[0]);
             });
         }
+
+        */
+
+
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>

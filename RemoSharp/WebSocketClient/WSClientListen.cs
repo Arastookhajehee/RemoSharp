@@ -14,7 +14,7 @@ namespace RemoSharp.WebSocketClient
         public WSClientListen()
           : base("WSListen", "WSListen",
               "Description",
-              "RemoSharp", "WSC_Utils")
+               "RemoSharp", "Com_Tools")
         {
         }
 

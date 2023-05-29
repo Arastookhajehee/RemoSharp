@@ -39,15 +39,16 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("WS_Client",
-                "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            //pushButton1 = new PushButton("WS_Client",
+            //    "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
+            //pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            //AddCustomControl(pushButton1);
 
             pManager.AddBooleanParameter("Update", "update", "Update the target viewport camera", GH_ParamAccess.item, false);
             pManager.AddTextParameter("TargetCamera", "TgtCam", "A string containing the info about the target viewport camera", GH_ParamAccess.item, "");
         }
 
+        /*
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -97,6 +98,7 @@ namespace RemoSharp
 
             }
         }
+        */
 
         /// <summary>
         /// Registers all the output parameters for this component.

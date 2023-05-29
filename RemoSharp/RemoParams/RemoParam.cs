@@ -9,8 +9,6 @@ using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
 using RemoSharp.RemoCommandTypes;
 using Rhino.Geometry;
-using RemoSharp.WsClient;
-using RemoSharp.WsClientCat;
 using GHCustomControls;
 using WPFNumericUpDown;
 using System.ComponentModel;
@@ -19,11 +17,14 @@ using Rhino.UI;
 using System.Windows.Forms;
 using static System.Windows.Forms.AxHost;
 using Grasshopper.GUI.Canvas.Interaction;
+using WebSocketSharp;
+using RemoSharp.WebSocketClient;
 
 namespace RemoSharp.RemoParams
 {
-    public class RemoParam : WsClientComponent
+    public class RemoParam : GHCustomComponent
     {
+        WebSocket client;
         PushButton setupButton;
         bool approximateCoords = false;
         int setupIndex = 0;
@@ -35,7 +36,7 @@ namespace RemoSharp.RemoParams
         public RemoParam()
           : base("RemoParam", "RemoParam",
               "Syncs parameter accross connected computers.",
-              "RemoParams")
+              "RemoSharp", "RemoParams")
         {
         }
 
@@ -82,13 +83,17 @@ namespace RemoSharp.RemoParams
        
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                RemoCompTarget targetComp = (RemoCompTarget)objects[targetCompIndex];
-                WsClientSend sendComp = (WsClientSend)targetComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
-                this.Params.Input[2].AddSource(sendComp.Params.Input[0].Sources[0]);
+                //RemoCompTarget targetComp = (RemoCompTarget)objects[targetCompIndex];
+                //WsClientSend sendComp = (WsClientSend)targetComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
+                //this.Params.Input[2].AddSource(sendComp.Params.Input[0].Sources[0]);
 
                 RemoCompSource sourceComp = (RemoCompSource)objects[sourceCompIndex];
+                RemoSharp.WebSocketClient.WebSocketClient wsclient = (RemoSharp.WebSocketClient.WebSocketClient)
+                          sourceComp.Params.Input[1].Sources[0].Attributes.Parent.DocObject;
                 GH_Panel userPanel = (GH_Panel)sourceComp.Params.Input[0].Sources[0];
+                this.Params.Input[2].AddSource(wsclient.Params.Output[0]);
                 this.Params.Input[3].AddSource(userPanel);
+                client = wsclient.client;
 
             });
 
@@ -135,14 +140,14 @@ namespace RemoSharp.RemoParams
             }
 
 
-            WsObject wscObj = new WsObject();
+            //WsObject wscObj = new WsObject();
             string remoCommandJson = "Hello World";
 
-            if (!DA.GetData(2, ref wscObj)) return;
+            //if (!DA.GetData(2, ref wscObj)) return;
 
             if (this.Params.Input[2].Sources[0].Attributes.Parent == null ||
                 !this.Params.Input[2].Sources[0].Attributes.Parent.DocObject.GetType()
-                .ToString().Equals("RemoSharp.WsClientCat.WsClientStart"))
+                .ToString().Equals("RemoSharp.WebSocketClient.WebSocketClient"))
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
             }
@@ -275,7 +280,7 @@ namespace RemoSharp.RemoParams
             }
             if (string.IsNullOrEmpty(remoCommandJson)) return;
 
-            wscObj.send(remoCommandJson);
+            client.Send(remoCommandJson);
 
         }
 

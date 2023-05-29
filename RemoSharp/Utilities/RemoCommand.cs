@@ -59,7 +59,8 @@ namespace RemoSharp.RemoCommandTypes
         public string issuerID;
         public CommandType commandType;
         public Guid objectGuid;
-
+        public int executionAttempts = 0;
+        public bool executed = false;
         public static string SerializeToJson(List<RemoCommand> commands)
         {
             return JsonConvert.SerializeObject(commands, Formatting.Indented);
@@ -175,6 +176,11 @@ namespace RemoSharp.RemoCommandTypes
         {
             // default constructor
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoNull Command from {0}", this.issuerID);
+        }
     }
 
     public class RemoConnectInteraction : RemoCommand
@@ -201,6 +207,11 @@ namespace RemoSharp.RemoCommandTypes
             this.source = source;
             this.target = target;
 
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoConnectInteraction Command from {0}", this.issuerID);
         }
     }
 
@@ -233,6 +244,11 @@ namespace RemoSharp.RemoCommandTypes
             this.isSourceSpecial = isSourceSpecial;
             this.isTargetSpecial = isTargetSpecial;           
 
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoConnect Command from {0}", this.issuerID);
         }
     }
 
@@ -271,6 +287,11 @@ namespace RemoSharp.RemoCommandTypes
             this.wireHistorys = wireHistorys;   
         }
 
+        public override string ToString()
+        {
+            return string.Format("RemoCreate Command from {0}", this.issuerID);
+        }
+
     }
 
     public class RemoDelete : RemoCommand
@@ -283,6 +304,11 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType= CommandType.Delete;
             this.objectGuid= Guid.Empty;
             this.objectGuids = objectGuids;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoDelete Command from {0}", this.issuerID);
         }
     }
 
@@ -304,6 +330,11 @@ namespace RemoSharp.RemoCommandTypes
         {
             // default constructor
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoLock Command from {0}", this.issuerID);
+        }
     }
 
     public class RemoSelect : RemoCommand
@@ -321,6 +352,11 @@ namespace RemoSharp.RemoCommandTypes
         public RemoSelect()
         {
             // default constructor
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoSelect Command from {0}", this.issuerID);
         }
     }
 
@@ -341,6 +377,11 @@ namespace RemoSharp.RemoCommandTypes
         public RemoHide()
         {
             // default constructor
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoHide Command from {0}", this.issuerID);
         }
     }
 
@@ -366,6 +407,11 @@ namespace RemoSharp.RemoCommandTypes
             this.decimalPlaces = slider == null ? 0 : slider.Slider.DecimalPlaces;
             this.sliderType = slider == null ? 0 : (int)slider.Slider.Type;
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamSlider Command from {0}", this.issuerID);
+        }
     }
 
     // for buttons
@@ -383,6 +429,11 @@ namespace RemoSharp.RemoCommandTypes
             this.objectGuid = button == null ? Guid.Empty : button.InstanceGuid;
             this.buttonValue = button == null ? false : button.ButtonDown;
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamButton Command from {0}", this.issuerID);
+        }
     }
 
     public class RemoParamToggle : RemoCommand
@@ -399,6 +450,10 @@ namespace RemoSharp.RemoCommandTypes
             this.toggleValue = toggle == null ? false : toggle.Value;
         }
 
+        public override string ToString()
+        {
+            return string.Format("RemoParamToggle Command from {0}", this.issuerID);
+        }
     }
 
     // for panel *
@@ -426,6 +481,11 @@ namespace RemoSharp.RemoCommandTypes
             this.Alignment = panel == null ? 0 : (int) panel.Properties.Alignment;
             this.panelContent = panel == null ? "" : panel.UserText;
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamPanel Command from {0}", this.issuerID);
+        }
     }
 
     public class RemoParamColor : RemoCommand
@@ -447,6 +507,11 @@ namespace RemoSharp.RemoCommandTypes
             this.Green = colourSwatch == null ? 0 : colourSwatch.SwatchColour.G;
             this.Blue = colourSwatch == null ? 0 : colourSwatch.SwatchColour.B;
             this.Alpha = colourSwatch == null ? 0 : colourSwatch.SwatchColour.A;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamColor Command from {0}", this.issuerID);
         }
     }
 
@@ -473,6 +538,11 @@ namespace RemoSharp.RemoCommandTypes
             this.maxBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Max;
             this.minBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Min;
             this.maxBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Max;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamMDSlider Command from {0}", this.issuerID);
         }
     }
 
@@ -506,6 +576,11 @@ namespace RemoSharp.RemoCommandTypes
             this.objectGuid = pointComponent.InstanceGuid;
             this.pointsAndTreePath = pointsAndTreePath;
         }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamPoint3d Command from {0}", this.issuerID);
+        }
     }
     public class RemoParamVector3d : RemoCommand
     {
@@ -536,6 +611,11 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoVector3d;
             this.objectGuid = vectorComponent.InstanceGuid;
             this.vectorsAndTreePath = vectorsAndTreePath;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParamVector3d Command from {0}", this.issuerID);
         }
     }
     public class RemoParamPlane : RemoCommand
@@ -579,6 +659,10 @@ namespace RemoSharp.RemoCommandTypes
             this.planesAndTreePath = planesAndTreePath;
         }
 
+        public override string ToString()
+        {
+            return string.Format("RemoParamPlane Command from {0}", this.issuerID);
+        }
     }
 
     public class RemoMove : RemoCommand
@@ -598,6 +682,11 @@ namespace RemoSharp.RemoCommandTypes
         public RemoMove()
         {
             // default constructor
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoMove Command from {0}", this.issuerID);
         }
     }
 
@@ -626,7 +715,6 @@ namespace RemoSharp.RemoCommandTypes
             }
 
         }
-
     }
     
     public class WireConnection
@@ -634,7 +722,6 @@ namespace RemoSharp.RemoCommandTypes
         public int inputIndex;
         public List<Guid> sourceGuids;
         public List<int> sourceIndecies;
-        
 
         public WireConnection() { }
         public WireConnection(IGH_Param input) 

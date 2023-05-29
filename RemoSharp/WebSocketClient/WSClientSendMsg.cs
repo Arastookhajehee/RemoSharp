@@ -15,7 +15,7 @@ namespace RemoSharp.WebSocketClient
         public WSClientSendMsg()
           : base("WSClientSendMsg", "WSClientSendMsg",
               "Description",
-              "RemoSharp", "WSC_Utils")
+               "RemoSharp", "Com_Tools")
         {
         }
 

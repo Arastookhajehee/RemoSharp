@@ -24,16 +24,16 @@ namespace RemoSharp.Canvas_Cam_Sync
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("WS_Client",
-            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            //pushButton1 = new PushButton("WS_Client",
+            //"Creates The Required WS Client Components To Broadcast Canvas Screen.", "WS_Client");
+            //pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            //AddCustomControl(pushButton1);
 
             pManager.AddTextParameter("BoundsStram", "Bounds",
                 "Simplified Bounds information from the ClientCanvasBounds Component (bnds4XML).",
                 GH_ParamAccess.item, "");
         }
-
+        /*
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -83,7 +83,7 @@ namespace RemoSharp.Canvas_Cam_Sync
 
             }
         }
-
+        */
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>

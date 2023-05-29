@@ -29,10 +29,10 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pushButton1 = new PushButton("Set Up Client",
-                "Creates The Required WS Client Components To Broadcast Canvas Bounds Coordinates", "Set Up Client");
-            pushButton1.OnValueChanged += PushButton1_OnValueChanged;
-            AddCustomControl(pushButton1);
+            //pushButton1 = new PushButton("Set Up Client",
+            //    "Creates The Required WS Client Components To Broadcast Canvas Bounds Coordinates", "Set Up Client");
+            //pushButton1.OnValueChanged += PushButton1_OnValueChanged;
+            //AddCustomControl(pushButton1);
 
             //pManager.AddNumberParameter("ManualScale", "Scl", "Manually Change the scale of the final image", GH_ParamAccess.item, 1);
             //pManager.AddIntegerParameter("Resolution", "Res", "0 -> setting 1:0.25 scale GH_Canvas bounds." + Environment.NewLine +
@@ -45,6 +45,7 @@ namespace RemoSharp
 
         }
 
+        /*
         private void PushButton1_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -242,6 +243,7 @@ namespace RemoSharp
                 }));
             }
         }
+        */
 
         /// <summary>
         /// Registers all the output parameters for this component.

@@ -81,6 +81,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Distributors\WireConnector.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
@@ -94,9 +95,6 @@
       <DependentUpon>GeometryStreamIPSet.cs</DependentUpon>
     </Compile>
     <Compile Include="RemoCSharp\EavesDrop.cs" />
-    <Compile Include="RemoCSharp\Output_Grip.cs" />
-    <Compile Include="RemoCSharp\Output_Grip_List.cs" />
-    <Compile Include="RemoCSharp\Output_Grip_Tree.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -112,9 +110,7 @@
     <Compile Include="RemoParams\RemoParam.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RemoCSharp\Script_Checker.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
-    <Compile Include="RemoCSharp\WebSocket BFF.cs" />
     <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
     <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
     <Compile Include="RT Robotics\Deserialize_Machina_Actions.cs" />
@@ -124,14 +120,8 @@
     <Compile Include="Utilities\GHL.cs" />
     <Compile Include="Utilities\RotatePlane.cs" />
     <Compile Include="Utilities\Utilites.cs" />
-    <Compile Include="WebSocketClient\WsAddress.cs" />
-    <Compile Include="WebSocketClient\WsClientComponent.cs" />
     <Compile Include="WebSocketClient\WSClientListen.cs" />
-    <Compile Include="WebSocketClient\WsClientRecv.cs" />
-    <Compile Include="WebSocketClient\WsClientSend.cs" />
     <Compile Include="WebSocketClient\WSClientSendMsg.cs" />
-    <Compile Include="WebSocketClient\WsClientStart.cs" />
-    <Compile Include="WebSocketClient\WsObject.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="GeometryStreamIPSet.resx">

@@ -21,12 +21,12 @@ namespace RemoSharp.WebSocketClient
         bool needsRestart = false;
 
         public ToggleSwitch autoUpdateSwitch;
+        public ToggleSwitch keepRecordSwitch;
         ToggleSwitch listenSwitch;
-        ToggleSwitch keepRecordSwitch;
 
         public bool autoUpdate = true;
+        public bool keepRecord = false;
         bool listen = true;
-        bool keepRecord = false;
 
         /// <summary>
         /// Initializes a new instance of the WebSocketClient class.
@@ -34,7 +34,7 @@ namespace RemoSharp.WebSocketClient
         public WebSocketClient()
           : base("WebSocketClient", "WebSocketClient",
               "Description",
-              "RemoSharp", "WSC_Utils")
+               "RemoSharp", "Com_Tools")
         {
         }
 
@@ -77,7 +77,7 @@ namespace RemoSharp.WebSocketClient
 
         private void KeepRecordSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
-            keepRecord = Convert.ToBoolean(e.Value);
+            this.keepRecord = Convert.ToBoolean(e.Value);
         }
 
         /// <summary>
@@ -115,6 +115,7 @@ namespace RemoSharp.WebSocketClient
 
             if (needsRestart && !connect) 
             {
+                this.Message = "Disconnected";
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please Restart Connection");
                 return;
             }
@@ -125,6 +126,7 @@ namespace RemoSharp.WebSocketClient
 
                 if (!client.IsAlive)
                 {
+                    client.Close();
 
                     client.Connect();
 
@@ -132,7 +134,16 @@ namespace RemoSharp.WebSocketClient
                     client.OnClose += Client_OnClose;
                     client.OnMessage += Client_OnMessage;
 
-                    needsRestart = false;
+                    if (client.IsAlive) 
+                    {
+                        needsRestart = false;
+                        this.Message = "Connected";
+                    }
+
+                }
+                else
+                {
+                    this.Message = "Connected";
                 }
             }
            
@@ -141,6 +152,7 @@ namespace RemoSharp.WebSocketClient
 
         private void Client_OnClose(object sender, CloseEventArgs e)
         {
+            this.Message = "Disconnected";
             while (!client.IsAlive && keepAlive)
             {
                 client.Connect();
@@ -151,7 +163,7 @@ namespace RemoSharp.WebSocketClient
         {
            
             messages.Add(e.Data);
-            if (!keepRecord)
+            if (!this.keepRecord)
             {
                 
                 while (messages.Count > 1)
@@ -188,6 +200,7 @@ namespace RemoSharp.WebSocketClient
 
         private void Client_OnOpen(object sender, EventArgs e)
         {
+            this.Message = "Connected";
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
                 this.ExpireSolution(false);

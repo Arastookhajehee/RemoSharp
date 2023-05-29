@@ -52,7 +52,7 @@ namespace RemoSharp
             //setupButton = new PushButton("Wi-Fi IP Panel", "Adding a panel with wi-fi server address information");
             //setupButton.OnValueChanged += seupButton_OnValueChanged;
             //pushButton2 = new PushButton("WS Cliet Template", "Adding the neccessary components for starting a WS Client");
-            //pushButton2.OnValueChanged += PushButton2_OnValueChanged;
+            //pushButton2.OnValueChanged += HideButton_OnValueChanged;
             //AddCustomControl(setupButton);
             //AddCustomControl(pushButton2);
         }
@@ -74,7 +74,7 @@ namespace RemoSharp
         //    }
         //}
 
-        //private void PushButton2_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //private void HideButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         //{
         //    bool currentVal = Convert.ToBoolean(e.Value);
         //    if (currentVal)
