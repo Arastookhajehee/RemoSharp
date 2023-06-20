@@ -116,7 +116,7 @@
     <Compile Include="RT Robotics\Deserialize_Machina_Actions.cs" />
     <Compile Include="RT Robotics\Serialize_Machina_Action.cs" />
     <Compile Include="TabProperties.cs" />
-    <Compile Include="Utilities\RemoCommand.cs" />
+    <Compile Include="RemoParams\RemoCommand.cs" />
     <Compile Include="Utilities\GHL.cs" />
     <Compile Include="Utilities\RotatePlane.cs" />
     <Compile Include="Utilities\Utilites.cs" />

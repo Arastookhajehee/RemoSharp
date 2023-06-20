@@ -25,6 +25,7 @@ namespace RemoSharp.WebSocketClient
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("WSClient", "wsc", "WebSocket Client", GH_ParamAccess.item);
+            pManager.AddBooleanParameter("Send", "send", "Sends the message. Connect a true state toggle to send\nmessages with text input update.", GH_ParamAccess.item, false);
             pManager.AddTextParameter("Message", "msg", "Message to send", GH_ParamAccess.item);
         }
 
@@ -42,10 +43,13 @@ namespace RemoSharp.WebSocketClient
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             WebSocket client = null;
+            bool sendMessage = false;
             string message = "";
+            
             DA.GetData(0, ref client);
-            DA.GetData(1, ref message);
-            if(client != null) client.Send(message);
+            DA.GetData(1, ref sendMessage);
+            DA.GetData(2, ref message);
+            if(client != null && sendMessage) client.Send(message);
         }
 
         /// <summary>

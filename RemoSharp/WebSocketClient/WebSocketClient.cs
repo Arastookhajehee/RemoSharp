@@ -9,6 +9,8 @@ using WebSocketSharp;
 
 using WPFNumericUpDown;
 using System.Data.SqlTypes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace RemoSharp.WebSocketClient
 {
@@ -126,20 +128,21 @@ namespace RemoSharp.WebSocketClient
 
                 if (!client.IsAlive)
                 {
+                    this.Message = "Connecting...";
                     client.Close();
+                    client.OnOpen -= Client_OnOpen;
+                    client.OnClose -= Client_OnClose;
+                    client.OnMessage -= Client_OnMessage;
 
-                    client.Connect();
+                    client = new WebSocket(url);
+                    Task initialTask = Task.Run(() => InitialConnect());
+                    //initialTask.Wait();
 
                     client.OnOpen += Client_OnOpen;
                     client.OnClose += Client_OnClose;
                     client.OnMessage += Client_OnMessage;
 
-                    if (client.IsAlive) 
-                    {
-                        needsRestart = false;
-                        this.Message = "Connected";
-                    }
-
+                    needsRestart = false;
                 }
                 else
                 {
@@ -148,11 +151,22 @@ namespace RemoSharp.WebSocketClient
             }
            
             DA.SetData(0, client);
-        }
 
+            
+        }
+        private void InitialConnect()
+        {
+            client.Connect();
+        }
         private void Client_OnClose(object sender, CloseEventArgs e)
         {
+
             this.Message = "Disconnected";
+            Task connectionTask = Task.Run(() => ConnectToServer());
+        }
+
+        private void ConnectToServer()
+        {
             while (!client.IsAlive && keepAlive)
             {
                 client.Connect();

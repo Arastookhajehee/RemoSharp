@@ -23,6 +23,7 @@ using Grasshopper.Kernel.Types;
 using Rhino.Commands;
 
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace RemoSharp
 {
@@ -293,7 +294,8 @@ namespace RemoSharp
                         #region RemoParamPoint3d
                         case (CommandType.RemoPoint3d):
                             RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
-                            ExecuteRemoPoint3d(remoPoint3d);
+                            
+                            Task remoPointTask = Task.Run(() => ExecuteRemoPoint3d(remoPoint3d));
                             
                             break;
                         #endregion

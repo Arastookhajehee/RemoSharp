@@ -376,7 +376,8 @@ namespace RemoSharp
                                     System.Guid inGuid = GetComponentGuidAnd_Input_Index(
                                       connectionInteraction.target, out inIndex, out inIsSpecial);
 
-                                    command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
+                                    command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, 
+                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
                                     SendCommands(command, commandRepeat,enable);
 
                                 }
@@ -395,7 +396,6 @@ namespace RemoSharp
                                 //var movedObject = this.OnPingDocument().FindObject(new PointF(upPntX, upPntY), 1);
                                 //string movedObjGuid = movedObject.InstanceGuid.ToString();
                                 
-
                                 if (downPntX != upPntX && downPntY != upPntY)
                                 {
                                     //try
@@ -456,7 +456,8 @@ namespace RemoSharp
                         var pivot = obj.Attributes.Pivot;
 
                         // check to see if this component has been created from remocreate command coming from outsite
-                        if (remoCreatedcomponens.Contains(newCompGuid)) continue;
+                        bool alreadyMade = remoCreatedcomponens.Contains(newCompGuid);
+                        if (alreadyMade) continue;
                         else
                         {
                             remoCreatedcomponens.Add(newCompGuid);
@@ -523,6 +524,8 @@ namespace RemoSharp
                     {
                         command = new RemoCreate(username, guids, componentTypes,
                         Xs, Ys, isSpecials, specialParameters_s, wireHistories);
+
+
 
                         SendCommands(command,commandRepeat, enable);
                     }
