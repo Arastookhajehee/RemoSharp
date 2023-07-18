@@ -224,6 +224,10 @@ namespace RemoSharp.RemoCommandTypes
         public Guid sourceObjectGuid = Guid.Empty;
         public Guid targetObjectGuid = Guid.Empty;
         public RemoConnectType RemoConnectType = RemoConnectType.None;
+        public float sourceX;
+        public float sourceY;
+        public float targetX;
+        public float targetY;
 
         public RemoConnect()
         {
@@ -232,7 +236,7 @@ namespace RemoSharp.RemoCommandTypes
 
         public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
             int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-            RemoConnectType remoConnectType)
+            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.WireConnection;
@@ -242,7 +246,11 @@ namespace RemoSharp.RemoCommandTypes
             this.sourceOutput = sourceOutput;
             this.targetInput = targetInput;
             this.isSourceSpecial = isSourceSpecial;
-            this.isTargetSpecial = isTargetSpecial;           
+            this.isTargetSpecial = isTargetSpecial;
+            this.sourceX= sourceX;
+            this.sourceY= sourceY;
+            this.targetX= targetX;
+            this.targetY= targetY;
 
         }
 

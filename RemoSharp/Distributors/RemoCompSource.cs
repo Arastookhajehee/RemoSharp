@@ -130,6 +130,7 @@ namespace RemoSharp
         private void SetupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
+            if (this.Params.Input[0].Sources.Count > 0) return;
             if (currentValue)
             {
                 int xShift = 2;
@@ -376,11 +377,20 @@ namespace RemoSharp
                                     System.Guid inGuid = GetComponentGuidAnd_Input_Index(
                                       connectionInteraction.target, out inIndex, out inIsSpecial);
 
+
+                                    float sourceX = connectionInteraction.source.Attributes.Pivot.X;
+                                    float sourceY = connectionInteraction.source.Attributes.Pivot.Y;
+                                    float targetX = connectionInteraction.target.Attributes.Pivot.X;
+                                    float targetY = connectionInteraction.target.Attributes.Pivot.Y;
+
+
                                     command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, 
-                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType);
+                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType,sourceX,sourceY,targetX,targetY);
                                     SendCommands(command, commandRepeat,enable);
 
                                 }
+
+                                
                                 
                             }
                             else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)

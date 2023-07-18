@@ -81,7 +81,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Distributors\WireConnector.cs" />
+    <Compile Include="Distributors\SyncAllCanvas.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
