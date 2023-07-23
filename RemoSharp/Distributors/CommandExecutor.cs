@@ -22,14 +22,27 @@ using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Rhino.Commands;
 
-using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
+using System.Text;
+using RemoSharp.WebSocketClient;
 
 namespace RemoSharp
 {
     public class CommandExecutor : GHCustomComponent
     {
-
+        List<string> paramTypes = new List<string>()
+        {
+            "Grasshopper.Kernel.Special.GH_NumberSlider",
+            "Grasshopper.Kernel.Special.GH_Panel",
+            "Grasshopper.Kernel.Special.GH_ColourSwatch",
+            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
+            "Grasshopper.Kernel.Special.GH_BooleanToggle",
+            "Grasshopper.Kernel.Special.GH_ButtonObject",
+            "Grasshopper.Kernel.Parameters.Param_Point",
+            "Grasshopper.Kernel.Parameters.Param_Vector",
+            "Grasshopper.Kernel.Parameters.Param_Plane"
+        };
         public int deletionIndex = -1;
         public Guid compGuid = Guid.Empty;
         public List<Guid> deletionGuids = new List<Guid>();
@@ -84,7 +97,7 @@ namespace RemoSharp
         {
             pManager.AddTextParameter("Commands", "Cmds", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.list, "");
             pManager.AddTextParameter("Username", "User", "This PC's Username", GH_ParamAccess.item, "");
-            pManager.AddBooleanParameter("clearErrors", "clear", "Clear the error list.", GH_ParamAccess.item,false);
+            pManager.AddBooleanParameter("syncSend", "syncSend", "Syncs this grasshopper script for all other connected clients", GH_ParamAccess.item,false);
         }
         
         /// <summary>
@@ -107,7 +120,9 @@ namespace RemoSharp
             if (!DA.GetData(1, ref username)) return;
             if (!DA.GetData(2, ref cleanErrors)) return;
 
+            int maxErrorCount = 30;
             int errorCount = this.errors.Count;
+            ShowBackgroundDesyncColor(errorCount, maxErrorCount);
             if (errorCount > 0 && errorCount <= 3)
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Minimal Desynchronization!");
@@ -121,7 +136,7 @@ namespace RemoSharp
 
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Major Desynchronization!\nPlease consider re-syncing!");
             }
-            else if (errorCount > 29)
+            else if (errorCount > maxErrorCount)
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Documents Are Desynchronized!\nPlease consider re-syncing!");
                 if (errorCount % 5 == 0)
@@ -134,6 +149,72 @@ namespace RemoSharp
             if (cleanErrors)
             {
                 errors.Clear();
+
+                bool run = cleanErrors;
+                ResetGHColorsToDefault();
+
+                this.OnPingDocument().DeselectAll();
+
+                RemoSharp.WebSocketClient.WSClientListen listenComp = (RemoSharp.WebSocketClient.WSClientListen)this.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
+                RemoSharp.WebSocketClient.WebSocketClient clientComp = (RemoSharp.WebSocketClient.WebSocketClient)listenComp.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
+                WebSocket client = clientComp.client;
+
+                if (!run) return;
+                string savePath = @"C:\temp\RemoSharp\saveTempFile.ghx";
+                string openPath = @"C:\temp\RemoSharp\openTempFile" + username + ".ghx";
+                string finalPath = @"C:\temp\RemoSharp\finalTempFile" + username + ".ghx";
+
+                CheckForDirectoryAndFileExistance(savePath);
+                CheckForDirectoryAndFileExistance(openPath);
+                CheckForDirectoryAndFileExistance(finalPath);
+
+                Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
+                bool saveDocR = saveDoc.SaveQuiet(savePath);
+
+                while (true)
+                {
+                    try
+                    {
+                        System.IO.File.Copy(savePath, openPath, true);
+                        break;
+                    }
+                    catch { }
+                }
+
+                Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
+                openDoc.Open(openPath);
+
+                for (int i = openDoc.Document.ObjectCount - 1; i > -1; i--)
+                {
+                    var obj = openDoc.Document.Objects[i];
+                    if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()))
+                    {
+                        openDoc.Document.RemoveObject(obj, false);
+                    }
+                }
+                openDoc.SaveQuiet(savePath);
+
+                try
+                {
+                    string content = "";
+                    using (StreamReader sr = new StreamReader(savePath))
+                    {
+                        content = sr.ReadToEnd();
+
+                        RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, content);
+                        string cmdJson = RemoCommand.SerializeToJson(remoCanvasSync);
+                        if (client != null)
+                        {
+                            client.Send(cmdJson);
+                        }
+                        sr.Close();
+                    }
+                }
+                catch { }
+
+
+
+
                 return;
             }
 
@@ -295,31 +376,31 @@ namespace RemoSharp
                         case (CommandType.RemoPoint3d):
                             RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
                             
-                            //Task remoPointTask = Task.Run(() => ExecuteRemoPoint3d(remoPoint3d));
+                            ExecuteRemoPoint3d(remoPoint3d);
 
-                            if (remoPoint3d.objectGuid == Guid.Empty) break;
-                            IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
-                            Param_Point pointParamComp = (Param_Point)pointComp;
+                            //if (remoPoint3d.objectGuid == Guid.Empty) break;
+                            //IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
+                            //Param_Point pointParamComp = (Param_Point)pointComp;
 
-                            GH_Structure<GH_Point> pointTree = new GH_Structure<GH_Point>();
-                            foreach (string item in remoPoint3d.pointsAndTreePath)
-                            {
-                                string[] coordsAndPath = item.Split(':');
-                                string[] coordsStrings = coordsAndPath[0].Split(',');
-                                string[] pathStrings = coordsAndPath[1].Split(',');
-                                double[] coords = coordsStrings.Select(double.Parse).ToArray();
-                                int[] path = pathStrings.Select(int.Parse).ToArray();
+                            //GH_Structure<GH_Point> pointTree = new GH_Structure<GH_Point>();
+                            //foreach (string item in remoPoint3d.pointsAndTreePath)
+                            //{
+                            //    string[] coordsAndPath = item.Split(':');
+                            //    string[] coordsStrings = coordsAndPath[0].Split(',');
+                            //    string[] pathStrings = coordsAndPath[1].Split(',');
+                            //    double[] coords = coordsStrings.Select(double.Parse).ToArray();
+                            //    int[] path = pathStrings.Select(int.Parse).ToArray();
 
 
-                                pointTree.Append(new GH_Point(new Point3d(coords[0], coords[1], coords[2])), new GH_Path(path));
-                            }
+                            //    pointTree.Append(new GH_Point(new Point3d(coords[0], coords[1], coords[2])), new GH_Path(path));
+                            //}
 
-                            this.OnPingDocument().ScheduleSolution(1, doc =>
-                            {
-                                pointComp.Attributes.Selected = false;
-                                pointParamComp.SetPersistentData(pointTree);
-                                pointParamComp.ExpireSolution(false);
-                            });
+                            //this.OnPingDocument().ScheduleSolution(1, doc =>
+                            //{
+                            //    pointComp.Attributes.Selected = false;
+                            //    pointParamComp.SetPersistentData(pointTree);
+                            //    pointParamComp.ExpireSolution(false);
+                            //});
 
                             break;
                         #endregion
@@ -347,6 +428,13 @@ namespace RemoSharp
 
                             break;
                         #endregion
+
+                        case (CommandType.RemoCanvasSync):
+                            RemoCanvasSync remoCanvasSync = (RemoCanvasSync)remoCommand;
+
+                            SyncCanvasFromRemoCanvasSync(remoCanvasSync);
+
+                            break;
                         default:
                             
                             break;
@@ -540,6 +628,260 @@ namespace RemoSharp
 
         }
 
+        private void ShowBackgroundDesyncColor(int errorCount, int maxErrorCount)
+        {
+            Color defaultColor = Color.FromArgb(255, 212, 208, 200);
+            Color errorColor = System.Drawing.Color.OrangeRed;
+
+            Interval colorRInterval = new Interval(defaultColor.R, errorColor.R); // default r is less than error r
+            Interval colorGInterval = new Interval(errorColor.G, defaultColor.G);
+            Interval colorBInterval = new Interval(errorColor.B, defaultColor.B);
+
+            double ratio = errorCount / (double)maxErrorCount;
+            int backAlpha = 255;
+            int backRed = Convert.ToInt32(colorRInterval.ParameterAt(ratio));
+            int backGreen = Convert.ToInt32(colorGInterval.ParameterAt(1 - ratio));
+            int backBlue = Convert.ToInt32(colorBInterval.ParameterAt(1 - ratio));
+
+            Color backColor = Color.FromArgb(backAlpha, backRed, backGreen, backBlue);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_back = backColor;
+
+        }
+
+        private static void ResetGHColorsToDefault()
+        {
+            //DEFAULTS
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_grid = Color.FromArgb(30, 0, 0, 0);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_back = Color.FromArgb(255, 212, 208, 200);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_edge = Color.FromArgb(255, 0, 0, 0);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_shade = Color.FromArgb(80, 0, 0, 0);
+        }
+
+        private void SyncCanvasFromRemoCanvasSync(RemoCanvasSync remoCanvasSync)
+        {
+
+            ResetGHColorsToDefault();
+
+            //https://stackoverflow.com/questions/674479/how-do-i-get-the-directory-from-a-files-full-path
+            string path = @"C:\temp\RemoSharp\ReceiveStream.ghx";
+            CheckForDirectoryAndFileExistance(path);
+
+            string stream = remoCanvasSync.xmlString;
+
+            if (string.IsNullOrEmpty(stream) ||
+                stream == " " ||
+                stream == "Hello World" ||
+                !stream.Substring(0, 15).Contains("?xml version")) return;
+
+            using (StreamWriter sw = new StreamWriter(path))
+            {
+                sw.Write(stream);
+            }
+
+
+            try
+            {
+
+                this.OnPingDocument().ScheduleSolution(1, doc =>
+                {
+                    RemoCompSource sourceComp = GetSourceCompFromInput();
+                    this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
+                    this.OnPingDocument().ObjectsDeleted -= sourceComp.RemoCompSource_ObjectsDeleted;
+                    List<Guid> localCompIds = new List<Guid>();
+
+                    for (int i = this.OnPingDocument().ObjectCount - 1; i > -1; i--)
+                    {
+                        var obj = this.OnPingDocument().Objects[i];
+                        if (obj.NickName.ToUpper().Contains("LOCAL")) 
+                        {
+                            localCompIds.Add(obj.InstanceGuid);
+                        }
+                        else if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()))
+                        {
+                            continue;
+                        }
+
+                        else
+                        {
+                            this.OnPingDocument().RemoveObject(obj, false);
+                        }
+                    }
+
+                    Grasshopper.Kernel.GH_DocumentIO ioDoc = new GH_DocumentIO();
+                    ioDoc.Open(path);
+                    var incomingDoc = ioDoc.Document;
+
+                    foreach (var item in incomingDoc.Objects)
+                    {
+                        bool localDocContainsLocalItem = localCompIds.Contains(item.InstanceGuid);
+                        bool typeIsParam = paramTypes.Contains(item.GetType().ToString());
+                        if (localDocContainsLocalItem && typeIsParam)
+                        {
+                            var thisDocParam = this.OnPingDocument().FindObject(item.InstanceGuid,false);
+                            var incomingDocParam = incomingDoc.FindObject(item.InstanceGuid,false);
+                            switch (item.GetType().ToString())
+                            {
+                                case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                                    Grasshopper.Kernel.Special.GH_NumberSlider thisDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)thisDocParam;
+                                    Grasshopper.Kernel.Special.GH_NumberSlider incomingDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)incomingDocParam;
+
+                                    incomingDocSlider.Slider.Bounds = thisDocSlider.Slider.Bounds;
+                                    incomingDocSlider.Slider.Type = thisDocSlider.Slider.Type;
+                                    incomingDocSlider.Slider.DecimalPlaces = thisDocSlider.Slider.DecimalPlaces;
+                                    incomingDocSlider.SetSliderValue(thisDocSlider.CurrentValue);
+                                    incomingDocSlider.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocSlider, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Special.GH_Panel"):
+                                    Grasshopper.Kernel.Special.GH_Panel thisDocPanel = (Grasshopper.Kernel.Special.GH_Panel) thisDocParam;
+                                    Grasshopper.Kernel.Special.GH_Panel incomingDocGH_Panel = (Grasshopper.Kernel.Special.GH_Panel) incomingDocParam;
+
+                                    incomingDocGH_Panel.Properties.Alignment = thisDocPanel.Properties.Alignment;
+                                    incomingDocGH_Panel.Properties.Wrap = thisDocPanel.Properties.Wrap;
+                                    incomingDocGH_Panel.Properties.Colour = thisDocPanel.Properties.Colour;
+                                    incomingDocGH_Panel.Properties.Multiline = thisDocPanel.Properties.Multiline;
+                                    incomingDocGH_Panel.Properties.DrawIndices = thisDocPanel.Properties.DrawIndices;
+                                    incomingDocGH_Panel.SetUserText(thisDocPanel.UserText);
+                                    incomingDocGH_Panel.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocPanel, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                                    Grasshopper.Kernel.Special.GH_ColourSwatch thisDocColor = (Grasshopper.Kernel.Special.GH_ColourSwatch) thisDocParam;
+                                    Grasshopper.Kernel.Special.GH_ColourSwatch incomingDocClolor = (Grasshopper.Kernel.Special.GH_ColourSwatch) incomingDocParam;
+
+                                    incomingDocClolor.SwatchColour = thisDocColor.SwatchColour;
+                                    incomingDocClolor.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocColor, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                                    Grasshopper.Kernel.Special.GH_MultiDimensionalSlider thisDocMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider) thisDocParam;
+                                    Grasshopper.Kernel.Special.GH_MultiDimensionalSlider incomingMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider) incomingDocParam;
+
+                                    incomingMDSlider.XInterval = thisDocMDSlider.XInterval;
+                                    incomingMDSlider.YInterval = thisDocMDSlider.YInterval;
+                                    incomingMDSlider.Value = thisDocMDSlider.Value;
+                                    incomingMDSlider.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocMDSlider, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                                    Grasshopper.Kernel.Special.GH_BooleanToggle thisDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle) thisDocParam;
+                                    Grasshopper.Kernel.Special.GH_BooleanToggle incomingDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle) incomingDocParam;
+
+                                    incomingDocToggle.Value = thisDocToggle.Value;
+                                    incomingDocToggle.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocToggle, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                                    Grasshopper.Kernel.Special.GH_ButtonObject thisDocButton = (Grasshopper.Kernel.Special.GH_ButtonObject) thisDocParam;
+                                    //Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject) incomingDocParam;
+
+                                    this.OnPingDocument().RemoveObject(thisDocButton, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                                    Grasshopper.Kernel.Parameters.Param_Point thisDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)thisDocParam;
+                                    Grasshopper.Kernel.Parameters.Param_Point incomingDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)incomingDocParam;
+
+                                    incomingDocPoint.SetPersistentData(thisDocPoint.PersistentData);
+                                    incomingDocPoint.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocPoint, false);
+
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Vector"):
+                                    Grasshopper.Kernel.Parameters.Param_Vector thisDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)thisDocParam;
+                                    Grasshopper.Kernel.Parameters.Param_Vector incomingDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)incomingDocParam;
+
+                                    incomingDocVector.SetPersistentData(thisDocVector.PersistentData);
+                                    incomingDocVector.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocVector, false);
+                                    break;
+                                case ("Grasshopper.Kernel.Parameters.Param_Plane"):
+                                    Grasshopper.Kernel.Parameters.Param_Plane thisDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)thisDocParam;
+                                    Grasshopper.Kernel.Parameters.Param_Plane incomingDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)incomingDocParam;
+
+                                    incomingDocPlane.SetPersistentData(thisDocPlane.PersistentData);
+                                    incomingDocPlane.ExpireSolution(false);
+
+                                    this.OnPingDocument().RemoveObject(thisDocPlane, false);
+
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        //else
+                        //{
+                        //    if (item.NickName.ToUpper().Contains("local".ToUpper()))
+                        //    {
+                        //        incomingDoc.RemoveObject(item,false);
+                        //    }
+                        //}
+
+
+                    }
+
+
+
+
+
+                    this.OnPingDocument().MergeDocument(incomingDoc);
+
+                    this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
+                    this.OnPingDocument().ObjectsDeleted += sourceComp.RemoCompSource_ObjectsDeleted;
+                });
+
+                
+
+            }
+            catch
+            {
+
+            }
+
+        }
+
+        private RemoCompSource GetSourceCompFromInput()
+        {
+            GH_Panel usernamePanel = (GH_Panel)this.Params.Input[1].Sources[0];
+            var panelRecipients = usernamePanel.Recipients;
+            foreach (IGH_DocumentObject item in panelRecipients)
+            {
+                if (item.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoCompSource"))
+                {
+                    RemoCompSource sourceComponent = (RemoCompSource)item.Attributes.Parent.DocObject;
+                    return sourceComponent;
+                }
+            }
+            return null;
+        }
+
+        private void CheckForDirectoryAndFileExistance(string path)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (!File.Exists(path))
+            {
+                using (var file = File.Create(path))
+                {
+                    byte[] byteArray = Encoding.ASCII.GetBytes("First Line");
+                    file.Write(byteArray, 0, 0);
+                    file.Close();
+                }
+            }
+
+        }
+
         private static void RaiseSyncError()
         {
             System.Windows.Forms.MessageBox.Show("Documents out of sync!\n Please consider re-syncing.", "Desyncronization Error");
@@ -560,7 +902,7 @@ namespace RemoSharp
             if (remoPlane.objectGuid == Guid.Empty) return;
             IGH_Param planeComp = (IGH_Param)this.OnPingDocument().FindObject(remoPlane.objectGuid, false);
             Param_Plane planeParamComp = (Param_Plane)planeComp;
-
+            planeParamComp.RemoveAllSources();
             GH_Structure<GH_Plane> planeTree = new GH_Structure<GH_Plane>();
             foreach (string item in remoPlane.planesAndTreePath)
             {
@@ -588,7 +930,7 @@ namespace RemoSharp
             if (remoVector3d.objectGuid == Guid.Empty) return;
             IGH_Param vectorComp = (IGH_Param)this.OnPingDocument().FindObject(remoVector3d.objectGuid, false);
             Param_Vector vectorParamComp = (Param_Vector)vectorComp;
-
+            vectorParamComp.RemoveAllSources();
             GH_Structure<GH_Vector> vectorTree = new GH_Structure<GH_Vector>();
             foreach (string item in remoVector3d.vectorsAndTreePath)
             {
@@ -614,7 +956,7 @@ namespace RemoSharp
             if (remoPoint3d.objectGuid == Guid.Empty) return;
             IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
             Param_Point pointParamComp = (Param_Point)pointComp;
-
+            pointParamComp.RemoveAllSources();
             GH_Structure<GH_Point> pointTree = new GH_Structure<GH_Point>();
             foreach (string item in remoPoint3d.pointsAndTreePath)
             {
@@ -640,7 +982,7 @@ namespace RemoSharp
         {
             if (remoMDSlider.objectGuid == Guid.Empty) return;
             GH_MultiDimensionalSlider mdSliderComp = (GH_MultiDimensionalSlider)this.OnPingDocument().FindObject(remoMDSlider.objectGuid, false);
-
+            
             mdSliderComp.XInterval = new Interval(remoMDSlider.minBoundX, remoMDSlider.maxBoundX);
             mdSliderComp.YInterval = new Interval(remoMDSlider.minBoundY, remoMDSlider.maxBoundY);
 
@@ -668,6 +1010,7 @@ namespace RemoSharp
         {
             if (remoPanel.objectGuid == Guid.Empty) return;
             GH_Panel panelComp = (GH_Panel)this.OnPingDocument().FindObject(remoPanel.objectGuid, false);
+            panelComp.RemoveAllSources();
 
             panelComp.Properties.Multiline = remoPanel.MultiLine;
             panelComp.Properties.DrawIndices = remoPanel.DrawIndecies;
@@ -827,7 +1170,10 @@ namespace RemoSharp
             deletionGuids.AddRange(remoDelete.objectGuids);
             try
             {
+                RemoCompSource sourceComp = GetSourceCompFromInput();
+                this.OnPingDocument().ObjectsDeleted -= sourceComp.RemoCompSource_ObjectsDeleted;
                 this.OnPingDocument().ScheduleSolution(1, DeleteComponent);
+                this.OnPingDocument().ObjectsDeleted += sourceComp.RemoCompSource_ObjectsDeleted;
             }
             catch
             {
@@ -837,6 +1183,7 @@ namespace RemoSharp
         private void ExecuteCreate(RemoCreate createCommand)
         {
             // important to find the source component to prevent recursive component creation commands
+
             GH_Panel usernamePanel = (GH_Panel)this.Params.Input[1].Sources[0];
             var panelRecipients = usernamePanel.Recipients;
             foreach (IGH_DocumentObject item in panelRecipients)
@@ -854,6 +1201,8 @@ namespace RemoSharp
             }
 
             //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
+            RemoCompSource sourceComp = GetSourceCompFromInput();
+            this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -1015,6 +1364,8 @@ namespace RemoSharp
 
                 }
             });
+
+            this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
         }
 
         private void ExcecuteMove(RemoMove moveCommand)
@@ -1084,7 +1435,7 @@ namespace RemoSharp
 
 
         }
-
+        
 
         private bool ConnectWires(RemoConnect wireCommand)
         {
@@ -1097,6 +1448,8 @@ namespace RemoSharp
             System.Guid targetGuid = wireCommand.targetObjectGuid;
             int inIndex = wireCommand.targetInput;
             bool targetIsSpecial = wireCommand.isTargetSpecial;
+            string sourceNickname = wireCommand.sourceNickname;
+            string targetNickname = wireCommand.targetNickname;
             if (connect)
             {
                 if (sourceIsSpecial)
@@ -1114,6 +1467,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                     else
@@ -1129,6 +1484,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                 }
@@ -1147,6 +1504,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                     else
@@ -1162,6 +1521,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                 }
@@ -1183,6 +1544,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                     else
@@ -1197,6 +1560,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                 }
@@ -1215,6 +1580,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                     else
@@ -1229,6 +1596,8 @@ namespace RemoSharp
                             target.Attributes.Pivot = new PointF(wireCommand.targetX, wireCommand.targetY);
                             source.ExpireSolution(false);
                             target.ExpireSolution(false);
+                            source.NickName = sourceNickname;
+                            target.NickName = targetNickname;
                         });
                     }
                 }

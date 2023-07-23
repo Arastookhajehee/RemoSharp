@@ -40,13 +40,10 @@ namespace RemoSharp.RemoCommandTypes
         RemoMDSlider = 15,
         RemoPoint3d = 16,
         RemoVector3d = 17,
-        RemoPlane = 18
+        RemoPlane = 18,
+        RemoCanvasSync = 19
     }
-    //public enum RemoParamType
-    //{
-    //    None = 0,
-        
-    //}
+    
     public enum RemoConnectType
     {
         None = 0,
@@ -146,7 +143,9 @@ namespace RemoSharp.RemoCommandTypes
                 case (int)CommandType.RemoPlane:
                     remoCommand = JsonConvert.DeserializeObject<RemoParamPlane>(commandJson);
                     break;
-
+                case (int)CommandType.RemoCanvasSync:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCanvasSync>(commandJson);
+                    break;
                 case (int) CommandType.StreamGeom:
             
                 return null;
@@ -228,6 +227,8 @@ namespace RemoSharp.RemoCommandTypes
         public float sourceY;
         public float targetX;
         public float targetY;
+        public string sourceNickname;
+        public string targetNickname;
 
         public RemoConnect()
         {
@@ -236,22 +237,23 @@ namespace RemoSharp.RemoCommandTypes
 
         public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
             int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY)
+            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY, string sourceNickname, string targetNickname)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.WireConnection;
             this.RemoConnectType = remoConnectType;
-            this.sourceObjectGuid= sourceObjectGuid;
-            this.targetObjectGuid= targetObjectGuid;
+            this.sourceObjectGuid = sourceObjectGuid;
+            this.targetObjectGuid = targetObjectGuid;
             this.sourceOutput = sourceOutput;
             this.targetInput = targetInput;
             this.isSourceSpecial = isSourceSpecial;
             this.isTargetSpecial = isTargetSpecial;
-            this.sourceX= sourceX;
-            this.sourceY= sourceY;
-            this.targetX= targetX;
-            this.targetY= targetY;
-
+            this.sourceX = sourceX;
+            this.sourceY = sourceY;
+            this.targetX = targetX;
+            this.targetY = targetY;
+            this.sourceNickname = sourceNickname;
+            this.targetNickname = targetNickname;
         }
 
         public override string ToString()
@@ -264,6 +266,7 @@ namespace RemoSharp.RemoCommandTypes
     {
         public List<Guid> guids;
         public List<string> componentTypes;
+        public List<string> nickNames;
         public List<int> Xs;
         public List<int> Ys;
         public List<bool> isSpecials;
@@ -277,6 +280,7 @@ namespace RemoSharp.RemoCommandTypes
         // a constructor for general components
         public RemoCreate(string issuerID, List<Guid> guids,
             List<string> componentTypes,
+            List<string> nickNames,
             List<int> Xs,
             List<int> Ys,
             List<bool> isSpecials,
@@ -288,6 +292,7 @@ namespace RemoSharp.RemoCommandTypes
             this.objectGuid = Guid.Empty;
             this.guids = guids;
             this.componentTypes = componentTypes;
+            this.nickNames = nickNames;
             this.Xs = Xs;
             this.Ys = Ys;
             this.isSpecials = isSpecials;
@@ -698,6 +703,22 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoCanvasSync : RemoCommand
+    {
+        public string xmlString = "";
+
+        public RemoCanvasSync() { }
+
+        public RemoCanvasSync(string issuerID, string xmlString)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoCanvasSync;
+            this.objectGuid = Guid.Empty;
+            this.xmlString = xmlString;
+        }
+
+    }
+
     public class WireHistory
     {
         public List<WireConnection> wireHistory;
@@ -769,5 +790,7 @@ namespace RemoSharp.RemoCommandTypes
 
         }
     }
+
+    
 
 }

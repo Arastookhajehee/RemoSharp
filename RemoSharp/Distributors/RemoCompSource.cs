@@ -167,7 +167,7 @@ namespace RemoSharp
                 trigger.CreateAttributes();
                 trigger.Attributes.Pivot = triggerPivot;
                 trigger.NickName = "RemoSharp";
-                trigger.Interval = 1000;
+                trigger.Interval = 500;
                 trigger.NickName = "RemoSetup";
 
                 // componentName
@@ -377,15 +377,17 @@ namespace RemoSharp
                                     System.Guid inGuid = GetComponentGuidAnd_Input_Index(
                                       connectionInteraction.target, out inIndex, out inIsSpecial);
 
-
-                                    float sourceX = connectionInteraction.source.Attributes.Pivot.X;
-                                    float sourceY = connectionInteraction.source.Attributes.Pivot.Y;
-                                    float targetX = connectionInteraction.target.Attributes.Pivot.X;
-                                    float targetY = connectionInteraction.target.Attributes.Pivot.Y;
-
+                                    var sourceParentComponent = this.OnPingDocument().FindObject(outGuid, false);
+                                    var targetParentComponent = this.OnPingDocument().FindObject(inGuid, false);
+                                    float sourceX = sourceParentComponent.Attributes.Pivot.X;
+                                    float sourceY = sourceParentComponent.Attributes.Pivot.Y;
+                                    float targetX = targetParentComponent.Attributes.Pivot.X;
+                                    float targetY = targetParentComponent.Attributes.Pivot.Y;
+                                    string sourceNickname = sourceParentComponent.NickName;
+                                    string targetNickname = targetParentComponent.NickName;
 
                                     command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, 
-                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType,sourceX,sourceY,targetX,targetY);
+                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType,sourceX,sourceY,targetX,targetY,sourceNickname,targetNickname);
                                     SendCommands(command, commandRepeat,enable);
 
                                 }
@@ -445,146 +447,12 @@ namespace RemoSharp
                 #endregion
 
                 #region Add Object Sub
-                this.OnPingDocument().ObjectsAdded += (object sender, GH_DocObjectEventArgs e) =>
-                {
-
-                    List<Guid> guids = new List<Guid>();
-                    List<string> componentTypes = new List<string>();
-                    List<int> Xs = new List<int>();
-                    List<int> Ys = new List<int>();
-                    List<bool> isSpecials = new List<bool>();
-                    List<string> specialParameters_s = new List<string>();
-                    List<WireHistory> wireHistories= new List<WireHistory>();
-                    
-
-                    var objs = e.Objects;
-                    foreach (var obj in objs)
-                    {
-
-                        var newCompGuid = obj.InstanceGuid;
-                        var compTypeString = obj.GetType().ToString();
-                        var pivot = obj.Attributes.Pivot;
-
-                        // check to see if this component has been created from remocreate command coming from outsite
-                        bool alreadyMade = remoCreatedcomponens.Contains(newCompGuid);
-                        if (alreadyMade) continue;
-                        else
-                        {
-                            remoCreatedcomponens.Add(newCompGuid);
-                        }
-                        //adding info for RemoCreate Command
-                        guids.Add(newCompGuid);
-                        componentTypes.Add(compTypeString);
-                        Xs.Add((int)pivot.X);
-                        Ys.Add((int)pivot.Y);
-                        wireHistories.Add(new WireHistory(obj));
-
-
-                        if (obj is IGH_Component)
-                        {
-                            IGH_Component objComponent = (IGH_Component)obj;
-                            
-                        }
-                        else if (obj is IGH_Param)
-                        {
-                            IGH_Param objParam = (IGH_Param)obj;
-                        }
-
-
-                        if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
-                        {
-                            Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider) obj;
-                            decimal minBound = sliderComponent.Slider.Minimum;
-                            decimal maxBound = sliderComponent.Slider.Maximum;
-                            decimal currentValue = sliderComponent.Slider.Value;
-                            int accuracy = sliderComponent.Slider.DecimalPlaces;
-                            var sliderType = sliderComponent.Slider.Type;
-                            string specialParts = minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
-
-                            isSpecials.Add(true);
-                            specialParameters_s.Add(specialParts);
-                        }
-                        else if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                        {
-                            Grasshopper.Kernel.Special.GH_Panel panelComponent = (Grasshopper.Kernel.Special.GH_Panel) obj;
-                            bool multiLine = panelComponent.Properties.Multiline;
-                            bool drawIndicies = panelComponent.Properties.DrawIndices;
-                            bool drawPaths = panelComponent.Properties.DrawPaths;
-                            bool wrap = panelComponent.Properties.Wrap;
-                            Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
-                            float panelSizeX = panelComponent.Attributes.Bounds.Width;
-                            float panelSizeY = panelComponent.Attributes.Bounds.Height;
-
-                            string content = panelComponent.UserText;
-                            string specialParts = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
-                            
-                            isSpecials.Add(true);
-                            specialParameters_s.Add(specialParts);
-                        }
-                        else 
-                        {
-                            isSpecials.Add(false);
-                            specialParameters_s.Add("");
-                        }
-
-
-                    }
-
-                    if (guids.Count > 0)
-                    {
-                        command = new RemoCreate(username, guids, componentTypes,
-                        Xs, Ys, isSpecials, specialParameters_s, wireHistories);
-
-
-
-                        SendCommands(command,commandRepeat, enable);
-                    }
-                    else
-                    {
-                        command = null;
-                    }
-
-                    downPnt[0] = 0;
-                    downPnt[1] = 0;
-                    upPnt[0] = 0;
-                    upPnt[1] = 0;
-                    interaction = null;
-                };
+                this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
                 #endregion
 
                 #region Remove Object Sub
-                this.OnPingDocument().ObjectsDeleted += (object sender, GH_DocObjectEventArgs e) =>
-                {
-
-                    List<Guid> deleteGuids = new List<Guid>();
-                    var objs = e.Objects;
-                    foreach (var obj in objs)
-                    {
-                        // a part of the recursive component creation message sending check
-                        if (this.remoCreatedcomponens.Contains(obj.InstanceGuid))
-                        {
-                            remoCreatedcomponens.Remove(obj.InstanceGuid);
-                        }
-                        deleteGuids.Add(obj.InstanceGuid);
-                        
-                        if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
-                        {
-                            RemoParam remoParamDeleted = (RemoParam)obj;
-                            Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
-                        }
-
-                    }
-
-                    command = new RemoDelete(username, deleteGuids);
-                    SendCommands(command, commandRepeat, enable);
-
-                    downPnt[0] = 0;
-                    downPnt[1] = 0;
-                    upPnt[0] = 0;
-                    upPnt[1] = 0;
-                    interaction = null;
-                };
-                #endregion
+                this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
+                 #endregion
 
             }
 
@@ -603,7 +471,164 @@ namespace RemoSharp
             commandReset++;
         }
 
-        
+        public void RemoCompSource_ObjectsDeleted(object sender, GH_DocObjectEventArgs e)
+        {
+            List<Guid> deleteGuids = new List<Guid>();
+            var objs = e.Objects;
+            foreach (var obj in objs)
+            {
+                // a part of the recursive component creation message sending check
+                if (this.remoCreatedcomponens.Contains(obj.InstanceGuid))
+                {
+                    remoCreatedcomponens.Remove(obj.InstanceGuid);
+                }
+                deleteGuids.Add(obj.InstanceGuid);
+
+                if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
+                {
+                    RemoParam remoParamDeleted = (RemoParam)obj;
+                    Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
+                }
+
+            }
+
+            command = new RemoDelete(username, deleteGuids);
+            SendCommands(command, commandRepeat, enable);
+
+            downPnt[0] = 0;
+            downPnt[1] = 0;
+            upPnt[0] = 0;
+            upPnt[1] = 0;
+            interaction = null;
+        }
+
+        public void RemoCompSource_ObjectsAdded(object sender, GH_DocObjectEventArgs e)
+        {
+            
+            List<Guid> guids = new List<Guid>();
+            List<string> componentTypes = new List<string>();
+            List<string> nickNames = new List<string>();
+            List<int> Xs = new List<int>();
+            List<int> Ys = new List<int>();
+            List<bool> isSpecials = new List<bool>();
+            List<string> specialParameters_s = new List<string>();
+            List<WireHistory> wireHistories = new List<WireHistory>();
+
+
+            var objs = e.Objects;
+            foreach (var obj in objs)
+            {
+                var newCompGuid = obj.InstanceGuid;
+                string newCompNickName = obj.NickName;
+                var compTypeString = obj.GetType().ToString();
+                var pivot = obj.Attributes.Pivot;
+
+                switch (compTypeString)
+                {
+                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                    case ("Grasshopper.Kernel.Special.GH_Panel"):
+                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                    case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                    case ("Grasshopper.Kernel.Parameters.Param_Vector"):
+                    case ("Grasshopper.Kernel.Parameters.Param_Plane"):
+                        obj.NickName = "local";
+
+                        break;
+
+                    default:
+                        break;
+                }
+
+                // check to see if this component has been created from remocreate command coming from outsite
+                bool alreadyMade = remoCreatedcomponens.Contains(newCompGuid);
+                if (alreadyMade) continue;
+                else
+                {
+                    remoCreatedcomponens.Add(newCompGuid);
+                }
+                //adding info for RemoCreate Command
+                guids.Add(newCompGuid);
+                nickNames.Add(newCompNickName);
+                componentTypes.Add(compTypeString);
+                Xs.Add((int)pivot.X);
+                Ys.Add((int)pivot.Y);
+                wireHistories.Add(new WireHistory(obj));
+
+
+                if (obj is IGH_Component)
+                {
+                    IGH_Component objComponent = (IGH_Component)obj;
+                }
+                else if (obj is IGH_Param)
+                {
+                    IGH_Param objParam = (IGH_Param)obj;
+                }
+
+                
+
+                if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
+                {
+                    Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider)obj;
+                    decimal minBound = sliderComponent.Slider.Minimum;
+                    decimal maxBound = sliderComponent.Slider.Maximum;
+                    decimal currentValue = sliderComponent.Slider.Value;
+                    int accuracy = sliderComponent.Slider.DecimalPlaces;
+                    var sliderType = sliderComponent.Slider.Type;
+                    string specialParts = minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
+
+                    isSpecials.Add(true);
+                    specialParameters_s.Add(specialParts);
+                }
+                else if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_Panel"))
+                {
+                    Grasshopper.Kernel.Special.GH_Panel panelComponent = (Grasshopper.Kernel.Special.GH_Panel)obj;
+                    bool multiLine = panelComponent.Properties.Multiline;
+                    bool drawIndicies = panelComponent.Properties.DrawIndices;
+                    bool drawPaths = panelComponent.Properties.DrawPaths;
+                    bool wrap = panelComponent.Properties.Wrap;
+                    Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
+                    float panelSizeX = panelComponent.Attributes.Bounds.Width;
+                    float panelSizeY = panelComponent.Attributes.Bounds.Height;
+
+                    string content = panelComponent.UserText;
+                    string specialParts = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
+
+                    isSpecials.Add(true);
+                    specialParameters_s.Add(specialParts);
+                }
+                else
+                {
+                    isSpecials.Add(false);
+                    specialParameters_s.Add("");
+                }
+
+
+            }
+
+            if (guids.Count > 0)
+            {
+                command = new RemoCreate(username, guids, componentTypes, nickNames,
+                Xs, Ys, isSpecials, specialParameters_s, wireHistories);
+
+                SendCommands(command, commandRepeat, enable);
+            }
+            else
+            {
+                command = null;
+            }
+
+            downPnt[0] = 0;
+            downPnt[1] = 0;
+            upPnt[0] = 0;
+            upPnt[1] = 0;
+            interaction = null;
+            
+        }
+
+
 
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace RemoSharp.RemoParams
         /// Initializes a new instance of the RemoParam class.
         /// </summary>
         public RemoParam()
-          : base("RemoParam", "RemoParam",
+          : base("RemoParam", "rpm",
               "Syncs parameter accross connected computers.",
               "RemoSharp", "RemoParams")
         {
@@ -173,6 +173,7 @@ namespace RemoSharp.RemoParams
                 return;
             }
             var inputComp = inputCompSources[0];
+            inputComp.NickName = "RemoParam";
 
             string paramType = inputComp.GetType().ToString();
 
