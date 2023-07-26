@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text;
 using RemoSharp.WebSocketClient;
+using RemoSharp.RemoParams;
 
 namespace RemoSharp
 {
@@ -630,21 +631,33 @@ namespace RemoSharp
 
         private void ShowBackgroundDesyncColor(int errorCount, int maxErrorCount)
         {
-            Color defaultColor = Color.FromArgb(255, 212, 208, 200);
-            Color errorColor = System.Drawing.Color.OrangeRed;
+            if (errorCount > maxErrorCount) errorCount = maxErrorCount;
 
-            Interval colorRInterval = new Interval(defaultColor.R, errorColor.R); // default r is less than error r
-            Interval colorGInterval = new Interval(errorColor.G, defaultColor.G);
-            Interval colorBInterval = new Interval(errorColor.B, defaultColor.B);
+            try
+            {
+                Color defaultColor = Color.FromArgb(255, 212, 208, 200);
+                Color errorColor = System.Drawing.Color.OrangeRed;
 
-            double ratio = errorCount / (double)maxErrorCount;
-            int backAlpha = 255;
-            int backRed = Convert.ToInt32(colorRInterval.ParameterAt(ratio));
-            int backGreen = Convert.ToInt32(colorGInterval.ParameterAt(1 - ratio));
-            int backBlue = Convert.ToInt32(colorBInterval.ParameterAt(1 - ratio));
+                Interval colorRInterval = new Interval(defaultColor.R, errorColor.R); // default r is less than error r
+                Interval colorGInterval = new Interval(errorColor.G, defaultColor.G);
+                Interval colorBInterval = new Interval(errorColor.B, defaultColor.B);
 
-            Color backColor = Color.FromArgb(backAlpha, backRed, backGreen, backBlue);
-            Grasshopper.GUI.Canvas.GH_Skin.canvas_back = backColor;
+                double ratio = errorCount / (double)maxErrorCount;
+                int backAlpha = 255;
+                int backRed = Convert.ToInt32(colorRInterval.ParameterAt(ratio));
+                int backGreen = Convert.ToInt32(colorGInterval.ParameterAt(1 - ratio));
+                int backBlue = Convert.ToInt32(colorBInterval.ParameterAt(1 - ratio));
+
+                Color backColor = Color.FromArgb(backAlpha, backRed, backGreen, backBlue);
+                Grasshopper.GUI.Canvas.GH_Skin.canvas_back = backColor;
+            }
+            catch
+            {
+
+                
+            }
+
+            
 
         }
 
@@ -867,6 +880,22 @@ namespace RemoSharp
             return null;
         }
 
+        private RemoSharp.RemoParams.RemoParam GetSourceCompFromRemoParamInput(Guid paramGuid)
+        {
+            IGH_Param targetParam = (IGH_Param)this.OnPingDocument().FindObject(paramGuid, false);
+            var paramRecipients = targetParam.Recipients;
+            foreach (IGH_DocumentObject item in paramRecipients)
+            {
+                if (item.Attributes.Parent == null) continue;
+                if (item.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
+                {
+                    RemoSharp.RemoParams.RemoParam remoParamComp = (RemoSharp.RemoParams.RemoParam)item.Attributes.Parent.DocObject;
+                    return remoParamComp;
+                }
+            }
+            return null;
+        }
+
         private void CheckForDirectoryAndFileExistance(string path)
         {
             if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -902,7 +931,7 @@ namespace RemoSharp
             if (remoPlane.objectGuid == Guid.Empty) return;
             IGH_Param planeComp = (IGH_Param)this.OnPingDocument().FindObject(remoPlane.objectGuid, false);
             Param_Plane planeParamComp = (Param_Plane)planeComp;
-            planeParamComp.RemoveAllSources();
+            
             GH_Structure<GH_Plane> planeTree = new GH_Structure<GH_Plane>();
             foreach (string item in remoPlane.planesAndTreePath)
             {
@@ -920,8 +949,16 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                planeParamComp.RemoveAllSources();
+
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(planeComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
                 planeParamComp.SetPersistentData(planeTree);
                 planeParamComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
+
             });
         }
 
@@ -930,7 +967,7 @@ namespace RemoSharp
             if (remoVector3d.objectGuid == Guid.Empty) return;
             IGH_Param vectorComp = (IGH_Param)this.OnPingDocument().FindObject(remoVector3d.objectGuid, false);
             Param_Vector vectorParamComp = (Param_Vector)vectorComp;
-            vectorParamComp.RemoveAllSources();
+            
             GH_Structure<GH_Vector> vectorTree = new GH_Structure<GH_Vector>();
             foreach (string item in remoVector3d.vectorsAndTreePath)
             {
@@ -946,8 +983,15 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                vectorParamComp.RemoveAllSources();
+
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(vectorComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
                 vectorParamComp.SetPersistentData(vectorTree);
                 vectorParamComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -956,7 +1000,7 @@ namespace RemoSharp
             if (remoPoint3d.objectGuid == Guid.Empty) return;
             IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
             Param_Point pointParamComp = (Param_Point)pointComp;
-            pointParamComp.RemoveAllSources();
+            
             GH_Structure<GH_Point> pointTree = new GH_Structure<GH_Point>();
             foreach (string item in remoPoint3d.pointsAndTreePath)
             {
@@ -972,9 +1016,16 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                pointComp.Attributes.Selected = false;
+                pointParamComp.RemoveAllSources();
+
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(pointComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
+                //pointComp.Attributes.Selected = false;
                 pointParamComp.SetPersistentData(pointTree);
                 pointParamComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -988,8 +1039,13 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(mdSliderComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
                 mdSliderComp.Value = new Point3d(remoMDSlider.ValueX, remoMDSlider.ValueY, 0);
                 mdSliderComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1000,9 +1056,14 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                colorComp.Attributes.Selected = false;
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(colorComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
+                //colorComp.Attributes.Selected = false;
                 colorComp.SwatchColour = Color.FromArgb(remoColor.Alpha, remoColor.Red, remoColor.Green, remoColor.Blue);
                 colorComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1010,7 +1071,7 @@ namespace RemoSharp
         {
             if (remoPanel.objectGuid == Guid.Empty) return;
             GH_Panel panelComp = (GH_Panel)this.OnPingDocument().FindObject(remoPanel.objectGuid, false);
-            panelComp.RemoveAllSources();
+            
 
             panelComp.Properties.Multiline = remoPanel.MultiLine;
             panelComp.Properties.DrawIndices = remoPanel.DrawIndecies;
@@ -1020,8 +1081,14 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                panelComp.RemoveAllSources();
+
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(panelComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
                 panelComp.SetUserText(remoPanel.panelContent);
                 panelComp.ExpireSolution(false);
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1032,8 +1099,11 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(toggleComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
                 toggleComp.Value = remoToggle.toggleValue;
                 toggleComp.ExpireSolution(false);
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1044,8 +1114,10 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(buttonComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
                 buttonComp.ButtonDown = remoButton.buttonValue;
-                buttonComp.ExpireSolution(false);
+                remoParamComp.ExpireSolution(false);
             });
         }
 
@@ -1061,7 +1133,14 @@ namespace RemoSharp
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
+                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(sliderComp.InstanceGuid);
+                remoParamComp.enableRemoParam = false;
+
                 sliderComp.SetSliderValue(remoSlider.sliderValue);
+                sliderComp.ExpireSolution(false);
+
+                remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1200,12 +1279,13 @@ namespace RemoSharp
                 }
             }
 
-            //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
-            RemoCompSource sourceComp = GetSourceCompFromInput();
-            this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
+            
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
+                //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
+                RemoCompSource sourceComp = GetSourceCompFromInput();
+                this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
 
                 for (int i = 0; i < createCommand.guids.Count; i++)
                 {
@@ -1363,9 +1443,11 @@ namespace RemoSharp
                     }
 
                 }
+
+                this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
             });
 
-            this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
+            
         }
 
         private void ExcecuteMove(RemoMove moveCommand)

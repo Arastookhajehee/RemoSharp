@@ -30,6 +30,7 @@ namespace RemoSharp.RemoParams
         int setupIndex = 0;
         Guid hoverComponentGuid = Guid.Empty;
         bool mouseLeftDown = false;
+        public bool enableRemoParam = true;
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
         /// </summary>
@@ -139,6 +140,7 @@ namespace RemoSharp.RemoParams
                 setupIndex++;
             }
 
+            if (!enableRemoParam) return;
 
             //WsObject wscObj = new WsObject();
             string remoCommandJson = "Hello World";
@@ -218,11 +220,11 @@ namespace RemoSharp.RemoParams
                     RemoParamColor remoColor = new RemoParamColor(username, colourSwatch);
                     remoCommandJson = RemoCommand.SerializeToJson(remoColor);
 
-                    if (!colourSwatch.Attributes.Selected)
-                    {
-                        remoCommandJson = "";
-                        this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Color Component does not send data!");
-                    }
+                    //if (!colourSwatch.Attributes.Selected)
+                    //{
+                    //    remoCommandJson = "";
+                    //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Color Component does not send data!");
+                    //}
 
                     this.Message = "";
                     break;
@@ -246,8 +248,10 @@ namespace RemoSharp.RemoParams
                     remoCommandJson = RemoCommand.SerializeToJson(points);
 
                     this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
-                    if (!inputComp.Attributes.Selected) remoCommandJson = "";
-                    if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
+
+                    //if (!inputComp.Attributes.Selected) remoCommandJson = "";
+                    //if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
+                    
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Vector"):
                     Param_Vector vectorComponent = (Param_Vector)inputComp;

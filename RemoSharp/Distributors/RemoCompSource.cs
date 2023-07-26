@@ -102,7 +102,7 @@ namespace RemoSharp
 
             pManager.AddTextParameter("Username", "user", "This Computer's Username", GH_ParamAccess.item, "");
             pManager.AddGenericParameter("WSClient", "wsc", "RemoSharp's Command Websocket Client", GH_ParamAccess.item);
-
+            pManager.AddTextParameter("Password", "pass", "Password to this session",GH_ParamAccess.item,"password");
         }
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -140,6 +140,7 @@ namespace RemoSharp
                 PointF wscTogglePivot = new PointF(pivot.X + xShift - 216, pivot.Y - 197 + yShift);
                 PointF triggerPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 415 + yShift);
                 PointF panelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift);
+                PointF passPanelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift + 45);
                 PointF wscPivot = new PointF(pivot.X + xShift + 150, pivot.Y - 336 + yShift);
                 PointF listenPivot = new PointF(pivot.X + xShift + 330, pivot.Y - 334 + yShift);
 
@@ -182,8 +183,17 @@ namespace RemoSharp
                 panel.CreateAttributes();
                 panel.Attributes.Pivot = panelPivot;
                 panel.Attributes.Bounds = new Rectangle((int) panelPivot.X, (int) panelPivot.Y, 100, 45);
-                panel.SetUserText("");
+                panel.SetUserText("username");
                 panel.NickName = "RemoSetup";
+
+                // componentName
+                var passPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                passPanel.CreateAttributes();
+                passPanel.Attributes.Pivot = passPanelPivot;
+                passPanel.Attributes.Bounds = new Rectangle((int)passPanelPivot.X, (int)passPanelPivot.Y, 100, 45);
+                passPanel.SetUserText("password");
+                passPanel.NickName = "RemoSetup";
+
 
                 // componentName
                 var wscComp = new RemoSharp.WebSocketClient.WebSocketClient();
@@ -232,6 +242,7 @@ namespace RemoSharp
                     this.OnPingDocument().AddObject(trigger, true);
                     this.OnPingDocument().AddObject(targetComp, true);
                     this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(passPanel, true);
                     this.OnPingDocument().AddObject(wscComp, true);
                     this.OnPingDocument().AddObject(listenComp, true);
                     this.OnPingDocument().AddObject(commandCompButton, true);
@@ -251,6 +262,7 @@ namespace RemoSharp
                     targetComp.Params.Input[1].AddSource(wscComp.Params.Output[0]);
                     this.Params.Input[0].AddSource(panel);
                     this.Params.Input[1].AddSource(wscComp.Params.Output[0]);
+                    this.Params.Input[2].AddSource(passPanel);
                     wscComp.Params.Input[0].AddSource(addressOutPuts[0]);
                     wscComp.Params.Input[1].AddSource(wscButton);
                     wscComp.Params.Input[2].AddSource(wscToggle);
@@ -475,6 +487,9 @@ namespace RemoSharp
         {
             List<Guid> deleteGuids = new List<Guid>();
             var objs = e.Objects;
+
+            if (this.OnPingDocument() == null) return;
+
             foreach (var obj in objs)
             {
                 // a part of the recursive component creation message sending check

@@ -186,30 +186,34 @@ namespace RemoSharp.WebSocketClient
                 }
             }
 
-            
 
-            this.OnPingDocument().ScheduleSolution(1, doc =>
+            try
             {
-                var recepients = this.Params.Output[0].Recipients;
-                foreach (var item in recepients)
+                this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
-                    if (item is Grasshopper.Kernel.Parameters.Param_GenericObject)
+                    var recepients = this.Params.Output[0].Recipients;
+                    foreach (var item in recepients)
                     {
-                        if (item.Attributes.Parent.DocObject is RemoSharp.WebSocketClient.WSClientListen)
+                        if (item is Grasshopper.Kernel.Parameters.Param_GenericObject)
                         {
-                            if (this.autoUpdate)
+                            if (item.Attributes.Parent.DocObject is RemoSharp.WebSocketClient.WSClientListen)
                             {
-                                item.Attributes.Parent.DocObject.ExpireSolution(true);
-                            }
-                            else
-                            {
-                                item.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Please Attach a Trigger to this component\nto read incoming messages");
+                                if (this.autoUpdate)
+                                {
+                                    item.Attributes.Parent.DocObject.ExpireSolution(true);
+                                }
+                                else
+                                {
+                                    item.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Please Attach a Trigger to this component\nto read incoming messages");
+                                }
                             }
                         }
                     }
-                }
-            });
-
+                });
+            }
+            catch
+            {
+            }
         }
 
         private void Client_OnOpen(object sender, EventArgs e)
