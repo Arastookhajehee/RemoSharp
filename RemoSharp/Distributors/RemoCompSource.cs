@@ -28,6 +28,8 @@ using Newtonsoft.Json;
 using Grasshopper.GUI.Canvas;
 using RemoSharp.RemoParams;
 using WebSocketSharp;
+using System.Diagnostics.PerformanceData;
+using System.Text;
 
 namespace RemoSharp
 {
@@ -48,11 +50,14 @@ namespace RemoSharp
 
         bool enable = false;
         bool movingMode = false;
+        bool subscribed = false;
 
-        
+        int counterTest = 0;
+
         public List<Guid> remoCreatedcomponens = new List<Guid>();
 
         string username = "";
+        string password = "";
 
         float[] downPnt = {0,0};
         float[] upPnt = { 0, 0 };
@@ -103,11 +108,55 @@ namespace RemoSharp
             pManager.AddTextParameter("Username", "user", "This Computer's Username", GH_ParamAccess.item, "");
             pManager.AddGenericParameter("WSClient", "wsc", "RemoSharp's Command Websocket Client", GH_ParamAccess.item);
             pManager.AddTextParameter("Password", "pass", "Password to this session",GH_ParamAccess.item,"password");
+            pManager.AddBooleanParameter("syncSend", "syncSend", "Syncs this grasshopper script for all other connected clients", GH_ParamAccess.item, false);
         }
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             enable = Convert.ToBoolean(e.Value);
+
+            if (enable)
+            {
+                if (!subscribed)
+                {
+                    canvas = Grasshopper.Instances.ActiveCanvas;
+                    #region Wire Connection and Move Sub
+                    canvas.MouseDown += Canvas_MouseDown;
+                    #endregion
+
+                    canvas.MouseUp += Canvas_MouseUp;
+
+                    #region Add Object Sub
+                    this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
+                    #endregion
+
+                    #region Remove Object Sub
+                    this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
+                    #endregion
+
+                    subscribed = true;
+                }
+            }
+            else
+            {
+                canvas = Grasshopper.Instances.ActiveCanvas;
+                #region Wire Connection and Move Sub
+                canvas.MouseDown -= Canvas_MouseDown;
+                #endregion
+
+                canvas.MouseUp -= Canvas_MouseUp;
+
+                #region Add Object Sub
+                this.OnPingDocument().ObjectsAdded -= RemoCompSource_ObjectsAdded;
+                #endregion
+
+                #region Remove Object Sub
+                this.OnPingDocument().ObjectsDeleted -= RemoCompSource_ObjectsDeleted;
+                #endregion
+
+                subscribed = false;
+            }
+
             this.ExpireSolution(true);
         }
 
@@ -263,6 +312,7 @@ namespace RemoSharp
                     this.Params.Input[0].AddSource(panel);
                     this.Params.Input[1].AddSource(wscComp.Params.Output[0]);
                     this.Params.Input[2].AddSource(passPanel);
+                    this.Params.Input[3].AddSource(commandCompButton);
                     wscComp.Params.Input[0].AddSource(addressOutPuts[0]);
                     wscComp.Params.Input[1].AddSource(wscButton);
                     wscComp.Params.Input[2].AddSource(wscToggle);
@@ -279,6 +329,7 @@ namespace RemoSharp
 
                 });
             }
+            this.ExpireSolution(true);
         }
 
         /// <summary>
@@ -295,179 +346,92 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            bool syncThisCanvas = false;
             // getting the username information
             DA.GetData(0, ref username);
             DA.GetData(1, ref client);
+            DA.GetData(2, ref password);
+            DA.GetData(3, ref syncThisCanvas);
 
-            if (setup == 0)
+            //if (setup == 0)
+            //{
+
+            //}
+
+
+            if (syncThisCanvas) 
             {
-                canvas = Grasshopper.Instances.ActiveCanvas;
-                #region Wire Connection and Move Sub
-                canvas.MouseDown += (object sender, MouseEventArgs e) =>
+                var currentCanvas = Grasshopper.Instances.ActiveCanvas;
+                currentCanvas.Document.ObjectsAdded -= this.RemoCompSource_ObjectsAdded;
+                currentCanvas.Document.ObjectsDeleted -= this.RemoCompSource_ObjectsDeleted;
+                currentCanvas.MouseUp -= this.Canvas_MouseUp;
+                currentCanvas.MouseDown -= this.Canvas_MouseDown;
+
+                this.OnPingDocument().DeselectAll();
+
+                RemoSharp.WebSocketClient.WebSocketClient clientComp = (RemoSharp.WebSocketClient.WebSocketClient)this.Params.Input[1].Sources[0].Attributes.Parent.DocObject;
+                WebSocket client = clientComp.client;
+
+                string savePath = @"C:\temp\RemoSharp\saveTempFile.ghx";
+                string openPath = @"C:\temp\RemoSharp\openTempFile" + username + ".ghx";
+                string finalPath = @"C:\temp\RemoSharp\finalTempFile" + username + ".ghx";
+
+                CheckForDirectoryAndFileExistance(savePath);
+                CheckForDirectoryAndFileExistance(openPath);
+                CheckForDirectoryAndFileExistance(finalPath);
+
+                Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
+                bool saveDocR = saveDoc.SaveQuiet(savePath);
+
+                while (true)
                 {
-                    downPnt = PointFromCanvasMouseInteraction(canvas.Viewport, e);
-                    if (e.Button != MouseButtons.Left ||
-                      canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_WindowSelectInteraction ||
-                      canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_PanInteraction ||
-                      canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_ZoomInteraction)
+                    try
                     {
-                        interaction = null;
-                        return;
+                        System.IO.File.Copy(savePath, openPath, true);
+                        break;
                     }
-                    if (canvas.ActiveInteraction != null &&
-                      (canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction ||
-                      canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction ||
-                    canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction))
+                    catch { }
+                }
+
+                Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
+                openDoc.Open(openPath);
+
+                for (int i = openDoc.Document.ObjectCount - 1; i > -1; i--)
+                {
+                    var obj = openDoc.Document.Objects[i];
+                    if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()) ||
+                        obj.GetType().ToString().Equals("RemoSharp.RemoCompSource"))
                     {
-                        canvas.MouseUp += (object sender2, MouseEventArgs e2) => 
+                        openDoc.Document.RemoveObject(obj, false);
+                    }
+
+                }
+                openDoc.SaveQuiet(savePath);
+                openDoc.Document.Dispose();
+
+                currentCanvas.Document.ObjectsAdded += this.RemoCompSource_ObjectsAdded;
+                currentCanvas.Document.ObjectsDeleted += this.RemoCompSource_ObjectsDeleted;
+                currentCanvas.MouseUp += this.Canvas_MouseUp;
+                currentCanvas.MouseDown += this.Canvas_MouseDown;
+
+                try
+                {
+                    string content = "";
+                    using (StreamReader sr = new StreamReader(savePath))
+                    {
+                        content = sr.ReadToEnd();
+
+                        RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, content);
+                        string cmdJson = RemoCommand.SerializeToJson(remoCanvasSync);
+                        if (client != null)
                         {
-                            upPnt = PointFromCanvasMouseInteraction(canvas.Viewport, e);
-                            if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction)
-                            {
-                                Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction);
-                                object mode = type
-                                  .GetField("m_mode", BindingFlags.NonPublic | BindingFlags.Instance)
-                                  .GetValue(interaction);
-                                IGH_Param source = type
-                                  .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
-                                  .GetValue(interaction) as IGH_Param;
-                                IGH_Param target = type
-                                  .GetField("m_target", BindingFlags.NonPublic | BindingFlags.Instance)
-                                  .GetValue(interaction) as IGH_Param;
-
-                                RemoConnectType remoConnectType = RemoConnectType.None;
-                                if (mode.ToString().Equals("Replace"))
-                                {
-                                    remoConnectType = RemoConnectType.Replace;
-                                }
-                                else if (mode.ToString().Equals("Remove"))
-                                {
-                                    remoConnectType = RemoConnectType.Remove;
-                                }
-                                else
-                                {
-                                    remoConnectType = RemoConnectType.Add;
-                                }
-
-                                RemoConnectInteraction connectionInteraction = new RemoConnectInteraction();
-
-                                if (source.Attributes.HasInputGrip)
-                                {
-                                    if (source.Kind != GH_ParamKind.floating)
-                                    {
-                                        connectionInteraction = new RemoConnectInteraction(username, target, source, remoConnectType);
-                                    }
-                                    else
-                                    {
-                                        if (downPnt[0] < source.Attributes.Pivot.X)
-                                        {
-                                            connectionInteraction = new RemoConnectInteraction(username, target, source, remoConnectType);
-                                        }
-                                        else
-                                        {
-                                            connectionInteraction = new RemoConnectInteraction(username, source, target, remoConnectType);
-                                        }
-                                        
-                                    }
-                                    
-                                }
-                                else
-                                {
-                                    connectionInteraction = new RemoConnectInteraction(username, source, target, remoConnectType);
-                                }
-
-
-                                if (connectionInteraction.source != null || connectionInteraction.target != null)
-                                {
-                                    int outIndex = -1;
-                                    bool outIsSpecial = false;
-                                    System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                                      connectionInteraction.source, out outIndex, out outIsSpecial);
-
-                                    int inIndex = -1;
-                                    bool inIsSpecial = false;
-                                    System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                                      connectionInteraction.target, out inIndex, out inIsSpecial);
-
-                                    var sourceParentComponent = this.OnPingDocument().FindObject(outGuid, false);
-                                    var targetParentComponent = this.OnPingDocument().FindObject(inGuid, false);
-                                    float sourceX = sourceParentComponent.Attributes.Pivot.X;
-                                    float sourceY = sourceParentComponent.Attributes.Pivot.Y;
-                                    float targetX = targetParentComponent.Attributes.Pivot.X;
-                                    float targetY = targetParentComponent.Attributes.Pivot.Y;
-                                    string sourceNickname = sourceParentComponent.NickName;
-                                    string targetNickname = targetParentComponent.NickName;
-
-                                    command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, 
-                                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType,sourceX,sourceY,targetX,targetY,sourceNickname,targetNickname);
-                                    SendCommands(command, commandRepeat,enable);
-
-                                }
-
-                                
-                                
-                            }
-                            else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
-                            {
-                                float downPntX = downPnt[0];
-                                float downPntY = downPnt[1];
-                                float upPntX = upPnt[0];
-                                float upPntY = upPnt[1];
-
-                                //int moveX = upPntX - downPntX;
-                                //int moveY = upPntY - downPntY;
-
-                                //var movedObject = this.OnPingDocument().FindObject(new PointF(upPntX, upPntY), 1);
-                                //string movedObjGuid = movedObject.InstanceGuid.ToString();
-                                
-                                if (downPntX != upPntX && downPntY != upPntY)
-                                {
-                                    //try
-                                    //{
-                                    //command = "MoveComponent," + downPntX + "," + downPntY + "," + moveX + "," + moveY + "," + movedObjGuid;
-
-                                    var selection = this.OnPingDocument().SelectedObjects();
-
-                                    if (selection != null)
-                                    {
-
-                                        Guid selectionGuid = selection[0].InstanceGuid;
-                                        command = new RemoMove(username, selectionGuid, upPntX, upPntY, DateTime.Now.Second);
-
-                                        if (movingMode)
-                                        {
-                                            SendCommands(command,commandRepeat,enable);
-                                        }
-                                        downPnt[0] = 0;
-                                        downPnt[1] = 0;
-                                        upPnt[0] = 0;
-                                        upPnt[1] = 0;
-                                    }
-                                    //}
-                                    //catch
-                                    //{
-                                    //    command = "";
-                                    //}
-                                }
-                                else command = null;
-                            }
-
-                        };
-                        interaction = canvas.ActiveInteraction;
+                            client.Send(cmdJson);
+                        }
+                        sr.Close();
                     }
-                };
-                #endregion
-
-                #region Add Object Sub
-                this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
-                #endregion
-
-                #region Remove Object Sub
-                this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
-                 #endregion
-
+                }
+                catch { }
             }
-
 
 
 
@@ -483,12 +447,212 @@ namespace RemoSharp
             commandReset++;
         }
 
+        private void CheckForDirectoryAndFileExistance(string path)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path))) Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (!File.Exists(path))
+            {
+                using (var file = File.Create(path))
+                {
+                    byte[] byteArray = Encoding.ASCII.GetBytes("First Line");
+                    file.Write(byteArray, 0, 0);
+                    file.Close();
+                }
+            }
+
+        }
+
+        public void Canvas_MouseDown(object sender, MouseEventArgs e)
+        {
+            var thisGH_doc = this.OnPingDocument();
+            if (thisGH_doc == null || this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.MouseDown -= Canvas_MouseDown;
+                System.Windows.Forms.MessageBox.Show("Wire Interactions (down) Disabled!", "RemoSharp Critical Error!");
+                return;
+            }
+
+            downPnt = PointFromCanvasMouseInteraction(canvas.Viewport, e);
+            if (e.Button != MouseButtons.Left ||
+              canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_WindowSelectInteraction ||
+              canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_PanInteraction ||
+              canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_ZoomInteraction)
+            {
+                interaction = null;
+                return;
+            }
+            if (canvas.ActiveInteraction == null) return;
+
+            if (canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction ||
+                canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction ||
+                canvas.ActiveInteraction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
+            {
+                //if (setup == 0) { }
+                this.interaction = canvas.ActiveInteraction;
+            }
+        }
+
+        public void Canvas_MouseUp(object sender, MouseEventArgs e)
+        {
+
+            if (this.OnPingDocument() == null || this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.MouseUp -= Canvas_MouseUp;
+                System.Windows.Forms.MessageBox.Show("Wire Interactions (up) Disabled!", "RemoSharp Critical Error!");
+                return;
+            }
+
+
+                upPnt = PointFromCanvasMouseInteraction(canvas.Viewport, e);
+                if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction)
+                {
+                    Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction);
+                    object mode = type
+                      .GetField("m_mode", BindingFlags.NonPublic | BindingFlags.Instance)
+                      .GetValue(interaction);
+                    IGH_Param source = type
+                      .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
+                      .GetValue(interaction) as IGH_Param;
+                    IGH_Param target = type
+                      .GetField("m_target", BindingFlags.NonPublic | BindingFlags.Instance)
+                      .GetValue(interaction) as IGH_Param;
+
+                    RemoConnectType remoConnectType = RemoConnectType.None;
+                    if (mode.ToString().Equals("Replace"))
+                    {
+                        remoConnectType = RemoConnectType.Replace;
+                    }
+                    else if (mode.ToString().Equals("Remove"))
+                    {
+                        remoConnectType = RemoConnectType.Remove;
+                    }
+                    else
+                    {
+                        remoConnectType = RemoConnectType.Add;
+                    }
+
+                    RemoConnectInteraction connectionInteraction = new RemoConnectInteraction();
+
+                    if (source.Attributes.HasInputGrip)
+                    {
+                        if (source.Kind != GH_ParamKind.floating)
+                        {
+                            connectionInteraction = new RemoConnectInteraction(username, target, source, remoConnectType);
+                        }
+                        else
+                        {
+                            if (downPnt[0] < source.Attributes.Pivot.X)
+                            {
+                                connectionInteraction = new RemoConnectInteraction(username, target, source, remoConnectType);
+                            }
+                            else
+                            {
+                                connectionInteraction = new RemoConnectInteraction(username, source, target, remoConnectType);
+                            }
+
+                        }
+
+                    }
+                    else
+                    {
+                        connectionInteraction = new RemoConnectInteraction(username, source, target, remoConnectType);
+                    }
+
+
+                    if (connectionInteraction.source != null && connectionInteraction.target != null)
+                    {
+                        int outIndex = -1;
+                        bool outIsSpecial = false;
+
+                        if (connectionInteraction.source == null || connectionInteraction.target == null) return;
+                        System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+                          connectionInteraction.source, out outIndex, out outIsSpecial);
+
+                        int inIndex = -1;
+                        bool inIsSpecial = false;
+
+                        if (connectionInteraction.target == null || connectionInteraction.source == null) return;
+                        System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+                          connectionInteraction.target, out inIndex, out inIsSpecial);
+
+                        var sourceParentComponent = this.OnPingDocument().FindObject(outGuid, false);
+                        var targetParentComponent = this.OnPingDocument().FindObject(inGuid, false);
+                        float sourceX = sourceParentComponent.Attributes.Pivot.X;
+                        float sourceY = sourceParentComponent.Attributes.Pivot.Y;
+                        float targetX = targetParentComponent.Attributes.Pivot.X;
+                        float targetY = targetParentComponent.Attributes.Pivot.Y;
+                        string sourceNickname = sourceParentComponent.NickName;
+                        string targetNickname = targetParentComponent.NickName;
+
+                        command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid,
+                            outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType, sourceX, sourceY, targetX, targetY, sourceNickname, targetNickname);
+                        SendCommands(command, commandRepeat, enable);
+
+                    }
+
+
+
+                }
+                else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
+                {
+                    float downPntX = downPnt[0];
+                    float downPntY = downPnt[1];
+                    float upPntX = upPnt[0];
+                    float upPntY = upPnt[1];
+
+                    //int moveX = upPntX - downPntX;
+                    //int moveY = upPntY - downPntY;
+
+                    //var movedObject = this.OnPingDocument().FindObject(new PointF(upPntX, upPntY), 1);
+                    //string movedObjGuid = movedObject.InstanceGuid.ToString();
+
+                    if (downPntX != upPntX && downPntY != upPntY)
+                    {
+                        //try
+                        //{
+                        //command = "MoveComponent," + downPntX + "," + downPntY + "," + moveX + "," + moveY + "," + movedObjGuid;
+
+
+                        var selection = this.OnPingDocument().SelectedObjects();
+
+                        if (selection != null)
+                        {
+
+                            Guid selectionGuid = selection[0].InstanceGuid;
+                            command = new RemoMove(username, selectionGuid, upPntX, upPntY, DateTime.Now.Second);
+
+                            if (movingMode)
+                            {
+                                SendCommands(command, commandRepeat, enable);
+                            }
+                            downPnt[0] = 0;
+                            downPnt[1] = 0;
+                            upPnt[0] = 0;
+                            upPnt[1] = 0;
+                        }
+                        //}
+                        //catch
+                        //{
+                        //    command = "";
+                        //}
+                    }
+                    else command = null;
+                }
+
+            
+        }
+
         public void RemoCompSource_ObjectsDeleted(object sender, GH_DocObjectEventArgs e)
         {
             List<Guid> deleteGuids = new List<Guid>();
             var objs = e.Objects;
 
-            if (this.OnPingDocument() == null) return;
+            if (this.OnPingDocument() == null || this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.Document.ObjectsDeleted -= RemoCompSource_ObjectsDeleted;
+                System.Windows.Forms.MessageBox.Show("Object Deletion Interactions Disabled!", "RemoSharp Critical Error!");
+                return;
+            }
 
             foreach (var obj in objs)
             {
@@ -519,7 +683,15 @@ namespace RemoSharp
 
         public void RemoCompSource_ObjectsAdded(object sender, GH_DocObjectEventArgs e)
         {
-            
+
+            var thisGH_doc = this.OnPingDocument();
+            if (thisGH_doc == null || this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.Document.ObjectsAdded -= RemoCompSource_ObjectsAdded; 
+                System.Windows.Forms.MessageBox.Show("Object Creation Interactions Disabled!", "RemoSharp Critical Error!");
+                return;
+            }
+
             List<Guid> guids = new List<Guid>();
             List<string> componentTypes = new List<string>();
             List<string> nickNames = new List<string>();
@@ -673,6 +845,7 @@ namespace RemoSharp
             out int paramIndex,
             out bool isSpecial)
         {
+
             if (target.Attributes.Parent == null)
             {
                 System.Guid compGuid = target.InstanceGuid;

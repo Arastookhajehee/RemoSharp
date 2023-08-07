@@ -298,21 +298,29 @@ namespace RemoSharp.RemoParams
         }
         public void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            try
             {
-                float[] mouseCoords = PointFromCanvasMouseInteraction(Grasshopper.Instances.ActiveCanvas.Viewport, e);
-                var hoverObject = this.OnPingDocument().FindObject(new System.Drawing.PointF(mouseCoords[0], mouseCoords[1]), 1);
-                if (hoverObject == null) hoverComponentGuid = Guid.Empty;
+                if (e.Button == MouseButtons.Left)
+                {
+                    float[] mouseCoords = PointFromCanvasMouseInteraction(Grasshopper.Instances.ActiveCanvas.Viewport, e);
+                    var hoverObject = this.OnPingDocument().FindObject(new System.Drawing.PointF(mouseCoords[0], mouseCoords[1]), 1);
+                    if (hoverObject == null) hoverComponentGuid = Guid.Empty;
+                    else
+                    {
+                        hoverComponentGuid = hoverObject.InstanceGuid;
+                        mouseLeftDown = true;
+                    }
+                }
                 else
                 {
-                    hoverComponentGuid = hoverObject.InstanceGuid;
-                    mouseLeftDown = true;
+                    hoverComponentGuid = Guid.Empty;
                 }
             }
-            else
+            catch (Exception exception)
             {
-                hoverComponentGuid = Guid.Empty;
+                Grasshopper.Instances.ActiveCanvas.MouseDown -= ActiveCanvas_MouseDown;
             }
+            
         }
 
         float[] PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e)

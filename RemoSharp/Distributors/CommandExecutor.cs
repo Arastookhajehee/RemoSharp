@@ -140,11 +140,11 @@ namespace RemoSharp
             else if (errorCount > maxErrorCount)
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Documents Are Desynchronized!\nPlease consider re-syncing!");
-                if (errorCount % 5 == 0)
-                {
-                    Thread errorThread = new Thread(RaiseSyncError);
-                    errorThread.Start();
-                }
+                //if (errorCount % 5 == 0)
+                //{
+                //    Thread errorThread = new Thread(RaiseSyncError);
+                //    errorThread.Start();
+                //}
             }
 
             if (cleanErrors)
@@ -153,68 +153,6 @@ namespace RemoSharp
 
                 bool run = cleanErrors;
                 ResetGHColorsToDefault();
-
-                this.OnPingDocument().DeselectAll();
-
-                RemoSharp.WebSocketClient.WSClientListen listenComp = (RemoSharp.WebSocketClient.WSClientListen)this.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
-                RemoSharp.WebSocketClient.WebSocketClient clientComp = (RemoSharp.WebSocketClient.WebSocketClient)listenComp.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
-                WebSocket client = clientComp.client;
-
-                if (!run) return;
-                string savePath = @"C:\temp\RemoSharp\saveTempFile.ghx";
-                string openPath = @"C:\temp\RemoSharp\openTempFile" + username + ".ghx";
-                string finalPath = @"C:\temp\RemoSharp\finalTempFile" + username + ".ghx";
-
-                CheckForDirectoryAndFileExistance(savePath);
-                CheckForDirectoryAndFileExistance(openPath);
-                CheckForDirectoryAndFileExistance(finalPath);
-
-                Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
-                bool saveDocR = saveDoc.SaveQuiet(savePath);
-
-                while (true)
-                {
-                    try
-                    {
-                        System.IO.File.Copy(savePath, openPath, true);
-                        break;
-                    }
-                    catch { }
-                }
-
-                Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
-                openDoc.Open(openPath);
-
-                for (int i = openDoc.Document.ObjectCount - 1; i > -1; i--)
-                {
-                    var obj = openDoc.Document.Objects[i];
-                    if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()))
-                    {
-                        openDoc.Document.RemoveObject(obj, false);
-                    }
-                }
-                openDoc.SaveQuiet(savePath);
-
-                try
-                {
-                    string content = "";
-                    using (StreamReader sr = new StreamReader(savePath))
-                    {
-                        content = sr.ReadToEnd();
-
-                        RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, content);
-                        string cmdJson = RemoCommand.SerializeToJson(remoCanvasSync);
-                        if (client != null)
-                        {
-                            client.Send(cmdJson);
-                        }
-                        sr.Close();
-                    }
-                }
-                catch { }
-
-
-
 
                 return;
             }
@@ -444,7 +382,7 @@ namespace RemoSharp
                     wsClientComp.messages.RemoveAt(0);
                     remoCommand.executed = true;
                 }
-                catch (Exception e)
+                catch
                 {
                     remoCommand.executionAttempts++;
                     retryCommands.Add(remoCommand);
@@ -607,7 +545,7 @@ namespace RemoSharp
                     wsClientComp.messages.RemoveAt(0);
                     remoCommand.executed = true;
                 }
-                catch (Exception e)
+                catch
                 {
                     remoCommand.executionAttempts++;
                 }
@@ -673,6 +611,7 @@ namespace RemoSharp
         private void SyncCanvasFromRemoCanvasSync(RemoCanvasSync remoCanvasSync)
         {
 
+            errors.Clear();
             ResetGHColorsToDefault();
 
             //https://stackoverflow.com/questions/674479/how-do-i-get-the-directory-from-a-files-full-path
@@ -698,8 +637,20 @@ namespace RemoSharp
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
                     RemoCompSource sourceComp = GetSourceCompFromInput();
-                    this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
-                    this.OnPingDocument().ObjectsDeleted -= sourceComp.RemoCompSource_ObjectsDeleted;
+
+                    if (sourceComp == null)
+                    {
+                        System.Windows.Forms.MessageBox.Show("RemoSharp Sync Failed!", "RemoSharp Sync Failed. Please Try Seting up RemoSharp Again!");
+                        return;
+                    }
+
+                    var currentCanvas = Grasshopper.Instances.ActiveCanvas;
+                    currentCanvas.Document.ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
+                    currentCanvas.Document.ObjectsDeleted -= sourceComp.RemoCompSource_ObjectsDeleted;
+                    currentCanvas.MouseUp -= sourceComp.Canvas_MouseUp;
+                    currentCanvas.MouseDown -= sourceComp.Canvas_MouseDown;
+
+
                     List<Guid> localCompIds = new List<Guid>();
 
                     for (int i = this.OnPingDocument().ObjectCount - 1; i > -1; i--)
@@ -709,7 +660,10 @@ namespace RemoSharp
                         {
                             localCompIds.Add(obj.InstanceGuid);
                         }
-                        else if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()))
+                        else if (
+                        obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()) ||
+                        obj.GetType().ToString().Equals("RemoSharp.RemoCompSource")
+                        )
                         {
                             continue;
                         }
@@ -851,8 +805,10 @@ namespace RemoSharp
 
                     this.OnPingDocument().MergeDocument(incomingDoc);
 
-                    this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
-                    this.OnPingDocument().ObjectsDeleted += sourceComp.RemoCompSource_ObjectsDeleted;
+                    currentCanvas.Document.ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
+                    currentCanvas.Document.ObjectsDeleted += sourceComp.RemoCompSource_ObjectsDeleted;
+                    currentCanvas.MouseUp += sourceComp.Canvas_MouseUp;
+                    currentCanvas.MouseDown += sourceComp.Canvas_MouseDown;
                 });
 
                 
@@ -911,10 +867,10 @@ namespace RemoSharp
 
         }
 
-        private static void RaiseSyncError()
-        {
-            System.Windows.Forms.MessageBox.Show("Documents out of sync!\n Please consider re-syncing.", "Desyncronization Error");
-        }
+        //private static void RaiseSyncError()
+        //{
+        //    System.Windows.Forms.MessageBox.Show("Documents out of sync!\n Please consider re-syncing.", "Desyncronization Error");
+        //}
 
         private void ExecuteSelect(RemoSelect selectionCommand)
         {
@@ -1417,6 +1373,11 @@ namespace RemoSharp
                     }
                     else
                     {
+                        if (obj == null)
+                        {
+                            errors.Add("Null Object Found");
+                            return;
+                        }
                         IGH_Component igh_Component = (IGH_Component)obj;
                         for (int k = 0; k < igh_Component.Params.Input.Count; k++)
                         {
