@@ -119,6 +119,10 @@ namespace RemoSharp
             {
                 if (!subscribed)
                 {
+                    if (this == null || this.OnPingDocument() == null)
+                    {
+                        return;
+                    }
                     canvas = Grasshopper.Instances.ActiveCanvas;
                     #region Wire Connection and Move Sub
                     canvas.MouseDown += Canvas_MouseDown;
@@ -443,7 +447,7 @@ namespace RemoSharp
             //if (setup > 100) setup = 5;
             //if (commandReset > commandRepeatCount) command = new RemoNullCommand(username);
 
-            setup++;
+            //setup++;
             commandReset++;
         }
 
