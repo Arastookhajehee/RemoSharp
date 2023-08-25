@@ -53,7 +53,7 @@ namespace RemoSharp
             DataTree<GeometryBase> crvTree = new DataTree<GeometryBase>();
 
             List<RemoGeomJsonStructure> geomObjs = new List<RemoGeomJsonStructure>();
-            if (stringList != null) return;
+            if (stringList.Count == 0) return;
             for (int i = 0; i < stringList.Count; i++)
             {
                 RemoGeomJsonStructure geomObj = JsonConvert.DeserializeObject<RemoGeomJsonStructure>(stringList[i]);

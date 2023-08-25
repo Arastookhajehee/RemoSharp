@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace RemoSharp.WebSocketClient
+namespace RemoSharp.Utilities
 {
-    public class WSClientListen : GH_Component
+    public class UniqueValues : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the WSClientListen class.
+        /// Initializes a new instance of the UniqueValues class.
         /// </summary>
-        public WSClientListen()
-          : base("WSListen", "WSListen",
+        public UniqueValues()
+          : base("UniqueValues", "uniques",
               "Description",
-               "RemoSharp", "Com_Tools")
+              "RemoSharp", "Utils")
         {
         }
 
@@ -23,7 +23,7 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("WSClient", "wsc", "Websocket client component", GH_ParamAccess.item);
+            pManager.AddTextParameter("valueList", "list", "list", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("message", "msg", "", GH_ParamAccess.list);
+            pManager.AddTextParameter("uniques", "unqs", "uniques", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -40,19 +40,18 @@ namespace RemoSharp.WebSocketClient
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            var inputComponent = this.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
+            List<string> list = new List<string>();
+            DA.GetDataList(0,list);
 
-            if (inputComponent is RemoSharp.WebSocketClient.WebSocketClient)
+            List<string> uniques = new List<string>();
+            foreach (var item in list)
             {
-                WebSocketClient client = (WebSocketClient)inputComponent;
-                DA.SetDataList(0, client.messages);
+                if (!uniques.Contains(item))
+                {
+                    uniques.Add(item);
+                }
             }
-            else if (inputComponent is RemoSharp.RemoSetupClient) 
-            {
-                RemoSetupClient client = (RemoSetupClient)inputComponent;
-                DA.SetDataList(0, client.messages);
-            }
-            
+            DA.SetDataList(0,uniques);
         }
 
         /// <summary>
@@ -64,7 +63,7 @@ namespace RemoSharp.WebSocketClient
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.receive.ToBitmap();
+                return null;
             }
         }
 
@@ -73,7 +72,7 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("71CCCAC5-2071-493C-AD02-347781A1ED08"); }
+            get { return new Guid("8C14ACDB-1481-418A-853D-C01551AAD571"); }
         }
     }
 }

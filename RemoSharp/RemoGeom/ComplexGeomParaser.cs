@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 
-namespace RemoSharp.WebSocketClient
+namespace RemoSharp
 {
-    public class WSClientListen : GH_Component
+    public class ComplexGeomParaser : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the WSClientListen class.
+        /// Initializes a new instance of the ComplexGeomParaser class.
         /// </summary>
-        public WSClientListen()
-          : base("WSListen", "WSListen",
-              "Description",
-               "RemoSharp", "Com_Tools")
+        public ComplexGeomParaser()
+          : base("ComplexRemoGeomParser", "CxRGParser",
+              "Regenerates Geometry from a stream of text from the remote client GH_Canvas.",
+              "RemoSharp", "RemoParams")
         {
         }
 
@@ -23,7 +23,7 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("WSClient", "wsc", "Websocket client component", GH_ParamAccess.item);
+            pManager.AddTextParameter("RGStream", "RGStream", "Text Representation of Geometry and Tree Structure", GH_ParamAccess.item, "[]");
         }
 
         /// <summary>
@@ -31,7 +31,9 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("message", "msg", "", GH_ParamAccess.list);
+            pManager.AddGeometryParameter("RemoGeometry", "StreamGeom", "Geometry Tree from Remote Client", GH_ParamAccess.list);
+            pManager.AddTextParameter("tags", "tags", "tags", GH_ParamAccess.list);
+            pManager.AddColourParameter("colors", "colors", "colors", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -40,19 +42,22 @@ namespace RemoSharp.WebSocketClient
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            var inputComponent = this.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
 
-            if (inputComponent is RemoSharp.WebSocketClient.WebSocketClient)
+            string json = "";
+            DA.GetData(0, ref json);
+
+            ComplexGeometeySerilization complexGeom = Newtonsoft.Json.JsonConvert.DeserializeObject<ComplexGeometeySerilization>(json);
+
+            List<GeometryBase> geometries = new List<GeometryBase>();
+            foreach (string item in complexGeom.geoms)
             {
-                WebSocketClient client = (WebSocketClient)inputComponent;
-                DA.SetDataList(0, client.messages);
+                geometries.Add((GeometryBase)GeometryBase.FromJSON(item));
             }
-            else if (inputComponent is RemoSharp.RemoSetupClient) 
-            {
-                RemoSetupClient client = (RemoSetupClient)inputComponent;
-                DA.SetDataList(0, client.messages);
-            }
-            
+
+            DA.SetDataList(0, geometries);
+            DA.SetDataList(1, complexGeom.tags);
+            DA.SetDataList(2, complexGeom.colors);
+
         }
 
         /// <summary>
@@ -64,7 +69,7 @@ namespace RemoSharp.WebSocketClient
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.receive.ToBitmap();
+                return null;
             }
         }
 
@@ -73,7 +78,7 @@ namespace RemoSharp.WebSocketClient
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("71CCCAC5-2071-493C-AD02-347781A1ED08"); }
+            get { return new Guid("3D91767B-F08D-4D02-8375-6DC0C085F8C2"); }
         }
     }
 }

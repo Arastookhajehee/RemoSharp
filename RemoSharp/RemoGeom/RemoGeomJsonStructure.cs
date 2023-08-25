@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Rhino.Geometry;
+using System.Drawing;
 
 namespace RemoSharp
 {
@@ -46,5 +48,21 @@ namespace RemoSharp
         }
     }
 
+    public class ComplexGeometeySerilization 
+    {
+        public List<string> geoms;
+        public List<string> tags;
+        public List<Color> colors;
+
+        public ComplexGeometeySerilization() { }
+
+        public ComplexGeometeySerilization(List<string> geoms,List<string> tags, List<Color> colors) 
+        {
+            this.geoms = geoms;
+            this.tags = tags;
+            this.colors = colors;
+        }
+
+    }
 
 }

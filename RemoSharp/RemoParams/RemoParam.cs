@@ -78,7 +78,7 @@ namespace RemoSharp.RemoParams
             {
                 var component = this.OnPingDocument().Objects[i];
                 string componentType = component.GetType().ToString();
-                if (componentType.Equals("RemoSharp.RemoCompSource")) sourceCompIndex = i;
+                if (componentType.Equals("RemoSharp.RemoSetupClient")) sourceCompIndex = i;
                 if (componentType.Equals("RemoSharp.RemoCompTarget")) targetCompIndex = i;
             }
        
@@ -88,13 +88,13 @@ namespace RemoSharp.RemoParams
                 //WsClientSend sendComp = (WsClientSend)targetComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
                 //this.Params.Input[2].AddSource(sendComp.Params.Input[0].Sources[0]);
 
-                RemoCompSource sourceComp = (RemoCompSource)objects[sourceCompIndex];
-                RemoSharp.WebSocketClient.WebSocketClient wsclient = (RemoSharp.WebSocketClient.WebSocketClient)
-                          sourceComp.Params.Input[1].Sources[0].Attributes.Parent.DocObject;
-                GH_Panel userPanel = (GH_Panel)sourceComp.Params.Input[0].Sources[0];
-                this.Params.Input[2].AddSource(wsclient.Params.Output[0]);
+                RemoSetupClient sourceComp = (RemoSetupClient)objects[sourceCompIndex];
+                //RemoSharp.WebSocketClient.WebSocketClient wsclient = (RemoSharp.WebSocketClient.WebSocketClient)
+                          //sourceComp.Params.Input[1].Sources[0].Attributes.Parent.DocObject;
+                GH_Panel userPanel = (GH_Panel)sourceComp.Params.Input[3].Sources[0];
+                this.Params.Input[2].AddSource(sourceComp.Params.Output[0]);
                 this.Params.Input[3].AddSource(userPanel);
-                client = wsclient.client;
+                client = sourceComp.client;
 
             });
 
@@ -149,7 +149,7 @@ namespace RemoSharp.RemoParams
 
             if (this.Params.Input[2].Sources[0].Attributes.Parent == null ||
                 !this.Params.Input[2].Sources[0].Attributes.Parent.DocObject.GetType()
-                .ToString().Equals("RemoSharp.WebSocketClient.WebSocketClient"))
+                .ToString().Equals("RemoSharp.RemoSetupClient"))
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
             }

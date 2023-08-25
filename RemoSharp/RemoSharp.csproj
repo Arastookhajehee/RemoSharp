@@ -47,6 +47,10 @@
       <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="MathComponents">
+      <HintPath>bin\MathComponents.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -81,6 +85,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Distributors\RemoSetupClient.cs" />
+    <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
+    <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
+    <Compile Include="Utilities\GetObjByTag.cs" />
+    <Compile Include="Utilities\ListItemAccess.cs" />
+    <Compile Include="Utilities\UniqueValues.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />

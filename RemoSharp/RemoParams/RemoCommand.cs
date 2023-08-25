@@ -20,7 +20,7 @@ using System.Windows.Forms;
 namespace RemoSharp.RemoCommandTypes
 {
 
-    public enum CommandType 
+    public enum CommandType
     {
         NullCommand = 0, // done
         MoveComponent = 1,
@@ -41,7 +41,9 @@ namespace RemoSharp.RemoCommandTypes
         RemoPoint3d = 16,
         RemoVector3d = 17,
         RemoPlane = 18,
-        RemoCanvasSync = 19
+        RemoCanvasSync = 19,
+        WireHistory = 20,
+        ItemAddition = 21
     }
     
     public enum RemoConnectType
@@ -229,6 +231,7 @@ namespace RemoSharp.RemoCommandTypes
         public float targetY;
         public string sourceNickname;
         public string targetNickname;
+        public string listItemParamNickName;
 
         public RemoConnect()
         {
@@ -254,6 +257,29 @@ namespace RemoSharp.RemoCommandTypes
             this.targetY = targetY;
             this.sourceNickname = sourceNickname;
             this.targetNickname = targetNickname;
+        }
+
+        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
+            int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
+            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY,
+            string sourceNickname, string targetNickname, string listItemParamNickName)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.WireConnection;
+            this.RemoConnectType = remoConnectType;
+            this.sourceObjectGuid = sourceObjectGuid;
+            this.targetObjectGuid = targetObjectGuid;
+            this.sourceOutput = sourceOutput;
+            this.targetInput = targetInput;
+            this.isSourceSpecial = isSourceSpecial;
+            this.isTargetSpecial = isTargetSpecial;
+            this.sourceX = sourceX;
+            this.sourceY = sourceY;
+            this.targetX = targetX;
+            this.targetY = targetY;
+            this.sourceNickname = sourceNickname;
+            this.targetNickname = targetNickname;
+            this.listItemParamNickName= listItemParamNickName;
         }
 
         public override string ToString()
@@ -680,17 +706,21 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoMove : RemoCommand
     {
-        public float moveX;
-        public float moveY;
-        public int timeSeconds;
-        public RemoMove(string issuerID, Guid objectGuid, float moveX, float moveY, int timeSeconds)
+        //public float moveX;
+        //public float moveY;
+        public Guid translationGuid;
+        public List<Guid> moveGuids= new List<Guid>();
+        public Size vector;
+        public RemoMove(string issuerID, List<Guid> moveGuids, System.Drawing.Size vector)
         {
             this.issuerID = issuerID;
+            this.objectGuid = Guid.Empty;
+            this.translationGuid = Guid.NewGuid();
             this.commandType = CommandType.MoveComponent;
-            this.objectGuid = objectGuid;
-            this.moveX = moveX;
-            this.moveY = moveY;
-            this.timeSeconds = timeSeconds;
+            this.moveGuids = moveGuids;
+            this.vector = vector;
+            //this.objXs = objXs;
+            //this.objYs = objYs;
         }
         public RemoMove()
         {
@@ -719,13 +749,17 @@ namespace RemoSharp.RemoCommandTypes
 
     }
 
-    public class WireHistory
+    public class WireHistory : RemoCommand
     {
         public List<WireConnection> wireHistory;
 
         public WireHistory() { }
-        public WireHistory(IGH_DocumentObject component)
+        public WireHistory(string issuerID, IGH_DocumentObject component)
         {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.WireHistory;
+            this.objectGuid = Guid.Empty;
+
             List<WireConnection> wireHistory = new List<WireConnection>();
 
             if (component is IGH_Param)
