@@ -1239,7 +1239,7 @@ namespace RemoSharp
             //    }
             //}
 
-            
+            var thisGHObjects = this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList();
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -1255,6 +1255,8 @@ namespace RemoSharp
                     int pivotX = createCommand.Xs[i];
                     int pivotY = createCommand.Ys[i];
                     string specialContent = createCommand.specialParameters_s[i];
+
+                    if (thisGHObjects.Contains(newCompGuid)) continue;
 
                     //temporary cleared to test new method
                     //if (gh_components.Contains(newCompGuid)) continue;

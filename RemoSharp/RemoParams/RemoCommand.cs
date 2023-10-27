@@ -60,6 +60,7 @@ namespace RemoSharp.RemoCommandTypes
         public Guid objectGuid;
         public int executionAttempts = 0;
         public bool executed = false;
+        public Guid commandID;
         public static string SerializeToJson(List<RemoCommand> commands)
         {
             return JsonConvert.SerializeObject(commands, Formatting.Indented);
@@ -172,6 +173,7 @@ namespace RemoSharp.RemoCommandTypes
             this.issuerID = issuerID;
             this.commandType = CommandType.NullCommand;
             this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
         }
         public RemoNullCommand()
         {
@@ -207,6 +209,7 @@ namespace RemoSharp.RemoCommandTypes
             this.RemoConnectType = remoConnectType;
             this.source = source;
             this.target = target;
+            this.commandID = Guid.NewGuid();
 
         }
 
@@ -257,6 +260,8 @@ namespace RemoSharp.RemoCommandTypes
             this.targetY = targetY;
             this.sourceNickname = sourceNickname;
             this.targetNickname = targetNickname;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
@@ -280,6 +285,8 @@ namespace RemoSharp.RemoCommandTypes
             this.sourceNickname = sourceNickname;
             this.targetNickname = targetNickname;
             this.listItemParamNickName= listItemParamNickName;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -323,7 +330,9 @@ namespace RemoSharp.RemoCommandTypes
             this.Ys = Ys;
             this.isSpecials = isSpecials;
             this.specialParameters_s = specialParameters_s;
-            this.wireHistorys = wireHistorys;   
+            this.wireHistorys = wireHistorys;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -343,6 +352,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType= CommandType.Delete;
             this.objectGuid= Guid.Empty;
             this.objectGuids = objectGuids;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -364,6 +375,8 @@ namespace RemoSharp.RemoCommandTypes
             this.states = states;
             this.guids = guids;
             this.timeSeconds = timeSeconds;
+            this.commandID = Guid.NewGuid();
+
         }
         public RemoLock()
         {
@@ -387,6 +400,8 @@ namespace RemoSharp.RemoCommandTypes
             this.objectGuid = Guid.Empty;
             this.timeSeconds = timeSeconds;
             this.selectionGuids = objectGuids;
+            this.commandID = Guid.NewGuid();
+
         }
         public RemoSelect()
         {
@@ -412,6 +427,8 @@ namespace RemoSharp.RemoCommandTypes
             this.states = states;
             this.guids = guids;
             this.timeSeconds= timeSeconds;
+            this.commandID = Guid.NewGuid();
+
         }
         public RemoHide()
         {
@@ -445,6 +462,8 @@ namespace RemoSharp.RemoCommandTypes
             this.slidermaxBound = slider == null ? 0 : slider.Slider.Maximum;
             this.decimalPlaces = slider == null ? 0 : slider.Slider.DecimalPlaces;
             this.sliderType = slider == null ? 0 : (int)slider.Slider.Type;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -467,6 +486,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoButton;
             this.objectGuid = button == null ? Guid.Empty : button.InstanceGuid;
             this.buttonValue = button == null ? false : button.ButtonDown;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -487,6 +508,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoToggle;
             this.objectGuid = toggle == null ? Guid.Empty : toggle.InstanceGuid;
             this.toggleValue = toggle == null ? false : toggle.Value;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -519,6 +542,8 @@ namespace RemoSharp.RemoCommandTypes
             this.Wrap = panel == null ? false : panel.Properties.Wrap;
             this.Alignment = panel == null ? 0 : (int) panel.Properties.Alignment;
             this.panelContent = panel == null ? "" : panel.UserText;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -546,6 +571,8 @@ namespace RemoSharp.RemoCommandTypes
             this.Green = colourSwatch == null ? 0 : colourSwatch.SwatchColour.G;
             this.Blue = colourSwatch == null ? 0 : colourSwatch.SwatchColour.B;
             this.Alpha = colourSwatch == null ? 0 : colourSwatch.SwatchColour.A;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -577,6 +604,8 @@ namespace RemoSharp.RemoCommandTypes
             this.maxBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Max;
             this.minBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Min;
             this.maxBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Max;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -614,6 +643,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoPoint3d;
             this.objectGuid = pointComponent.InstanceGuid;
             this.pointsAndTreePath = pointsAndTreePath;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -650,6 +681,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoVector3d;
             this.objectGuid = vectorComponent.InstanceGuid;
             this.vectorsAndTreePath = vectorsAndTreePath;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -696,6 +729,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoPlane;
             this.objectGuid = planeComponent.InstanceGuid;
             this.planesAndTreePath = planesAndTreePath;
+            this.commandID = Guid.NewGuid();
+
         }
 
         public override string ToString()
@@ -719,6 +754,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.MoveComponent;
             this.moveGuids = moveGuids;
             this.vector = vector;
+            this.commandID = Guid.NewGuid();
+
             //this.objXs = objXs;
             //this.objYs = objYs;
         }
@@ -745,6 +782,8 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoCanvasSync;
             this.objectGuid = Guid.Empty;
             this.xmlString = xmlString;
+            this.commandID = Guid.NewGuid();
+
         }
 
     }
@@ -759,6 +798,8 @@ namespace RemoSharp.RemoCommandTypes
             this.issuerID = issuerID;
             this.commandType = CommandType.WireHistory;
             this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+
 
             List<WireConnection> wireHistory = new List<WireConnection>();
 
@@ -814,6 +855,7 @@ namespace RemoSharp.RemoCommandTypes
 
             this.sourceGuids= sourceGuids;
             this.sourceIndecies = sourceIndecies;
+
 
             if (input.Attributes.Parent == null) this.inputIndex = -1;
             else

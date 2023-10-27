@@ -26,17 +26,13 @@ namespace RemoSharp.RemoParams
     {
         ToggleSwitch enableSwitch;
         //WebSocket client;
-        PushButton shareButton;
+        //PushButton setupButton;
         bool approximateCoords = false;
         int setupIndex = 0;
         Guid hoverComponentGuid = Guid.Empty;
         bool mouseLeftDown = false;
         public bool enableRemoParam = true;
         bool localEnable = false;
-        
-
-        Guid syncCompGuid = Guid.Empty;
-
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
         /// </summary>

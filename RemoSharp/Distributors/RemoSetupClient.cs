@@ -31,6 +31,8 @@ using WebSocketSharp;
 using System.Diagnostics.PerformanceData;
 using System.Text;
 using System.Threading.Tasks;
+using Grasshopper.GUI.Base;
+using Grasshopper.Kernel.Special;
 
 namespace RemoSharp
 {
@@ -62,16 +64,16 @@ namespace RemoSharp
         //ToggleSwitch transparencySwitch;
         ToggleSwitch enableSwitch;
 
-        bool enable = false;
-        bool movingMode = false;
-        bool subscribed = false;
+        public bool enable = false;
+        public bool movingMode = false;
+        public bool subscribed = false;
 
         int counterTest = 0;
 
-        //public List<Guid> remoCreatedcomponens = new List<Guid>();
+        public List<Guid> remoCommandIDs = new List<Guid>();
 
-        string username = "";
-        string password = "";
+        public string username = "";
+        public string password = "";
 
         float[] downPnt = { 0, 0 };
         float[] upPnt = { 0, 0 };
@@ -588,7 +590,7 @@ namespace RemoSharp
         private void Client_OnMessage(object sender, MessageEventArgs e)
         {
 
-            messages.Add(e.Data);
+                    messages.Add(e.Data);
             if (!this.keepRecord)
             {
 
