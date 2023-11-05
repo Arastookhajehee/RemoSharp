@@ -33,9 +33,11 @@ namespace RemoSharp.RemoParams
         bool mouseLeftDown = false;
         public bool enableRemoParam = true;
         bool localEnable = false;
+
+        Guid associatedRpmData = Guid.Empty;
         
 
-        Guid syncCompGuid = Guid.Empty;
+        public Guid syncCompGuid = Guid.Empty;
 
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
@@ -45,6 +47,7 @@ namespace RemoSharp.RemoParams
               "Syncs parameter accross connected computers.",
               "RemoSharp", "RemoParams")
         {
+            this.syncCompGuid = Guid.NewGuid();
         }
 
         
@@ -58,10 +61,10 @@ namespace RemoSharp.RemoParams
             //pManager.AddGenericParameter("Websocket Objects", "WSC", "websocket objects", GH_ParamAccess.item);
             //pManager.AddTextParameter("username","user","The username of the current GH document",GH_ParamAccess.item,"");
 
-            //setupButton = new PushButton("Set Up",
-            //            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
-            //setupButton.OnValueChanged += seupButton_OnValueChanged;
-            //AddCustomControl(setupButton);
+            shareButton = new PushButton("Set Up",
+                        "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
+            shareButton.OnValueChanged += shareButton_OnValueChanged;
+            AddCustomControl(shareButton);
 
             enableSwitch = new ToggleSwitch("Enable", "It has to be turned on if we want interactions with the server", false);
             enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
@@ -79,53 +82,22 @@ namespace RemoSharp.RemoParams
         }
 
 
-        /* setup button parts
-        private void seupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void shareButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
             if (!currentValue) return;
 
-            int sourceCompIndex = -1;
-            int targetCompIndex = -1;
-
-            this.Params.Input[2].WireDisplay = GH_ParamWireDisplay.hidden;
-            this.Params.Input[3].WireDisplay = GH_ParamWireDisplay.hidden;
-
-            this.Params.Input[2].Sources.Clear();
-            this.Params.Input[3].Sources.Clear();
-
-            var objects = this.OnPingDocument().Objects;
-            for (int i = 0; i < objects.Count; i++)
+            var selection = this.OnPingDocument().SelectedObjects();
+            foreach (var item in selection)
             {
-                var component = this.OnPingDocument().Objects[i];
-                string componentType = component.GetType().ToString();
-                if (componentType.Equals("RemoSharp.RemoSetupClient")) sourceCompIndex = i;
-                if (componentType.Equals("RemoSharp.RemoCompTarget")) targetCompIndex = i;
+
             }
-       
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                //RemoCompTarget targetComp = (RemoCompTarget)objects[targetCompIndex];
-                //WsClientSend sendComp = (WsClientSend)targetComp.Params.Output[0].Recipients[0].Attributes.Parent.DocObject;
-                //this.Params.Input[2].AddSource(sendComp.Params.Input[0].Sources[0]);
-
-                RemoSetupClient sourceComp = (RemoSetupClient)objects[sourceCompIndex];
-                //RemoSharp.WebSocketClient.WebSocketClient wsclient = (RemoSharp.WebSocketClient.WebSocketClient)
-                          //sourceComp.Params.Input[1].Sources[0].Attributes.Parent.DocObject;
-                GH_Panel userPanel = (GH_Panel)sourceComp.Params.Input[3].Sources[0];
-                this.Params.Input[2].AddSource(sourceComp.Params.Output[0]);
-                this.Params.Input[3].AddSource(userPanel);
-                client = sourceComp.client;
-
-            });
-
 
         }
         
-        */
-            /// <summary>
-            /// Registers all the output parameters for this component.
-            /// </summary>
+        /// <summary>
+        /// Registers all the output parameters for this component.
+        /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
         }
@@ -235,7 +207,7 @@ namespace RemoSharp.RemoParams
 
                     bool interactingWithSlider = hoverComponentGuid == slider.InstanceGuid && mouseLeftDown;
                     if (!interactingWithSlider) remoCommandJson = "";
-                    this.Message = "";
+                    //this.Message = "";
 
                     break;
                 case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
@@ -245,7 +217,7 @@ namespace RemoSharp.RemoParams
 
                     if (hoverComponentGuid != button.InstanceGuid) remoCommandJson = "";
 
-                    this.Message = "";
+                    //this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
                     GH_BooleanToggle toggle = (GH_BooleanToggle)inputComp;
@@ -254,13 +226,13 @@ namespace RemoSharp.RemoParams
 
                     if (hoverComponentGuid != toggle.InstanceGuid) remoCommandJson = "";
 
-                    this.Message = "";
+                    //this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_Panel"):
                     GH_Panel panel = (GH_Panel)inputComp;
                     RemoParamPanel remoPanel = new RemoParamPanel(username, panel);
                     remoCommandJson = RemoCommand.SerializeToJson(remoPanel);
-                    this.Message = "";
+                    //this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
                     GH_ColourSwatch colourSwatch = (GH_ColourSwatch)inputComp;
@@ -273,7 +245,7 @@ namespace RemoSharp.RemoParams
                     //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Color Component does not send data!");
                     //}
 
-                    this.Message = "";
+                    //this.Message = "";
                     break;
                 case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
                     GH_MultiDimensionalSlider mdSlider = (GH_MultiDimensionalSlider)inputComp;
@@ -283,7 +255,7 @@ namespace RemoSharp.RemoParams
                     bool interactingWithMDSlider = hoverComponentGuid == mdSlider.InstanceGuid && mouseLeftDown;
                     if (!interactingWithMDSlider) remoCommandJson = "";
 
-                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
+                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Point"):
                     IGH_Param paramComp = (IGH_Param)inputComp;
@@ -294,7 +266,7 @@ namespace RemoSharp.RemoParams
                     RemoParamPoint3d points = new RemoParamPoint3d(username, pointComponent, pntTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(points);
 
-                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
+                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
 
                     //if (!inputComp.Attributes.Selected) remoCommandJson = "";
                     //if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
@@ -309,7 +281,7 @@ namespace RemoSharp.RemoParams
                     remoCommandJson = RemoCommand.SerializeToJson(vectors);
 
 
-                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
+                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
                 case ("Grasshopper.Kernel.Parameters.Param_Plane"):
                     Param_Plane planeComponent = (Param_Plane)inputComp;
@@ -319,7 +291,7 @@ namespace RemoSharp.RemoParams
                     RemoParamPlane planes = new RemoParamPlane(username, planeComponent, planeTree, this.approximateCoords);
                     remoCommandJson = RemoCommand.SerializeToJson(planes);
 
-                    this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
+                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
                     break;
 
                 default:

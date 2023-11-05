@@ -1091,16 +1091,45 @@ namespace RemoSharp
             sliderComp.Slider.DecimalPlaces = remoSlider.decimalPlaces;
             sliderComp.Slider.Type = (GH_SliderAccuracy)remoSlider.sliderType;
 
+
+            var rpmComps = sliderComp.Recipients.Where(obj => obj.Attributes.Parent != null)
+                .Where(obj => obj.Attributes.Parent.DocObject != null)
+                .Where(obj => obj.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
+
+
+            var rpmComp = (RemoSharp.RemoParams.RemoParam)rpmComps[0].Attributes.Parent.DocObject;
+
+            string rpmNickname = rpmComp.Message;
+
+            var dataComps = this.OnPingDocument().Objects.Where(obj => obj is GH_Component).Select(obj => (GH_Component)obj).ToList();
+            //&& !obj.GetType().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
+            //.Select(obj => (RemoParamData) obj).ToList()[0];
+
+            var dataComp = dataComps.Where(obj => obj.Message != null).ToList();
+            
+            var dataComponent = dataComp.Where(obj => obj.Message.Contains("RPM")).ToList();
+
+            var dataC = dataComponent.Where(obj => obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParamData")).ToList();
+
+            var remoParamDataComponent = (RemoSharp.RemoParams.RemoParamData)dataC[0];
+
+            string nickname = "";
+
+            //string nickname2 = datacomp.NickName;
+
+
+
+
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                //var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
-                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(sliderComp.InstanceGuid);
-                remoParamComp.enableRemoParam = false;
+                ////var gh_components = this.OnPingDocument().Objects.Select(tempComponent => tempComponent.InstanceGuid).ToList();
+                //RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(sliderComp.InstanceGuid);
+                //remoParamComp.enableRemoParam = false;
 
-                sliderComp.SetSliderValue(remoSlider.sliderValue);
-                sliderComp.ExpireSolution(false);
+                remoParamDataComponent.remoSliderValue = remoSlider.sliderValue;
+                remoParamDataComponent.ExpireSolution(false);
 
-                remoParamComp.enableRemoParam = true;
+                //remoParamComp.enableRemoParam = true;
             });
         }
 
@@ -1417,6 +1446,37 @@ namespace RemoSharp
             
         }
 
+        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
+        {
+            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects.Where(comps => comps.GetType().ToString().Equals(rpmType))
+                                    .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
+
+
+            List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
+
+            rpmIndeceis.Sort();
+
+            int lastRPMIndex = rpmIndeceis[rpmIndeceis.Count - 1];
+
+            string newRpmNickname = string.Format("RPM{0}", lastRPMIndex + 1);
+
+            var cast = (RemoSharp.RemoParams.RemoParam)obj;
+            cast.Message = newRpmNickname;
+
+            var rpmPivot = obj.Attributes.Pivot;
+            PointF dataPivot = new PointF(rpmPivot.X - 54, rpmPivot.Y + 103);
+
+            RemoParamData dataComp = new RemoParamData();
+            dataComp.CreateAttributes();
+            dataComp.Attributes.Pivot = dataPivot;
+            dataComp.Params.RepairParamAssociations();
+            dataComp.Message = newRpmNickname;
+
+            this.OnPingDocument().ScheduleSolution(0, doc =>
+            {
+                this.OnPingDocument().AddObject(dataComp, false);
+            });
+        }
         private void ExcecuteMove(RemoMove moveCommand)
         {
             if (this.MoveCommands.Contains(moveCommand.translationGuid)) return;
@@ -1808,6 +1868,14 @@ namespace RemoSharp
                 thisDoc.AddObject(gh_Component, false);
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(gh_Component.Attributes.Pivot);
                 //this.OnPingDocument().Select(grip, false, true);
+
+                string rpmType = "RemoSharp.RemoParams.RemoParam";
+                if (gh_Component.GetType().ToString().Equals(rpmType))
+                {
+                    AddRemoParamDataComponent(gh_Component, rpmType);
+
+                }
+
             }
             catch
             {

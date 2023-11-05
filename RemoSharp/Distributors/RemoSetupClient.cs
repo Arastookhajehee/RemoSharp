@@ -925,11 +925,19 @@ namespace RemoSharp
                     case ("Grasshopper.Kernel.Parameters.Param_Vector"):
                     case ("Grasshopper.Kernel.Parameters.Param_Plane"):
                         obj.NickName = "local";
-
+                    
                         break;
-
+                    case ("RemoSharp.RemoParams.RemoParamData"):
+                        continue;
                     default:
                         break;
+                }
+
+                string rpmType = "RemoSharp.RemoParams.RemoParam";
+                if (compTypeString.Equals(rpmType))
+                {
+                    AddRemoParamDataComponent(obj, rpmType);
+
                 }
 
                 // check to see if this component has been created from remocreate command coming from outsite
@@ -1017,6 +1025,38 @@ namespace RemoSharp
             upPnt[1] = 0;
             interaction = null;
 
+        }
+
+        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
+        {
+            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects.Where(comps => comps.GetType().ToString().Equals(rpmType))
+                                    .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
+
+
+            List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
+
+            rpmIndeceis.Sort();
+
+            int lastRPMIndex = rpmIndeceis[rpmIndeceis.Count - 1];
+
+            string newRpmNickname = string.Format("RPM{0}", lastRPMIndex + 1);
+
+            var cast = (RemoSharp.RemoParams.RemoParam)obj;
+            cast.Message = newRpmNickname;
+
+            var rpmPivot = obj.Attributes.Pivot;
+            PointF dataPivot = new PointF(rpmPivot.X - 54, rpmPivot.Y + 103);
+
+            RemoParamData dataComp = new RemoParamData();
+            dataComp.CreateAttributes();
+            dataComp.Attributes.Pivot = dataPivot;
+            dataComp.Params.RepairParamAssociations();
+            dataComp.Message = newRpmNickname;
+
+            this.OnPingDocument().ScheduleSolution(0, doc =>
+            {
+                this.OnPingDocument().AddObject(dataComp, false);
+            });
         }
 
 

@@ -305,6 +305,8 @@ namespace RemoSharp.RemoCommandTypes
         public List<bool> isSpecials;
         public List<string> specialParameters_s;
         public List<WireHistory> wireHistorys;
+        public List<Guid> associatedObjectGuids;
+
 
         public RemoCreate()
         {
@@ -332,6 +334,30 @@ namespace RemoSharp.RemoCommandTypes
             this.specialParameters_s = specialParameters_s;
             this.wireHistorys = wireHistorys;
             this.commandID = Guid.NewGuid();
+
+        }
+        public RemoCreate(string issuerID, List<Guid> guids, List<Guid> associatedObjectGuids,
+            List<string> componentTypes,
+            List<string> nickNames,
+            List<int> Xs,
+            List<int> Ys,
+            List<bool> isSpecials,
+            List<string> specialParameters_s,
+            List<WireHistory> wireHistorys)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.Create;
+            this.objectGuid = Guid.Empty;
+            this.guids = guids;
+            this.componentTypes = componentTypes;
+            this.nickNames = nickNames;
+            this.Xs = Xs;
+            this.Ys = Ys;
+            this.isSpecials = isSpecials;
+            this.specialParameters_s = specialParameters_s;
+            this.wireHistorys = wireHistorys;
+            this.commandID = Guid.NewGuid();
+            this.associatedObjectGuids = associatedObjectGuids;
 
         }
 
@@ -855,7 +881,6 @@ namespace RemoSharp.RemoCommandTypes
 
             this.sourceGuids= sourceGuids;
             this.sourceIndecies = sourceIndecies;
-
 
             if (input.Attributes.Parent == null) this.inputIndex = -1;
             else
