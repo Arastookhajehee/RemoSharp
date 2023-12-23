@@ -22,6 +22,7 @@ namespace RemoSharp.WebSocketClient
         bool keepAlive = false;
         bool needsRestart = false;
 
+
         public ToggleSwitch autoUpdateSwitch;
         public ToggleSwitch keepRecordSwitch;
         ToggleSwitch listenSwitch;
@@ -124,9 +125,13 @@ namespace RemoSharp.WebSocketClient
 
             if (connect)
             {
-                if (client == null || needsRestart) client = new WebSocket(url);
+                if (client == null || needsRestart)
+                {
+                    client = new WebSocket(url);
+                    client.Connect();
+                }
 
-                if (!client.IsAlive)
+                if (false)
                 {
                     this.Message = "Connecting...";
                     client.Close();

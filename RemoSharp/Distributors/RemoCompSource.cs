@@ -705,12 +705,7 @@ namespace RemoSharp
 
             List<Guid> guids = new List<Guid>();
             List<string> componentTypes = new List<string>();
-            List<string> nickNames = new List<string>();
-            List<int> Xs = new List<int>();
-            List<int> Ys = new List<int>();
-            List<bool> isSpecials = new List<bool>();
             List<string> specialParameters_s = new List<string>();
-            List<WireHistory> wireHistories = new List<WireHistory>();
 
 
             var objs = e.Objects;
@@ -750,11 +745,7 @@ namespace RemoSharp
 
                 //adding info for RemoCreate Command
                 guids.Add(newCompGuid);
-                nickNames.Add(newCompNickName);
                 componentTypes.Add(compTypeString);
-                Xs.Add((int)pivot.X);
-                Ys.Add((int)pivot.Y);
-                wireHistories.Add(new WireHistory(username,obj));
 
 
                 if (obj is IGH_Component)
@@ -778,7 +769,6 @@ namespace RemoSharp
                     var sliderType = sliderComponent.Slider.Type;
                     string specialParts = minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
 
-                    isSpecials.Add(true);
                     specialParameters_s.Add(specialParts);
                 }
                 else if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_Panel"))
@@ -795,12 +785,10 @@ namespace RemoSharp
                     string content = panelComponent.UserText;
                     string specialParts = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
 
-                    isSpecials.Add(true);
                     specialParameters_s.Add(specialParts);
                 }
                 else
                 {
-                    isSpecials.Add(false);
                     specialParameters_s.Add("");
                 }
 
@@ -809,8 +797,8 @@ namespace RemoSharp
 
             if (guids.Count > 0)
             {
-                command = new RemoCreate(username, guids, componentTypes, nickNames,
-                Xs, Ys, isSpecials, specialParameters_s, wireHistories);
+                //command = new RemoCreate(username, guids, componentTypes, nickNames,
+                //Xs, Ys, isSpecials, specialParameters_s, wireHistories);
 
                 SendCommands(command, commandRepeat, enable);
             }

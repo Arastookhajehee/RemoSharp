@@ -33,6 +33,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Grasshopper.GUI.Base;
 using Grasshopper.Kernel.Special;
+using System.ComponentModel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 
 namespace RemoSharp
 {
@@ -68,6 +71,10 @@ namespace RemoSharp
         public bool movingMode = false;
         public bool subscribed = false;
 
+        public bool remoParamModeActive = false;
+        public bool doubleClicked = false;
+        public PointF mouseLocation = PointF.Empty;
+
         int counterTest = 0;
 
         public List<Guid> remoCommandIDs = new List<Guid>();
@@ -79,7 +86,6 @@ namespace RemoSharp
         float[] upPnt = { 0, 0 };
 
         PushButton setupButton;
-
 
         float[] PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e)
         {
@@ -169,6 +175,7 @@ namespace RemoSharp
         {
             enable = Convert.ToBoolean(e.Value);
 
+
             if (enable)
             {
                 if (!subscribed)
@@ -192,6 +199,13 @@ namespace RemoSharp
                     this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
                     #endregion
 
+                    #region remoparam mouse move
+                    Grasshopper.Instances.ActiveCanvas.MouseMove += ActiveCanvas_MouseMove;
+                    Grasshopper.Instances.ActiveCanvas.KeyDown += ActiveCanvas_KeyDown;
+                    Grasshopper.Instances.ActiveCanvas.KeyUp += ActiveCanvas_KeyUp;
+                    #endregion
+
+
                     subscribed = true;
                 }
             }
@@ -212,10 +226,75 @@ namespace RemoSharp
                 this.OnPingDocument().ObjectsDeleted -= RemoCompSource_ObjectsDeleted;
                 #endregion
 
+                #region remoparam mouse move
+                Grasshopper.Instances.ActiveCanvas.MouseMove -= ActiveCanvas_MouseMove;
+                Grasshopper.Instances.ActiveCanvas.KeyDown -= ActiveCanvas_KeyDown;
+                Grasshopper.Instances.ActiveCanvas.KeyUp -= ActiveCanvas_KeyUp;
+                #endregion
+
                 subscribed = false;
             }
 
             this.ExpireSolution(true);
+        }
+
+        private void ActiveCanvas_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.KeyUp -= ActiveCanvas_KeyUp;
+                Grasshopper.Instances.ActiveCanvas.KeyDown -= ActiveCanvas_KeyUp;
+            }
+            if (this.OnPingDocument() == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.KeyUp -= ActiveCanvas_KeyUp;
+                Grasshopper.Instances.ActiveCanvas.KeyDown -= ActiveCanvas_KeyUp;
+            }
+            if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
+            {
+                this.remoParamModeActive = false;
+                var gh_groups = this.OnPingDocument().Objects;
+                System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
+                {
+                    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
+                    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
+                    if(group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+
+                });
+
+            }
+        }
+
+        private void ActiveCanvas_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (this == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.KeyUp -= ActiveCanvas_KeyUp;
+                Grasshopper.Instances.ActiveCanvas.KeyDown -= ActiveCanvas_KeyUp;
+            }
+            if (this.OnPingDocument() == null)
+            {
+                Grasshopper.Instances.ActiveCanvas.KeyUp -= ActiveCanvas_KeyUp;
+                Grasshopper.Instances.ActiveCanvas.KeyDown -= ActiveCanvas_KeyUp;
+            }
+            if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
+            {
+                this.remoParamModeActive= true;
+                var gh_groups = this.OnPingDocument().Objects;
+                System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
+                {
+                    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
+                    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
+                    if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(125, 225, 100, 250);
+                });
+            }
+        }
+
+        private void ActiveCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
+            Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
+            this.mouseLocation = mouseEvent.CanvasLocation;
         }
 
         private void MovingModeSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -600,7 +679,6 @@ namespace RemoSharp
                 }
             }
 
-
             try
             {
                 Grasshopper.Kernel.GH_Document thisGH_Doc = this.OnPingDocument();
@@ -781,9 +859,12 @@ namespace RemoSharp
                     string targetNickname = targetParentComponent.NickName;
                     string listItemParamNickname = connectionInteraction.source.NickName;
 
-                    command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid,
-                        outIndex, inIndex, outIsSpecial, inIsSpecial, connectionInteraction.RemoConnectType, sourceX, sourceY, targetX, targetY,
-                        sourceNickname, targetNickname, listItemParamNickname);
+                    string outCompXML = GetXMLCodeFromGuid(outGuid);
+                    string inCompXML = GetXMLCodeFromGuid(inGuid);
+
+
+                    command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, connectionInteraction.RemoConnectType,
+                        outCompXML, inCompXML);
                     SendCommands(command, commandRepeat, enable);
 
                 }
@@ -822,6 +903,7 @@ namespace RemoSharp
                         List<Guid> moveGuids = selection.Select(obj => obj.InstanceGuid).ToList();
                         float xDiff = upPntX - downPntX;
                         float yDiff = upPntY - downPntY;
+
                         command = new RemoMove(username, moveGuids, new Size((int)xDiff, (int)yDiff));
 
                         if (movingMode)
@@ -845,6 +927,16 @@ namespace RemoSharp
 
         }
 
+        private string GetXMLCodeFromGuid(Guid guid)
+        {
+            var component = this.OnPingDocument().FindObject(guid, false);
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+
+            component.Write(chunk);
+            return chunk.Serialize_Xml();
+        }
+
         public void RemoCompSource_ObjectsDeleted(object sender, GH_DocObjectEventArgs e)
         {
             List<Guid> deleteGuids = new List<Guid>();
@@ -860,10 +952,13 @@ namespace RemoSharp
             foreach (var obj in objs)
             {
                 //// a part of the recursive component creation message sending check
-                //if (this.remoCreatedcomponens.Contains(obj.InstanceGuid))
+                //if (this.remoCreatedcomponens.Contains(dupObj.InstanceGuid))
                 //{
-                //    remoCreatedcomponens.Remove(obj.InstanceGuid);
+                //    remoCreatedcomponens.Remove(dupObj.InstanceGuid);
                 //}
+
+                //if (obj.GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Relay")) continue;
+
                 deleteGuids.Add(obj.InstanceGuid);
 
                 if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
@@ -896,13 +991,10 @@ namespace RemoSharp
             }
 
             List<Guid> guids = new List<Guid>();
+            List<string> associatedAttributes = new List<string>();
             List<string> componentTypes = new List<string>();
-            List<string> nickNames = new List<string>();
-            List<int> Xs = new List<int>();
-            List<int> Ys = new List<int>();
-            List<bool> isSpecials = new List<bool>();
-            List<string> specialParameters_s = new List<string>();
-            List<WireHistory> wireHistories = new List<WireHistory>();
+            List<string> componentStructures = new List<string>();
+            List<string> specialParameters = new List<string>();
 
 
             var objs = e.Objects;
@@ -915,29 +1007,59 @@ namespace RemoSharp
 
                 switch (compTypeString)
                 {
+                    case ("Grasshopper.Kernel.Special.GH_Group"):
+                        continue;
                     case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                        //obj.NickName = "local";
+                        obj.SolutionExpired += RemoParameterizeSlider;
+                        GroupObjParam(obj);
+                        break;
                     case ("Grasshopper.Kernel.Special.GH_Panel"):
+                        //obj.NickName = "local";
+                        obj.SolutionExpired += RemoParameterizePanel;
+                        GroupObjParam(obj);
+                        break;
                     case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                        //obj.NickName = "local";
+                        obj.SolutionExpired += RemoParameterizeColor;
+                        GroupObjParam(obj,RemoParam.RemoParamSelectionKeyword);
+                        break;
                     case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                        obj.SolutionExpired += RemoParameterizeMDSlider;
+                        GroupObjParam(obj);
+                        break;
                     case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                        obj.SolutionExpired += RemoParameterizeToggle;
+                        GroupObjParam(obj);
+                        break;
                     case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                        //obj.NickName = "local";
+                        obj.SolutionExpired += RemoParameterizeButton;
+                        GroupObjParam(obj);
+                        break;
                     case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                        //obj.NickName = "local";
+                        break;
                     case ("Grasshopper.Kernel.Parameters.Param_Vector"):
+                        break;
                     case ("Grasshopper.Kernel.Parameters.Param_Plane"):
-                        obj.NickName = "local";
-                    
+                        //obj.NickName = "local";
                         break;
                     case ("RemoSharp.RemoParams.RemoParamData"):
                         continue;
+                    case ("ScriptComponents.Component_CSNET_Script"):
+                        ScriptComponents.Component_CSNET_Script csComponent = (ScriptComponents.Component_CSNET_Script) obj;
+                        
+                        break;
                     default:
                         break;
                 }
 
+                string associatedAttribute = "";
                 string rpmType = "RemoSharp.RemoParams.RemoParam";
                 if (compTypeString.Equals(rpmType))
                 {
-                    AddRemoParamDataComponent(obj, rpmType);
-
+                    associatedAttribute = AddRemoParamDataComponent(obj, rpmType);
                 }
 
                 // check to see if this component has been created from remocreate command coming from outsite
@@ -950,69 +1072,54 @@ namespace RemoSharp
 
                 //adding info for RemoCreate Command
                 guids.Add(newCompGuid);
-                nickNames.Add(newCompNickName);
+                associatedAttributes.Add(associatedAttribute);
                 componentTypes.Add(compTypeString);
-                Xs.Add((int)pivot.X);
-                Ys.Add((int)pivot.Y);
-                wireHistories.Add(new WireHistory(username, obj));
 
+                // from David Rutten's code from a google search
+                // TO DO: add link to website
+                var chunk = new GH_LooseChunk(null);
+                obj.Write(chunk);
 
-                if (obj is IGH_Component)
-                {
-                    IGH_Component objComponent = (IGH_Component)obj;
-                }
-                else if (obj is IGH_Param)
-                {
-                    IGH_Param objParam = (IGH_Param)obj;
-                }
+                string xml = chunk.Serialize_Xml();
+                specialParameters.Add(xml);
 
-
-
-                if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_NumberSlider"))
-                {
-                    Grasshopper.Kernel.Special.GH_NumberSlider sliderComponent = (Grasshopper.Kernel.Special.GH_NumberSlider)obj;
-                    decimal minBound = sliderComponent.Slider.Minimum;
-                    decimal maxBound = sliderComponent.Slider.Maximum;
-                    decimal currentValue = sliderComponent.Slider.Value;
-                    int accuracy = sliderComponent.Slider.DecimalPlaces;
-                    var sliderType = sliderComponent.Slider.Type;
-                    string specialParts = minBound + "," + maxBound + "," + currentValue + "," + accuracy + "," + sliderType;
-
-                    isSpecials.Add(true);
-                    specialParameters_s.Add(specialParts);
-                }
-                else if (compTypeString.Equals("Grasshopper.Kernel.Special.GH_Panel"))
-                {
-                    Grasshopper.Kernel.Special.GH_Panel panelComponent = (Grasshopper.Kernel.Special.GH_Panel)obj;
-                    bool multiLine = panelComponent.Properties.Multiline;
-                    bool drawIndicies = panelComponent.Properties.DrawIndices;
-                    bool drawPaths = panelComponent.Properties.DrawPaths;
-                    bool wrap = panelComponent.Properties.Wrap;
-                    Grasshopper.Kernel.Special.GH_Panel.Alignment alignment = panelComponent.Properties.Alignment;
-                    float panelSizeX = panelComponent.Attributes.Bounds.Width;
-                    float panelSizeY = panelComponent.Attributes.Bounds.Height;
-
-                    string content = panelComponent.UserText;
-                    string specialParts = multiLine + "," + drawIndicies + "," + drawPaths + "," + wrap + "," + alignment.ToString() + "," + panelSizeX + "," + panelSizeY + "," + content;
-
-                    isSpecials.Add(true);
-                    specialParameters_s.Add(specialParts);
+                if (!compTypeString.Contains("IronPython.NewTypes.GhPython.Assemblies.DotNetCompiledComponent"))
+                { 
+                    componentStructures.Add(RecognizeStructure(compTypeString, xml, newCompGuid)); 
                 }
                 else
                 {
-                    isSpecials.Add(false);
-                    specialParameters_s.Add("");
+                    componentStructures.Add("");
                 }
-
-
             }
 
             if (guids.Count > 0)
             {
-                command = new RemoCreate(username, guids, componentTypes, nickNames,
-                Xs, Ys, isSpecials, specialParameters_s, wireHistories);
+                if (guids.Count == 1 && componentTypes[0].Equals("Grasshopper.Kernel.Special.GH_Relay"))
+                {
+                    
+                    var relay = (objs[0] as GH_Relay);
 
-                SendCommands(command, commandRepeat, enable);
+                    IGH_Param sourceOutput = null;
+                    IGH_Param targetInput = null;
+                    var ghEvent = this.OnPingDocument().FindWireAt(new PointF(mouseLocation.X,mouseLocation.Y),5,ref sourceOutput, ref targetInput);
+
+                    Guid sourceGuid = sourceOutput.InstanceGuid;
+                    Guid targetguid = targetInput.InstanceGuid;
+                    int sourceOutputIndex = sourceOutput.Attributes.Parent == null ? -1 : FindOutputIndexFromGH_Param(sourceOutput, out sourceGuid);
+                    int targetInputIndex = targetInput.Attributes.Parent == null ? -1 : FindInputIndexFromGH_Param(targetInput, out targetguid);
+
+                    command = new RemoRelay(username,relay,sourceGuid,targetguid,sourceOutputIndex,targetInputIndex);
+                    SendCommands(command, commandRepeat, enable);
+                    
+                }
+                else
+                {
+                    command = new RemoCreate(username, guids, associatedAttributes, componentTypes, componentStructures, specialParameters);
+
+                    SendCommands(command, commandRepeat, enable);
+                }
+                
             }
             else
             {
@@ -1027,10 +1134,176 @@ namespace RemoSharp
 
         }
 
-        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
+        private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
         {
-            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects.Where(comps => comps.GetType().ToString().Equals(rpmType))
-                                    .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
+            IGH_Component comp = (IGH_Component)sourceOutput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Output.IndexOf(sourceOutput);
+        }
+
+        private int FindInputIndexFromGH_Param(IGH_Param targetInput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)targetInput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Input.IndexOf(targetInput);
+        }
+
+        public void RemoParameterizeMDSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeMDSlider;
+            Grasshopper.Kernel.Special.GH_MultiDimensionalSlider param = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)sender;
+
+            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+            {
+                RemoParamMDSlider remoParam = new RemoParamMDSlider(this.username, param,false);
+                string json = RemoCommand.SerializeToJson(remoParam);
+                this.client.Send(json);
+            }
+        }
+
+        public void RemoParameterizeToggle(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeToggle;
+            Grasshopper.Kernel.Special.GH_BooleanToggle param = (Grasshopper.Kernel.Special.GH_BooleanToggle)sender;
+
+            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+            {
+                RemoParamToggle remoParam = new RemoParamToggle(this.username, param);
+                string json = RemoCommand.SerializeToJson(remoParam);
+                this.client.Send(json);
+            }
+        }
+
+        public void RemoParameterizeColor(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeColor;
+            Grasshopper.Kernel.Special.GH_ColourSwatch param = (Grasshopper.Kernel.Special.GH_ColourSwatch)sender;
+
+            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected)
+            {
+                RemoParamColor remoParam = new RemoParamColor(this.username, param);
+                string json = RemoCommand.SerializeToJson(remoParam);
+                this.client.Send(json);
+            }
+        }
+
+        public void RemoParameterizePanel(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePanel;
+            Grasshopper.Kernel.Special.GH_Panel param = (Grasshopper.Kernel.Special.GH_Panel)sender;
+
+            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
+            {               
+                RemoParamPanel remoParam = new RemoParamPanel(this.username, param);
+                string json = RemoCommand.SerializeToJson(remoParam);
+                this.client.Send(json);
+            }
+        }
+
+        public void RemoParameterizeButton(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeButton;
+            Grasshopper.Kernel.Special.GH_ButtonObject param = (Grasshopper.Kernel.Special.GH_ButtonObject)sender;
+
+            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+            {
+                
+                RemoParamButton remoParam = new RemoParamButton(this.username, param);
+                string json = RemoCommand.SerializeToJson(remoParam);
+                this.client.Send(json);
+            }
+        }
+
+        public void RemoParameterizePointParam(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            //try
+            //{
+                if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePointParam;
+                Grasshopper.Kernel.Parameters.Param_Point param = (Grasshopper.Kernel.Parameters.Param_Point)sender;
+
+                IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+                if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
+                {
+                    GH_LooseChunk chunk = new GH_LooseChunk(null);
+                    param.WriteFull(chunk);
+                    RemoParamPoint3d remoParam = new RemoParamPoint3d(this.username, param);
+                    string json = RemoCommand.SerializeToJson(remoParam);
+                    this.client.Send(json);
+                }
+
+            //}
+            //catch
+            //{
+            //    Console.WriteLine("sync problem");
+            //}
+            
+        }
+
+        
+
+        public void RemoParameterizeSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+            try
+            {
+                if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeSlider;
+                Grasshopper.Kernel.Special.GH_NumberSlider param = (Grasshopper.Kernel.Special.GH_NumberSlider)sender;
+
+                IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+                if (status.tabKeyIsDown && status.isRemoParamGrouped)
+                {
+
+                    RemoParamSlider remoParamSlider = new RemoParamSlider(this.username, param);
+                    string json = RemoCommand.SerializeToJson(remoParamSlider);
+                    this.client.Send(json);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("sync problem");
+
+            }
+
+        }
+
+        public void GroupObjParam(IGH_DocumentObject obj)
+        {
+            GH_Group group = new GH_Group();
+            group.CreateAttributes();
+            group.AddObject(obj.InstanceGuid);
+            group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+            group.NickName = RemoParam.RemoParamKeyword;
+
+            this.OnPingDocument().AddObject(group, false);
+        }
+
+        public void GroupObjParam(IGH_DocumentObject obj, string extraText)
+        {
+            GH_Group group = new GH_Group();
+            group.CreateAttributes();
+            group.AddObject(obj.InstanceGuid);
+            group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+            group.NickName = RemoParam.RemoParamKeyword + extraText;
+
+            this.OnPingDocument().AddObject(group, false);
+        }
+
+        private string AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
+        {
+            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects
+                .Where(comps => comps.GetType().ToString().Equals(rpmType))
+                .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
 
 
             List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
@@ -1053,10 +1326,15 @@ namespace RemoSharp
             dataComp.Params.RepairParamAssociations();
             dataComp.Message = newRpmNickname;
 
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            dataComp.Write(chunk);
+
             this.OnPingDocument().ScheduleSolution(0, doc =>
             {
                 this.OnPingDocument().AddObject(dataComp, false);
             });
+
+            return chunk.Serialize_Xml();
         }
 
 
@@ -1121,6 +1399,128 @@ namespace RemoSharp
                 paramIndex = index;
                 isSpecial = false;
                 return foundComponent.InstanceGuid;
+            }
+
+        }
+
+        string RecognizeStructure(string typeName, string specialContent, Guid newCompGuid)
+        {
+            var thisDoc = this.OnPingDocument();
+            // converting the string format of the closest component to an actual type
+            var type = Type.GetType(typeName);
+            // most probable the type is going to return null
+            // for that we search through all the loaded dlls in Grasshopper and Rhino's application
+            // to find out which one matches that of the closest component
+            if (type == null)
+            {
+                // going through the loaded components
+                foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    // trying for all dll types unless one would return an actual type
+                    // since almost all of them give us null we check for this condition
+                    if (type == null)
+                    {
+                        type = a.GetType(typeName);
+                    }
+                }
+            }
+            // we can instantiate a class with this line based on the type we found in string format
+            // we have to cast it into an (IGH_DocumentObject) format so that we can access the methods
+            // that we need to add it to the grasshopper document
+            // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
+            var dupObj = (IGH_DocumentObject)Activator.CreateInstance(type);
+            // creating atts to create the pivot point
+            // this pivot point can be anywhere
+            dupObj.CreateAttributes();
+
+            var chunk2 = new GH_LooseChunk(null);
+            chunk2.Deserialize_Xml(specialContent);
+            dupObj.Read(chunk2);
+
+            dupObj.ExpireSolution(false);
+
+            if (dupObj is Grasshopper.Kernel.IGH_Component)
+            {
+                Grasshopper.Kernel.IGH_Component structure = (Grasshopper.Kernel.IGH_Component)dupObj;
+                foreach (var item in structure.Params.Input)
+                {
+                    item.RemoveAllSources();
+                }
+            }
+            else
+            {
+                Grasshopper.Kernel.IGH_Param structure = (Grasshopper.Kernel.IGH_Param)dupObj;
+                structure.RemoveAllSources();
+            }
+
+            var structureChunk = new GH_LooseChunk(null);
+            dupObj.Write(structureChunk);
+
+            string structureXml = structureChunk.Serialize_Xml();
+            return structureXml;
+
+        }
+
+        IGH_ParamConditionStatus FindIGH_ParamStatus(IGH_Param param)
+        {
+            bool isSelected = param.Attributes.Selected;
+            bool noInput = param.SourceCount < 1;
+
+            bool tabKeyIsDown = this.remoParamModeActive;
+
+            bool paramIsNotPointComp = param is Grasshopper.Kernel.Parameters.Param_Point;
+
+            bool isIn_gh_group = false;
+            bool mouseHoverOnExpiredParam = false;
+            if (tabKeyIsDown)
+            {
+
+                var gh_groups = this.OnPingDocument().Objects.AsParallel().AsUnordered()
+                    .Where(obj => obj is Grasshopper.Kernel.Special.GH_Group && obj.NickName.Contains(RemoParam.RemoParamKeyword))
+                    .Select(obj => (GH_Group) obj);
+                foreach (var item in gh_groups)
+                {
+                    if (item.ObjectIDs.Contains(param.InstanceGuid))
+                    {
+                        isIn_gh_group = true;
+                        break;
+                    }
+                }
+                if (isIn_gh_group && !paramIsNotPointComp)
+                {
+                    var hoverObj = Grasshopper.Instances.ActiveCanvas.Document.FindObject(this.mouseLocation, 2);
+                    if (hoverObj != null)
+                    {
+                        mouseHoverOnExpiredParam = hoverObj.InstanceGuid == param.InstanceGuid;
+                    }
+                }
+                
+            }
+
+            IGH_ParamConditionStatus status = new IGH_ParamConditionStatus(isSelected, noInput, tabKeyIsDown, isIn_gh_group, mouseHoverOnExpiredParam,paramIsNotPointComp);
+            return status;
+        }
+
+
+        public class IGH_ParamConditionStatus
+        {
+            public bool isSelected;
+            public bool noInput;
+            public bool tabKeyIsDown;
+            public bool mouseHoverOnExpiredParam;
+            public bool paramIsNotPointComp;
+            public bool isRemoParamGrouped;
+
+            public IGH_ParamConditionStatus
+                (bool isSelected, bool noInput, bool tabKeyIsDown, bool isRemoParamGrouped,
+             bool mouseHoverOnExpiredParam, bool paramIsNotPointComp)
+            {
+                this.isSelected = isSelected;
+                this.noInput = noInput;
+                this.tabKeyIsDown = tabKeyIsDown;
+                this.isRemoParamGrouped= isRemoParamGrouped;
+                this.mouseHoverOnExpiredParam = mouseHoverOnExpiredParam;
+                this.paramIsNotPointComp = paramIsNotPointComp;
             }
 
         }

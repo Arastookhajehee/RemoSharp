@@ -89,9 +89,9 @@
     <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
     <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
     <None Include="ScriptBackup\RemoParam.cs_backup" />
+    <Compile Include="RemoGeom\WriteToFile.cs" />
     <Compile Include="RemoParams\RemoParamData.cs" />
     <Compile Include="Utilities\GetObjByTag.cs" />
-    <Compile Include="Utilities\ListItemAccess.cs" />
     <Compile Include="Utilities\UniqueValues.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
@@ -289,6 +289,7 @@
   -->
   <PropertyGroup>
     <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
+Copy "$(TargetDir)" "C:\Users\akhaj\Dropbox\RemoSharp"
 Erase "$(TargetPath)"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
