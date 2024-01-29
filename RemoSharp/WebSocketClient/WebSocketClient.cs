@@ -18,18 +18,15 @@ namespace RemoSharp.WebSocketClient
     {
         public List<string> messages = new List<string>();
         public WebSocket client;
-        bool connect = false;
-        bool keepAlive = false;
-        bool needsRestart = false;
-
-
+        int connectionAttempts = 0;
+        
         public ToggleSwitch autoUpdateSwitch;
         public ToggleSwitch keepRecordSwitch;
-        ToggleSwitch listenSwitch;
+        public ToggleSwitch listenSwitch;
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
-        bool listen = true;
+        public bool listen = true;
 
         /// <summary>
         /// Initializes a new instance of the WebSocketClient class.
@@ -59,7 +56,6 @@ namespace RemoSharp.WebSocketClient
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             pManager.AddBooleanParameter("connect", "connect", "", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("KeepAlive", "keepAlive", "", GH_ParamAccess.item);
         }
 
         private void AutoUPdate_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -97,61 +93,58 @@ namespace RemoSharp.WebSocketClient
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            
+
+            bool connect = false;
+
             string url = "";
             DA.GetData(0,ref url);
             DA.GetData(1, ref connect);
-            DA.GetData(2, ref keepAlive);
 
-            if (client != null && !url.Equals(client.Url.AbsoluteUri))
-            {
-                needsRestart= true;
-                if (client != null)
-                {
-                    client.OnMessage -= Client_OnMessage;
-                    client.OnOpen -= Client_OnOpen;
-                    client.OnClose -= Client_OnClose;
-                    client.Close();
-                    client= null;
-                }
-            }
+            //if (client != null && !url.Equals(client.Url.AbsoluteUri))
+            //{
+            //    if (client != null)
+            //    {
+            //        client.OnMessage -= Client_OnMessage;
+            //        client.OnOpen -= Client_OnOpen;
+            //        client.OnClose -= Client_OnClose;
+            //        client.Close();
+            //        client= null;
+            //    }
+            //}
 
-            if (needsRestart && !connect) 
-            {
-                this.Message = "Disconnected";
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please Restart Connection");
-                return;
-            }
 
             if (connect)
             {
-                if (client == null || needsRestart)
+                if (client != null)
                 {
-                    client = new WebSocket(url);
-                    client.Connect();
+                    if (client.IsAlive)
+                    {
+                        DA.SetData(0, client);
+                        return;
+                    }
                 }
 
-                if (false)
+                client = new WebSocket(url);
+                client.Connect();
+
+                if (client.IsAlive)
                 {
-                    this.Message = "Connecting...";
-                    client.Close();
-                    client.OnOpen -= Client_OnOpen;
-                    client.OnClose -= Client_OnClose;
-                    client.OnMessage -= Client_OnMessage;
-
-                    client = new WebSocket(url);
-                    Task initialTask = Task.Run(() => InitialConnect());
-                    //initialTask.Wait();
-
                     client.OnOpen += Client_OnOpen;
                     client.OnClose += Client_OnClose;
                     client.OnMessage += Client_OnMessage;
-
-                    needsRestart = false;
                 }
-                else
+
+
+            }
+            else
+            {
+                if (client != null)
                 {
-                    this.Message = "Connected";
+                    client.OnOpen -= Client_OnOpen;
+                    client.OnClose -= Client_OnClose;
+                    client.OnMessage -= Client_OnMessage;
+                    client.Close();
+                    client = null;
                 }
             }
            
@@ -159,22 +152,14 @@ namespace RemoSharp.WebSocketClient
 
             
         }
-        private void InitialConnect()
-        {
-            client.Connect();
-        }
+
         private void Client_OnClose(object sender, CloseEventArgs e)
         {
-
-            this.Message = "Disconnected";
-            Task connectionTask = Task.Run(() => ConnectToServer());
-        }
-
-        private void ConnectToServer()
-        {
-            while (!client.IsAlive && keepAlive)
+            while (!client.IsAlive && this.connectionAttempts < 2)
             {
                 client.Connect();
+                connectionAttempts++;
+                if (client.IsAlive) connectionAttempts = 0;
             }
         }
 
@@ -230,7 +215,7 @@ namespace RemoSharp.WebSocketClient
             this.Message = "Connected";
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                this.ExpireSolution(false);
+                this.ExpireSolution(true);
             });
         }
 

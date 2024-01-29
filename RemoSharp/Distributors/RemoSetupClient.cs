@@ -36,6 +36,7 @@ using Grasshopper.Kernel.Special;
 using System.ComponentModel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Undo;
 
 namespace RemoSharp
 {
@@ -46,17 +47,21 @@ namespace RemoSharp
         bool connect = false;
         bool keepAlive = false;
         bool needsRestart = false;
+        bool preventUndo = true;
+
 
         public ToggleSwitch autoUpdateSwitch;
         public ToggleSwitch keepRecordSwitch;
-        ToggleSwitch listenSwitch;
+        public ToggleSwitch listenSwitch;
+        public ToggleSwitch undoPreventionSwitch;
+
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
         bool listen = true;
+        bool controlDown = false;
 
         int setup = 0;
-        int commandReset = 0;
         int commandRepeat = 5;
         Grasshopper.GUI.Canvas.GH_Canvas canvas;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
@@ -133,10 +138,13 @@ namespace RemoSharp
             listenSwitch.OnValueChanged += ListenSwitch_OnValueChanged;
             keepRecordSwitch = new ToggleSwitch("Keep Record", "Keeps all the messages coming from the server", true);
             keepRecordSwitch.OnValueChanged += KeepRecordSwitch_OnValueChanged;
+            undoPreventionSwitch = new ToggleSwitch("Prevent Undo", "Warns the user not to use undo or redo", true);
+            undoPreventionSwitch.OnValueChanged += UndoPreventionSwitch_OnValueChanged;
 
             AddCustomControl(listenSwitch);
             AddCustomControl(keepRecordSwitch);
             AddCustomControl(autoUpdateSwitch);
+            AddCustomControl(undoPreventionSwitch);
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             pManager.AddBooleanParameter("connect", "connect", "", GH_ParamAccess.item);
@@ -148,6 +156,11 @@ namespace RemoSharp
 
 
 
+        }
+
+        private void UndoPreventionSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            preventUndo = Convert.ToBoolean(e.Value);
         }
 
         private void AutoUPdate_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -187,9 +200,11 @@ namespace RemoSharp
                     canvas = Grasshopper.Instances.ActiveCanvas;
                     #region Wire Connection and Move Sub
                     canvas.MouseDown += Canvas_MouseDown;
+                    canvas.KeyDown += Canvas_KeyDown;
                     #endregion
 
                     canvas.MouseUp += Canvas_MouseUp;
+                    canvas.KeyUp += Canvas_KeyUp;
 
                     #region Add Object Sub
                     this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
@@ -197,6 +212,10 @@ namespace RemoSharp
 
                     #region Remove Object Sub
                     this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
+                    #endregion
+
+                    #region UndoRedo
+                    //this.OnPingDocument().UndoStateChanged += RemoSetupClient_UndoStateChanged;
                     #endregion
 
                     #region remoparam mouse move
@@ -214,9 +233,12 @@ namespace RemoSharp
                 canvas = Grasshopper.Instances.ActiveCanvas;
                 #region Wire Connection and Move Sub
                 canvas.MouseDown -= Canvas_MouseDown;
+                canvas.KeyDown -= Canvas_KeyDown;
                 #endregion
 
                 canvas.MouseUp -= Canvas_MouseUp;
+                canvas.KeyUp -= Canvas_KeyUp;
+
 
                 #region Add Object Sub
                 this.OnPingDocument().ObjectsAdded -= RemoCompSource_ObjectsAdded;
@@ -224,6 +246,10 @@ namespace RemoSharp
 
                 #region Remove Object Sub
                 this.OnPingDocument().ObjectsDeleted -= RemoCompSource_ObjectsDeleted;
+                #endregion
+
+                #region UndoRedo
+                this.OnPingDocument().UndoStateChanged -= RemoSetupClient_UndoStateChanged;
                 #endregion
 
                 #region remoparam mouse move
@@ -236,6 +262,43 @@ namespace RemoSharp
             }
 
             this.ExpireSolution(true);
+        }
+
+        private void Canvas_KeyUp(object sender, KeyEventArgs e)
+        {
+            var keyCode = (int) e.KeyCode;
+            var controlKey = (int) Keys.ControlKey;
+            if (keyCode == controlKey)
+            {
+                this.controlDown = false;
+            }
+        }
+
+        private void Canvas_KeyDown(object sender, KeyEventArgs e)
+        {
+            var keyCode = (int) e.KeyCode;
+            var controlKey = (int)Keys.ControlKey;
+            if (keyCode == controlKey)
+            {
+                this.controlDown = true;
+
+                if (preventUndo)
+                {
+                    this.OnPingDocument().UndoServer.Clear();
+                }
+
+            }
+        }
+
+        private void RemoSetupClient_UndoStateChanged(object sender, GH_DocUndoEventArgs e)
+        {
+            if (e.Record == null) return;
+            if (e.Record.State == GH_UndoState.undo) return;
+            if (e.Record.ActionCount != 1) return;
+            if (!this.controlDown) return;
+
+            RemoUndo undoCommand = new RemoUndo(username, e);
+            SendCommands(undoCommand, commandRepeat, enable);
         }
 
         private void ActiveCanvas_KeyUp(object sender, KeyEventArgs e)
@@ -263,6 +326,7 @@ namespace RemoSharp
                 });
 
             }
+            
         }
 
         private void ActiveCanvas_KeyDown(object sender, KeyEventArgs e)
@@ -287,6 +351,11 @@ namespace RemoSharp
                     Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
                     if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(125, 225, 100, 250);
                 });
+            }
+            
+            else if (e.KeyCode == Keys.Z && controlDown && preventUndo)
+            {
+                System.Windows.Forms.MessageBox.Show("PLEASE DO NOT USE UNDO OR REDO", "Syncing Error!");
             }
         }
 
@@ -644,7 +713,6 @@ namespace RemoSharp
             //if (commandReset > commandRepeatCount) command = new RemoNullCommand(username);
 
             //setup++;
-            commandReset++;
         }
 
         private void InitialConnect()
@@ -655,14 +723,18 @@ namespace RemoSharp
         {
 
             this.Message = "Disconnected";
-            Task connectionTask = Task.Run(() => ConnectToServer());
-        }
+            ConnectToServer();
+         }
 
         private void ConnectToServer()
         {
             while (!client.IsAlive && keepAlive)
             {
                 client.Connect();
+            }
+            if (client.IsAlive)
+            {
+                this.Message = "Connected.";
             }
         }
 
@@ -961,11 +1033,11 @@ namespace RemoSharp
 
                 deleteGuids.Add(obj.InstanceGuid);
 
-                if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
-                {
-                    RemoParam remoParamDeleted = (RemoParam)obj;
-                    Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
-                }
+                //if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
+                //{
+                //    RemoParam remoParamDeleted = (RemoParam)obj;
+                //    Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
+                //}
 
             }
 
@@ -1049,7 +1121,16 @@ namespace RemoSharp
                         continue;
                     case ("ScriptComponents.Component_CSNET_Script"):
                         ScriptComponents.Component_CSNET_Script csComponent = (ScriptComponents.Component_CSNET_Script) obj;
-                        
+                        break;
+                    case ("Robots.Grasshopper.LibraryParam"):
+                    case ("Robots.Grasshopper.LoadRobotSystem"):
+
+
+                        string objectTypeDetails = obj.GetType().ToString();
+                        var objectDetails = obj;
+
+                        //continue;
+
                         break;
                     default:
                         break;
@@ -1524,6 +1605,19 @@ namespace RemoSharp
             }
 
         }
+
+        private IGH_Param FindRelaySourceOutput(RemoRelay remoRelay)
+        {
+            IGH_Component comp = (IGH_Component)this.OnPingDocument().FindObject(remoRelay.sourceGuid, false);
+            return (IGH_Param)comp.Params.Output[remoRelay.sourceIndex];
+        }
+
+        private IGH_Param FindRelayTargetInput(RemoRelay remoRelay)
+        {
+            IGH_Component comp = (IGH_Component)this.OnPingDocument().FindObject(remoRelay.targetGuid, false);
+            return (IGH_Param)comp.Params.Input[remoRelay.targetIndex];
+        }
+
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

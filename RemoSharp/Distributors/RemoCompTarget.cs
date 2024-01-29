@@ -9,6 +9,7 @@ using WPFNumericUpDown;
 using RemoSharp.RemoCommandTypes;
 using Grasshopper.Kernel.Types;
 using WebSocketSharp;
+using GH_IO.Serialization;
 
 namespace RemoSharp
 {
@@ -20,6 +21,7 @@ namespace RemoSharp
         PushButton selectButton;
         PushButton hideButton;
         PushButton lockButton;
+        PushButton syncComponents;
         StackPanel stackPanel;
 
 
@@ -51,14 +53,17 @@ namespace RemoSharp
                 "Hides a component on the main remote GH_Canvas.", "Hide");
             lockButton = new PushButton("Lock",
                             "Unhides a component on the main remote GH_Canvas.", "Lock");
+            syncComponents = new PushButton("SyncComp",
+                            "Syncs selected components' attributes.", "SyncComp");
 
 
             selectButton.OnValueChanged += SelectButton_OnValueChanged;
             hideButton.OnValueChanged += HideButton_OnValueChanged;
             lockButton.OnValueChanged += LockButton_OnValueChanged;
+            syncComponents.OnValueChanged += SyncComponents_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                selectButton, hideButton, lockButton
+                selectButton, hideButton, lockButton, syncComponents
                 );
 
             AddCustomControl(stackPanel);
@@ -68,9 +73,43 @@ namespace RemoSharp
             pManager.AddGenericParameter("WSClient", "wsc", "Command Websocket Client", GH_ParamAccess.item);
         }
 
-        
+        private void SyncComponents_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (!currentValue) return;
 
-        
+
+            List<string> types = new List<string>();
+            List<Guid> guids = new List<Guid>();
+            List<string> xmls = new List<string>();
+
+            var selection = this.OnPingDocument().SelectedObjects();
+            foreach (var item in selection)
+            {
+                string type = item.GetType().ToString();
+                Guid itemGuid = item.InstanceGuid;
+
+                GH_LooseChunk chunk = new GH_LooseChunk(null);
+                item.Write(chunk);
+
+                string xml = chunk.Serialize_Xml();
+
+                types.Add(type);
+                guids.Add(itemGuid);
+                xmls.Add(xml);
+
+            }
+
+            RemoCompSync remoCompSync = new RemoCompSync(this.username,types,guids,xmls);
+            string cmdJson = RemoCommand.SerializeToJson(remoCompSync);
+
+            for (int i = 0; i < commandRepeat; i++)
+            {
+                client.Send(cmdJson);
+            }
+
+        }
+
         private void HideButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);

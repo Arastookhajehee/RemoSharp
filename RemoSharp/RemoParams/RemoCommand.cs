@@ -17,6 +17,9 @@ using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Parameters;
 using System.Windows.Forms;
 using GH_IO.Serialization;
+using Grasshopper.Kernel.Undo;
+using Grasshopper.Kernel.Undo.Actions;
+using System.Reflection;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -47,9 +50,11 @@ namespace RemoSharp.RemoCommandTypes
         ItemAddition = 21,
         RemoText = 22,
         RemoScriptCS = 23,
-            RemoRelay = 24
+        RemoRelay = 24,
+        RemoUndo = 25,
+        RemoCompSync = 26
     }
-    
+
     public enum RemoConnectType
     {
         None = 0,
@@ -124,7 +129,7 @@ namespace RemoSharp.RemoCommandTypes
 
                     break;
                 case (int)CommandType.RemoText:
-                    remoCommand = JsonConvert.DeserializeObject<RemoParamText>(commandJson);
+                    remoCommand = JsonConvert.DeserializeObject<RemoParameter>(commandJson);
                     break;
                 case (int)CommandType.RemoSlider:
                     remoCommand = JsonConvert.DeserializeObject<RemoParamSlider>(commandJson);
@@ -162,6 +167,12 @@ namespace RemoSharp.RemoCommandTypes
                 case (int)CommandType.RemoRelay:
                     remoCommand = JsonConvert.DeserializeObject<RemoRelay>(commandJson);
                     break;
+                case (int)CommandType.RemoUndo:
+                    remoCommand = JsonConvert.DeserializeObject<RemoUndo>(commandJson);
+                    break;
+                case (int)CommandType.RemoCompSync:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCompSync>(commandJson);
+                    break;
                 case (int)CommandType.StreamGeom:
 
                     return null;
@@ -173,13 +184,13 @@ namespace RemoSharp.RemoCommandTypes
                 default:
                     break;
             }
-                
+
             return remoCommand;
         }
 
     }
 
-    public class RemoNullCommand : RemoCommand 
+    public class RemoNullCommand : RemoCommand
     {
         public RemoNullCommand(string issuerID)
         {
@@ -208,7 +219,7 @@ namespace RemoSharp.RemoCommandTypes
         public bool isSourceSpecial = false;
         public bool isTargetSpecial = false;
         public RemoConnectType RemoConnectType = RemoConnectType.None;
-      
+
         public RemoConnectInteraction()
         {
             // default constructor
@@ -257,7 +268,7 @@ namespace RemoSharp.RemoCommandTypes
             // default constructor
         }
 
-        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid, 
+        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
             RemoConnectType remoConnectType,
             string sourceXML, string targetXML)
         {
@@ -314,7 +325,7 @@ namespace RemoSharp.RemoCommandTypes
             this.targetY = targetY;
             this.sourceNickname = sourceNickname;
             this.targetNickname = targetNickname;
-            this.listItemParamNickName= listItemParamNickName;
+            this.listItemParamNickName = listItemParamNickName;
             this.commandID = Guid.NewGuid();
 
         }
@@ -338,13 +349,13 @@ namespace RemoSharp.RemoCommandTypes
             // default constructor
         }
         // a constructor for general components
-        public RemoCreate(string issuerID, 
+        public RemoCreate(string issuerID,
             List<Guid> guids,
             List<string> associatedAttributes,
             List<string> componentTypes,
             List<string> componentStructures,
             List<string> specialParameters)
-            
+
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Create;
@@ -357,7 +368,7 @@ namespace RemoSharp.RemoCommandTypes
             this.commandID = Guid.NewGuid();
 
         }
-        
+
 
         public override string ToString()
         {
@@ -366,7 +377,7 @@ namespace RemoSharp.RemoCommandTypes
 
     }
 
-    public class RemoScriptCS : RemoCommand 
+    public class RemoScriptCS : RemoCommand
     {
         public string xmlContent;
         public RemoScriptCS() { }
@@ -392,9 +403,9 @@ namespace RemoSharp.RemoCommandTypes
         public RemoDelete() { }
         public RemoDelete(string issuerID, List<Guid> objectGuids)
         {
-            this.issuerID= issuerID;
-            this.commandType= CommandType.Delete;
-            this.objectGuid= Guid.Empty;
+            this.issuerID = issuerID;
+            this.commandType = CommandType.Delete;
+            this.objectGuid = Guid.Empty;
             this.objectGuids = objectGuids;
             this.commandID = Guid.NewGuid();
 
@@ -423,7 +434,7 @@ namespace RemoSharp.RemoCommandTypes
             int targetIndex
             )
         {
-            
+
 
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoRelay;
@@ -439,9 +450,127 @@ namespace RemoSharp.RemoCommandTypes
             this.relayXML = chunk.Serialize_Xml();
         }
 
+
+
         public override string ToString()
         {
-            return string.Format("RemoDelete Command from {0}", this.issuerID);
+            return string.Format("RemoRelay Command from {0}", this.issuerID);
+        }
+    }
+
+    public class RemoUndo : RemoCommand 
+     {
+
+        public string name;
+        public int actionCount;
+
+        public Guid sourceCompGuid = Guid.Empty;
+        public Guid targetCompGuid = Guid.Empty;
+        public int sourceIndex = 0;
+        public int targetIndex = 0;
+
+        public RemoUndo() { }
+        public RemoUndo(string issuerID, GH_DocUndoEventArgs e)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoUndo;
+            this.objectGuid = Guid.Empty;
+            var rec = e.Record;
+            //this.expiresDisplay = rec.ExpiresDisplay;
+            //this.expiresSolution = rec.ExpiresSolution;
+            //this.state = (int)rec.State;
+            this.name = rec.Name;
+            this.actionCount = rec.ActionCount;
+
+            int actCount = rec.ActionCount;
+
+            if (rec.Name.Contains("New wire"))
+            {
+                GH_WireAction wireAction = (GH_WireAction)rec.Actions[0];
+
+                var wState = wireAction.State;
+
+                Type type = typeof(GH_WireAction);
+                Grasshopper.Kernel.GH_WireTopologyDiagram mode = type
+                  .GetField("m_wires", BindingFlags.NonPublic | BindingFlags.Instance)
+                  .GetValue(wireAction) as Grasshopper.Kernel.GH_WireTopologyDiagram;
+
+                IGH_Param sourceOutput = e.Document.FindParameter(mode[0].SourceParameterID);
+                IGH_Param targetInput = e.Document.FindParameter(mode[0].TargetParameterID);
+
+                Guid sourceGuid = sourceOutput.InstanceGuid;
+                Guid targetguid = targetInput.InstanceGuid;
+                int sourceOutputIndex = sourceOutput.Attributes.Parent == null ? -1 : FindOutputIndexFromGH_Param(sourceOutput, out sourceGuid);
+                int targetInputIndex = targetInput.Attributes.Parent == null ? -1 : FindInputIndexFromGH_Param(targetInput, out targetguid);
+
+                this.sourceCompGuid = sourceGuid;
+                this.targetCompGuid = targetguid;
+                this.sourceIndex = sourceOutputIndex;
+                this.targetIndex = targetInputIndex;
+            }
+            //else if (rec.Name.Contains("Remove wire"))
+            //    return;
+            //{
+            //    GH_WireAction wireAction = (GH_WireAction)rec.Actions[0];
+
+            //    var wState = wireAction.State;
+
+            //    var latestNewWire = e.Document.UndoServer.UndoGuids[0];
+
+                
+
+            //    Type type = typeof(GH_WireAction);
+            //    Grasshopper.Kernel.GH_WireTopologyDiagram mode = type
+            //      .GetField("m_wires", BindingFlags.NonPublic | BindingFlags.Instance)
+            //      .GetValue(wireAction) as Grasshopper.Kernel.GH_WireTopologyDiagram;
+
+            //    IGH_Param sourceOutput = e.Document.FindParameter(mode[0].SourceParameterID);
+            //    IGH_Param targetInput = e.Document.FindParameter(mode[0].TargetParameterID);
+
+            //    Guid sourceGuid = sourceOutput.InstanceGuid;
+            //    Guid targetguid = targetInput.InstanceGuid;
+            //    int sourceOutputIndex = sourceOutput.Attributes.Parent == null ? -1 : FindOutputIndexFromGH_Param(sourceOutput, out sourceGuid);
+            //    int targetInputIndex = targetInput.Attributes.Parent == null ? -1 : FindInputIndexFromGH_Param(targetInput, out targetguid);
+
+            //    this.sourceCompGuid = sourceGuid;
+            //    this.targetCompGuid = targetguid;
+            //    this.sourceIndex = sourceOutputIndex;
+            //    this.targetIndex = targetInputIndex;
+            //}
+        }
+
+        private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)sourceOutput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Output.IndexOf(sourceOutput);
+        }
+
+        private int FindInputIndexFromGH_Param(IGH_Param targetInput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)targetInput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Input.IndexOf(targetInput);
+        }
+    }
+
+    public class RemoCompSync : RemoCommand
+    {
+        public List<string> componentTypes;
+        public List<Guid> componentGuids;
+        public List<string> componentXMLs;
+
+        //constructor
+        public RemoCompSync() { }
+        public RemoCompSync(string issuerID, List<string> componentTypes, List<Guid> componentGuids, List<string> componentXMLs
+)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoCompSync;
+            this.objectGuid = Guid.Empty;
+            this.componentTypes = componentTypes;
+            this.componentGuids = componentGuids;
+            this.componentXMLs = componentXMLs;
         }
     }
 
@@ -837,24 +966,22 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
-    public class RemoParamText : RemoCommand
+    public class RemoParameter : RemoCommand
     {
-        public string txtTree;
-        public bool isPanel;
-        public RemoParamText() { }
-        public RemoParamText(string issuerID, Param_String paramString, GH_Structure<GH_String> stringTree,bool isPanel)
+        public string xmlTree;
+        public string remoParamName;
+        public RemoParameter() { }
+        public RemoParameter(string issuerID,string remoParamName, GH_Structure<IGH_Goo> dataTree)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoText;
-            this.objectGuid = paramString.InstanceGuid;
-            this.isPanel= isPanel;
+            this.remoParamName = remoParamName;
 
             GH_LooseChunk chunk = new GH_LooseChunk(null);
-            stringTree.Write(chunk);
-            this.txtTree = chunk.Serialize_Xml();
+            dataTree.Write(chunk);
+            this.xmlTree = chunk.Serialize_Xml();
 
             this.commandID = Guid.NewGuid();
-
         }
     }
 

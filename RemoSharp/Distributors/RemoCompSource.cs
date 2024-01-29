@@ -36,8 +36,6 @@ namespace RemoSharp
     public class RemoCompSource : GHCustomComponent
     {
         WebSocket client;
-        int setup = 0;
-        int commandReset = 0;
         int commandRepeat = 5;
         Grasshopper.GUI.Canvas.GH_Canvas canvas;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
@@ -448,7 +446,6 @@ namespace RemoSharp
             //if (commandReset > commandRepeatCount) command = new RemoNullCommand(username);
 
             //setup++;
-            commandReset++;
         }
 
         private void CheckForDirectoryAndFileExistance(string path)
@@ -677,7 +674,7 @@ namespace RemoSharp
                 if (obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
                 {
                     RemoParam remoParamDeleted = (RemoParam)obj;
-                    Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
+                    //Grasshopper.Instances.ActiveCanvas.MouseDown -= remoParamDeleted.ActiveCanvas_MouseDown;
                 }
 
             }

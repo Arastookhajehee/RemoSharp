@@ -139,7 +139,7 @@
       <DependentUpon>GeometryStreamIPSet.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
@@ -278,6 +278,15 @@
       <Project>{15951838-f9d6-4988-a103-b7c72bfe81a2}</Project>
       <Name>Machina</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSlider1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\WriteToFile.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoSliderBreaker.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

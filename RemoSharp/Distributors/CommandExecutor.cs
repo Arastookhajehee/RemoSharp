@@ -29,6 +29,8 @@ using RemoSharp.WebSocketClient;
 using RemoSharp.RemoParams;
 using GH_IO.Serialization;
 using System.Xml;
+using Grasshopper.Kernel.Undo;
+using Grasshopper.Kernel.Undo.Actions;
 
 namespace RemoSharp
 {
@@ -410,6 +412,24 @@ namespace RemoSharp
                             ExecuteSelectRemoScriptCS(remoScriptCS);
 
                             break;
+                        case (CommandType.RemoUndo):
+                            RemoUndo remoUndo = (RemoUndo)remoCommand;
+
+                            ExecuteRemoUndo(remoUndo);
+
+                            break;
+                        case (CommandType.RemoCompSync):
+                            RemoCompSync remoCompSync = (RemoCompSync)remoCommand;
+
+                            ExecuteRemoCompSync(remoCompSync);
+
+                            break;
+                        case (CommandType.RemoText):
+                            RemoParameter remoParameter = (RemoParameter)remoCommand;
+
+                            ExecuteRemoText(remoParameter);
+
+                            break;
                         default:
 
                             break;
@@ -571,7 +591,7 @@ namespace RemoSharp
 
                             #region RemoParamText
                             case (CommandType.RemoText):
-                                RemoParamText remoText = (RemoParamText)remoCommand;
+                                RemoParameter remoText = (RemoParameter)remoCommand;
                                 ExecuteRemoText(remoText);
 
 
@@ -615,6 +635,101 @@ namespace RemoSharp
             DA.SetDataList(0, errors);
             //DA.SetDataList(1, connectionList);
 
+        }
+
+        private void ExecuteRemoCompSync(RemoCompSync remoCompSync)
+        {
+
+
+            this.OnPingDocument().ScheduleSolution(1, doc =>
+            {
+                for (int i = 0; i < remoCompSync.componentTypes.Count; i++)
+                {
+                    string type = remoCompSync.componentTypes[i];
+                    Guid guid = remoCompSync.componentGuids[i];
+
+                    var comp = this.OnPingDocument().FindObject(guid, false);
+                    if (comp == null) RecognizeAndMakeSyncable(type, guid);
+                }
+
+                for (int i = 0; i < remoCompSync.componentTypes.Count; i++)
+                {
+                    string type = remoCompSync.componentTypes[i];
+                    Guid guid = remoCompSync.componentGuids[i];
+                    string xml = remoCompSync.componentXMLs[i];
+
+                    var targetComp = this.OnPingDocument().FindObject(guid, false);
+
+                    GH_LooseChunk targetAttributes = DeserilizeXMLAttributes(xml);
+                    RelinkComponentWires(targetComp, targetAttributes);
+                    if (targetComp is ScriptComponents.Component_CSNET_Script) targetComp.ExpireSolution(false);
+                }
+
+
+
+            });
+        }
+
+        private IGH_DocumentObject RecognizeAndMakeSyncable(string typeName, Guid guid)
+        {
+
+            var thisDoc = this.OnPingDocument();
+
+            RemoSetupClient sourceComp = thisDoc.Objects
+                .Where(obj => obj is RemoSharp.RemoSetupClient)
+                .FirstOrDefault() as RemoSetupClient;
+            this.OnPingDocument().ObjectsAdded -= sourceComp.RemoCompSource_ObjectsAdded;
+
+
+            // converting the string format of the closest component to an actual type
+            var type = Type.GetType(typeName);
+            // most probable the type is going to return null
+            // for that we search through all the loaded dlls in Grasshopper and Rhino's application
+            // to find out which one matches that of the closest component
+            if (type == null)
+            {
+                // going through the loaded components
+                foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    // trying for all dll types unless one would return an actual type
+                    // since almost all of them give us null we check for this condition
+                    if (type == null)
+                    {
+                        type = a.GetType(typeName);
+                    }
+                }
+            }
+            // we can instantiate a class with this line based on the type we found in string format
+            // we have to cast it into an (IGH_DocumentObject) format so that we can access the methods
+            // that we need to add it to the grasshopper document
+            // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
+            var myObject = (IGH_DocumentObject)Activator.CreateInstance(type);
+            myObject.NewInstanceGuid(guid);
+            // creating atts to create the pivot point
+            // this pivot point can be anywhere
+            myObject.CreateAttributes();
+            thisDoc.AddObject(myObject, false);
+
+
+            this.OnPingDocument().ObjectsAdded += sourceComp.RemoCompSource_ObjectsAdded;
+
+            return myObject;
+        }
+
+        private void ExecuteRemoUndo(RemoUndo remoUndo)
+        {
+            if (!remoUndo.name.Equals("New wire")) return;
+
+            IGH_Param sourceParam = remoUndo.sourceIndex == -1 ? this.OnPingDocument().FindParameter(remoUndo.sourceCompGuid) :
+                this.OnPingDocument().FindComponent(remoUndo.sourceCompGuid).Params.Output[remoUndo.sourceIndex];
+            IGH_Param targetParam = remoUndo.targetIndex == -1 ? this.OnPingDocument().FindParameter(remoUndo.targetCompGuid) :
+                this.OnPingDocument().FindComponent(remoUndo.targetCompGuid).Params.Input[remoUndo.targetIndex];
+
+            this.OnPingDocument().ScheduleSolution(1, doc => 
+            {
+                targetParam.RemoveSource(sourceParam);
+                // for some reason the source target are flipped! O.o
+            });
         }
 
         private void ExecuteRemoRelay(RemoRelay relayCommand)
@@ -700,31 +815,31 @@ namespace RemoSharp
             });
         }
 
-        private void ExecuteRemoText(RemoParamText remoText)
+        private void ExecuteRemoText(RemoParameter remoParameter)
         {
-            //if (remoText.objectGuid == Guid.Empty) return;
-            //IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoText.objectGuid, false);
+            this.OnPingDocument().ScheduleSolution(1, doc =>
+            {
+                if (string.IsNullOrEmpty(remoParameter.remoParamName)) return;
+                RemoParamData pointComp = this.OnPingDocument().Objects.Where(obj => obj is RemoParamData)
+                    .Select(obj => obj as RemoParamData).Where(obj => obj.Message.Equals(remoParameter.remoParamName)).FirstOrDefault();
 
-            //pointComp.Recipients.AsParallel().AsUnordered().Where(obj => obj is RemoParam).Select
-            //Param_String pointParamComp = (Param_String)pointComp;
+                GH_LooseChunk chunk = new GH_LooseChunk(null);
+                chunk.Deserialize_Xml(remoParameter.xmlTree);
 
-            //this.OnPingDocument().ScheduleSolution(1, doc =>
-            //{
+                try
+                {
+                    GH_Structure<IGH_Goo> gooTree = new GH_Structure<IGH_Goo>();
+                    gooTree.Read(chunk);
 
+                    pointComp.currentValue = gooTree;
+                    pointComp.ExpireSolution(true);
+                }
+                catch
+                {
 
-            //    GH_LooseChunk chunk = new GH_LooseChunk(null);
-            //    chunk.Deserialize_Xml(remoPoint3d.pointXML);
-
-            //    GH_Structure<GH_Point> gh_points = new GH_Structure<GH_Point>();
-            //    gh_points.Read(chunk);
-
-            //    if (pointParamComp.SourceCount > 0) return;
-            //    pointParamComp.Attributes.Selected = false;
-
-            //    pointParamComp.SetPersistentData(gh_points);
-            //    pointParamComp.ExpireSolution(false);
-
-            //});
+                }
+                
+            });
         }
 
         private void ShowBackgroundDesyncColor(int errorCount, int maxErrorCount)

@@ -193,6 +193,9 @@
   <data name="RemoSlider" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoSlider.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RemoSliderBreaker" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoSliderBreaker.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoToggle" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoToggle.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -234,6 +237,9 @@
   </data>
   <data name="Text_Point" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Text_Point.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="WriteToFile" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\WriteToFile.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="WSC" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\WSC.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
