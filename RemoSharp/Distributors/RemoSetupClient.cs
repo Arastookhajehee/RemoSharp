@@ -46,9 +46,11 @@ namespace RemoSharp
         public List<string> messages = new List<string>();
         public WebSocket client;
         bool connect = false;
-        bool keepAlive = false;
         bool needsRestart = false;
         bool preventUndo = true;
+        int reconnectAttempts = 0;
+        int maxAttempts = 2;
+        public static string DISCONNECTION_KEYWORD = "<<DisconnectFromRemoSharpServer>>";
 
 
         public ToggleSwitch autoUpdateSwitch;
@@ -69,12 +71,12 @@ namespace RemoSharp
         RemoCommand command = null;
 
         //ToggleSwitch deleteToggle;
-        ToggleSwitch movingModeSwitch;
+        //ToggleSwitch movingModeSwitch;
         //ToggleSwitch transparencySwitch;
         ToggleSwitch enableSwitch;
 
         public bool enable = false;
-        public bool movingMode = false;
+        //public bool movingMode = false;
         public bool subscribed = false;
 
         public bool remoParamModeActive = false;
@@ -123,13 +125,13 @@ namespace RemoSharp
             AddCustomControl(setupButton);
 
 
-            movingModeSwitch = new ToggleSwitch("Moving Mode", "It is recommended to keep it turned off if the user does not wish to move components around", false);
-            movingModeSwitch.OnValueChanged += MovingModeSwitch_OnValueChanged;
+            //movingModeSwitch = new ToggleSwitch("Moving Mode", "It is recommended to keep it turned off if the user does not wish to move components around", false);
+            //movingModeSwitch.OnValueChanged += MovingModeSwitch_OnValueChanged;
             enableSwitch = new ToggleSwitch("Enable Interactions", "It has to be turned on if we want interactions with the server", false);
             enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
 
             AddCustomControl(enableSwitch);
-            AddCustomControl(movingModeSwitch);
+            //AddCustomControl(movingModeSwitch);
 
 
             
@@ -149,7 +151,7 @@ namespace RemoSharp
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             pManager.AddBooleanParameter("connect", "connect", "", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("KeepAlive", "keepAlive", "", GH_ParamAccess.item);
+            //pManager.AddBooleanParameter("KeepAlive", "keepAlive", "", GH_ParamAccess.item);
 
             pManager.AddTextParameter("Username", "user", "This Computer's Username", GH_ParamAccess.item, "");
             pManager.AddTextParameter("Password", "pass", "Password to this session", GH_ParamAccess.item, "password");
@@ -189,9 +191,23 @@ namespace RemoSharp
         {
             enable = Convert.ToBoolean(e.Value);
 
+            var document = this.OnPingDocument();
+            if (document == null) return;
+
+            var executor = document.Objects.Where(obj => obj is CommandExecutor).ToList();
+
+            if (executor.Count == 0) 
+            {
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Setup Error!");
+                return;
+            }
+            CommandExecutor commandExecutorComponent = (CommandExecutor)executor[0];
+            commandExecutorComponent.enable = enable;
 
             if (enable)
             {
+
+
 
                 if (this == null || this.OnPingDocument() == null)
                 {
@@ -495,11 +511,11 @@ namespace RemoSharp
             this.mouseLocation = mouseEvent.CanvasLocation;
         }
 
-        private void MovingModeSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            movingMode = Convert.ToBoolean(e.Value);
-            this.ExpireSolution(true);
-        }
+        //private void MovingModeSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    movingMode = Convert.ToBoolean(e.Value);
+        //    this.ExpireSolution(true);
+        //}
 
         private void SendCommands(RemoCommand command, int commandRepeat, bool enabled)
         {
@@ -520,8 +536,8 @@ namespace RemoSharp
                 int xShift = 2;
                 int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
-                PointF wscButtonPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
-                PointF wscTogglePivot = new PointF(pivot.X + xShift - 216, pivot.Y - 197 + yShift);
+                //PointF wscButtonPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
+                PointF wscTogglePivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
                 PointF triggerPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 415 + yShift);
                 PointF panelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift);
                 PointF passPanelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift + 45);
@@ -533,11 +549,11 @@ namespace RemoSharp
                 PointF commandButtonPivot = new PointF(pivot.X + xShift + 350, pivot.Y - 254 + yShift);
 
                 #region setup components
-                // button
-                Grasshopper.Kernel.Special.GH_ButtonObject wscButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                wscButton.CreateAttributes();
-                wscButton.Attributes.Pivot = wscButtonPivot;
-                wscButton.NickName = "RemoSetup";
+                //// button
+                //Grasshopper.Kernel.Special.GH_ButtonObject wscButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
+                //wscButton.CreateAttributes();
+                //wscButton.Attributes.Pivot = wscButtonPivot;
+                //wscButton.NickName = "RemoSetup";
 
                 // toggle
                 Grasshopper.Kernel.Special.GH_BooleanToggle wscToggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
@@ -619,7 +635,7 @@ namespace RemoSharp
                 {
 
 
-                    this.OnPingDocument().AddObject(wscButton, true);
+                    //this.OnPingDocument().AddObject(wscButton, true);
                     this.OnPingDocument().AddObject(wscToggle, true);
                     //this.OnPingDocument().AddObject(bffComp, true);
                     //this.OnPingDocument().AddObject(bffTrigger, true);
@@ -644,13 +660,13 @@ namespace RemoSharp
                     //bffComp.Params.Input[1].AddSource(wscToggle);
                     targetComp.Params.Input[0].AddSource(panel);
                     targetComp.Params.Input[1].AddSource(this.Params.Output[0]);
-                    this.Params.Input[3].AddSource(panel);
+                    this.Params.Input[2].AddSource(panel);
                     //this.Params.Input[1].AddSource(wscComp.Params.Output[0]);
-                    this.Params.Input[4].AddSource(passPanel);
-                    this.Params.Input[5].AddSource(commandCompButton);
+                    this.Params.Input[3].AddSource(passPanel);
+                    this.Params.Input[4].AddSource(commandCompButton);
                     this.Params.Input[0].AddSource(addressOutPuts[0]);
-                    this.Params.Input[1].AddSource(wscButton);
-                    this.Params.Input[2].AddSource(wscToggle);
+                    //this.Params.Input[1].AddSource(wscButton);
+                    this.Params.Input[1].AddSource(wscToggle);
 
                     listenComp.Params.Input[0].AddSource(this.Params.Output[0]);
 
@@ -690,15 +706,25 @@ namespace RemoSharp
             string url = "";
             DA.GetData(0, ref url);
             DA.GetData(1, ref connect);
-            DA.GetData(2, ref keepAlive);
+            //DA.GetData(2, ref keepAlive);
 
             bool syncThisCanvas = false;
 
             // getting the username information
-            DA.GetData(3, ref username);
+            DA.GetData(2, ref username);
             //DA.GetData(1, ref client);
-            DA.GetData(4, ref password);
-            DA.GetData(5, ref syncThisCanvas);
+            DA.GetData(3, ref password);
+            DA.GetData(4, ref syncThisCanvas);
+
+            if (!connect)
+            {
+                if (client == null) return;
+                client.Close();
+                client.OnOpen -= Client_OnOpen;
+                client.OnClose -= Client_OnClose;
+                client.OnMessage -= Client_OnMessage;
+                this.Message = "Disconnected";
+            }
 
             if (client != null && !url.Equals(client.Url.AbsoluteUri))
             {
@@ -734,7 +760,6 @@ namespace RemoSharp
 
                     client = new WebSocket(url);
                     Task initialTask = Task.Run(() => InitialConnect());
-                    //initialTask.Wait();
 
                     client.OnOpen += Client_OnOpen;
                     client.OnClose += Client_OnClose;
@@ -760,6 +785,8 @@ namespace RemoSharp
 
         private void ExcecuteShareDocument()
         {
+            this.OnPingDocument().DeselectAll();
+
             GH_LooseChunk tempChunk = new GH_LooseChunk(null);
             this.OnPingDocument().Write(tempChunk);
 
@@ -790,12 +817,20 @@ namespace RemoSharp
 
         private void ConnectToServer()
         {
-            while (!client.IsAlive && keepAlive)
+            bool keepAlive = reconnectAttempts < maxAttempts;
+            bool shouldTryAgain = !client.IsAlive && keepAlive;
+
+            while (shouldTryAgain)
             {
+                if (client == null) return;
                 client.Connect();
+                reconnectAttempts++;
+                keepAlive = reconnectAttempts < maxAttempts;
+                shouldTryAgain = !client.IsAlive && keepAlive;
             }
             if (client.IsAlive)
             {
+                reconnectAttempts = 0;
                 this.Message = "Connected.";
             }
         }
@@ -803,7 +838,17 @@ namespace RemoSharp
         private void Client_OnMessage(object sender, MessageEventArgs e)
         {
 
-                    messages.Add(e.Data);
+            if (e.Data.Equals(RemoSetupClient.DISCONNECTION_KEYWORD))
+            {
+                client.OnMessage -= Client_OnMessage;
+                client.OnOpen -= Client_OnOpen;
+                client.OnClose -= Client_OnClose;
+                client.Close();
+                client = null;
+                this.Message = "Wrong Username\nor Password";
+            }
+
+            messages.Add(e.Data);
             if (!this.keepRecord)
             {
 
@@ -849,10 +894,21 @@ namespace RemoSharp
         private void Client_OnOpen(object sender, EventArgs e)
         {
             this.Message = "Connected";
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                this.ExpireSolution(false);
-            });
+
+            RemoNullCommand nullCommand = new RemoNullCommand(username);
+            string connectionString = RemoCommand.SerializeToJson(nullCommand);
+            client.Send(connectionString);
+
+            reconnectAttempts = 0;
+
+            Grasshopper.Instances.ActiveCanvas.Update();
+
+
+            //this.OnPingDocument().ScheduleSolution(1, doc =>
+            //{
+                
+            //    this.ExpireSolution(false);
+            //});
         }
 
         private void CheckForDirectoryAndFileExistance(string path)
@@ -1040,7 +1096,7 @@ namespace RemoSharp
 
                         command = new RemoMove(username, moveGuids, new Size((int)xDiff, (int)yDiff));
 
-                        if (movingMode)
+                        if (enable)
                         {
                             SendCommands(command, commandRepeat, enable);
                         }

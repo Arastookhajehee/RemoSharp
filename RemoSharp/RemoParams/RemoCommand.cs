@@ -26,6 +26,7 @@ namespace RemoSharp.RemoCommandTypes
 
     public enum CommandType
     {
+        ServerDisconnect = -1,
         NullCommand = 0, // done
         MoveComponent = 1,
         Create = 2, // done
@@ -178,12 +179,11 @@ namespace RemoSharp.RemoCommandTypes
                     remoCommand = JsonConvert.DeserializeObject<RemoCanvasView>(commandJson);
                     break;
                 case (int)CommandType.StreamGeom:
-
                     return null;
                 //break;
                 case (int)CommandType.NullCommand:
-
-                    return null;
+                    remoCommand = JsonConvert.DeserializeObject<RemoNullCommand>(commandJson);
+                    break;
                 //break;
                 default:
                     break;

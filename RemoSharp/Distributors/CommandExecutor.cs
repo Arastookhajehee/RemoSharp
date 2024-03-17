@@ -37,6 +37,8 @@ namespace RemoSharp
 {
     public class CommandExecutor : GHCustomComponent
     {
+        public bool enable = false;
+        
         List<WireHistory> wireHistories = new List<WireHistory>();
 
         List<string> paramTypes = new List<string>()
@@ -230,7 +232,9 @@ namespace RemoSharp
                 if (string.IsNullOrEmpty(command)
                     || command == "null"
                     || command == "Hello World"
-                    || command == "RemoSharp.RemoCommandTypes.RemoNullCommand")
+                    || command == "RemoSharp.RemoCommandTypes.RemoNullCommand"
+                    || !enable
+                    )
                 {
                     wsClientComp.messages.RemoveAt(0);
                     continue;
@@ -944,16 +948,29 @@ namespace RemoSharp
                     currentCanvas.MouseDown -= remoSetupComp.Canvas_MouseDown;
 
 
-                    List<Guid> localCompIds = new List<Guid>();
+                    var localCompIds = this.OnPingDocument().Objects.Where(localComp =>
+                       paramTypes.Contains(localComp.GetType().ToString())
+                    )
+                    .Select(obj => obj.InstanceGuid).ToList();
+
+                    // deserialize the incoming document message
+                    GH_LooseChunk recieveChunk = new GH_LooseChunk(null);
+                    recieveChunk.Deserialize_Xml(remoCanvasSync.xmlString);
+                    GH_Document incomingDoc = new GH_Document();
+                    incomingDoc.Read(recieveChunk);
+
+
+                    MatchLocalInputComponentValues(incomingDoc, localCompIds);
+
 
                     for (int i = this.OnPingDocument().ObjectCount - 1; i > -1; i--)
                     {
                         var obj = this.OnPingDocument().Objects[i];
-                        if (obj.NickName.ToUpper().Contains("LOCAL"))
-                        {
-                            localCompIds.Add(obj.InstanceGuid);
-                        }
-                        else if (
+                        //if (obj.NickName.ToUpper().Contains("LOCAL"))
+                        //{
+                        //    localCompIds.Add(obj.InstanceGuid);
+                        //}
+                        if (
                         obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()) ||
                         obj.GetType().ToString().Equals("RemoSharp.RemoCompSource")
                         )
@@ -966,145 +983,6 @@ namespace RemoSharp
                             this.OnPingDocument().RemoveObject(obj, false);
                         }
                     }
-
-                    GH_LooseChunk recieveChunk = new GH_LooseChunk(null);
-                    recieveChunk.Deserialize_Xml(remoCanvasSync.xmlString);
-
-                    GH_Document incomingDoc = new GH_Document();
-                    incomingDoc.Read(recieveChunk);
-
-                    foreach (var item in incomingDoc.Objects)
-                    {
-                        bool localDocContainsLocalItem = localCompIds.Contains(item.InstanceGuid);
-                        bool typeIsParam = paramTypes.Contains(item.GetType().ToString());
-                        if (localDocContainsLocalItem && typeIsParam)
-                        {
-                            var thisDocParam = this.OnPingDocument().FindObject(item.InstanceGuid, false);
-                            var incomingDocParam = incomingDoc.FindObject(item.InstanceGuid, false);
-                            switch (item.GetType().ToString())
-                            {
-                                case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
-                                    Grasshopper.Kernel.Special.GH_NumberSlider thisDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)thisDocParam;
-                                    Grasshopper.Kernel.Special.GH_NumberSlider incomingDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)incomingDocParam;
-
-                                    incomingDocSlider.Slider.Bounds = thisDocSlider.Slider.Bounds;
-                                    incomingDocSlider.Slider.Type = thisDocSlider.Slider.Type;
-                                    incomingDocSlider.Slider.DecimalPlaces = thisDocSlider.Slider.DecimalPlaces;
-                                    incomingDocSlider.SetSliderValue(thisDocSlider.CurrentValue);
-                                    incomingDocSlider.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocSlider, false);
-                                    incomingDocSlider.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
-
-                                    break;
-                                case ("Grasshopper.Kernel.Special.GH_Panel"):
-                                    Grasshopper.Kernel.Special.GH_Panel thisDocPanel = (Grasshopper.Kernel.Special.GH_Panel)thisDocParam;
-                                    Grasshopper.Kernel.Special.GH_Panel incomingDocGH_Panel = (Grasshopper.Kernel.Special.GH_Panel)incomingDocParam;
-
-                                    incomingDocGH_Panel.Properties.Alignment = thisDocPanel.Properties.Alignment;
-                                    incomingDocGH_Panel.Properties.Wrap = thisDocPanel.Properties.Wrap;
-                                    incomingDocGH_Panel.Properties.Colour = thisDocPanel.Properties.Colour;
-                                    incomingDocGH_Panel.Properties.Multiline = thisDocPanel.Properties.Multiline;
-                                    incomingDocGH_Panel.Properties.DrawIndices = thisDocPanel.Properties.DrawIndices;
-                                    incomingDocGH_Panel.SetUserText(thisDocPanel.UserText);
-                                    incomingDocGH_Panel.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocPanel, false);
-                                    incomingDocGH_Panel.SolutionExpired += remoSetupComp.RemoParameterizePanel;
-
-                                    break;
-                                case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
-                                    Grasshopper.Kernel.Special.GH_ColourSwatch thisDocColor = (Grasshopper.Kernel.Special.GH_ColourSwatch)thisDocParam;
-                                    Grasshopper.Kernel.Special.GH_ColourSwatch incomingDocClolor = (Grasshopper.Kernel.Special.GH_ColourSwatch)incomingDocParam;
-
-                                    incomingDocClolor.SwatchColour = thisDocColor.SwatchColour;
-                                    incomingDocClolor.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocColor, false);
-                                    incomingDocClolor.SolutionExpired += remoSetupComp.RemoParameterizeColor;
-
-
-                                    break;
-                                case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
-                                    Grasshopper.Kernel.Special.GH_MultiDimensionalSlider thisDocMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)thisDocParam;
-                                    Grasshopper.Kernel.Special.GH_MultiDimensionalSlider incomingMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)incomingDocParam;
-
-                                    incomingMDSlider.XInterval = thisDocMDSlider.XInterval;
-                                    incomingMDSlider.YInterval = thisDocMDSlider.YInterval;
-                                    incomingMDSlider.Value = thisDocMDSlider.Value;
-                                    incomingMDSlider.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocMDSlider, false);
-                                    incomingMDSlider.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
-
-                                    break;
-                                case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
-                                    Grasshopper.Kernel.Special.GH_BooleanToggle thisDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)thisDocParam;
-                                    Grasshopper.Kernel.Special.GH_BooleanToggle incomingDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)incomingDocParam;
-
-                                    incomingDocToggle.Value = thisDocToggle.Value;
-                                    incomingDocToggle.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocToggle, false);
-                                    incomingDocToggle.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
-
-                                    break;
-                                case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
-                                    Grasshopper.Kernel.Special.GH_ButtonObject thisDocButton = (Grasshopper.Kernel.Special.GH_ButtonObject)thisDocParam;
-                                    //Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject) incomingDocParam;
-
-                                    this.OnPingDocument().RemoveObject(thisDocButton, false);
-                                    incomingDocParam.SolutionExpired += remoSetupComp.RemoParameterizeButton;
-
-
-                                    break;
-                                case ("Grasshopper.Kernel.Parameters.Param_Point"):
-                                    Grasshopper.Kernel.Parameters.Param_Point thisDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)thisDocParam;
-                                    Grasshopper.Kernel.Parameters.Param_Point incomingDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)incomingDocParam;
-
-                                    incomingDocPoint.SetPersistentData(thisDocPoint.PersistentData);
-                                    incomingDocPoint.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocPoint, false);
-
-                                    break;
-                                case ("Grasshopper.Kernel.Parameters.Param_Vector"):
-                                    Grasshopper.Kernel.Parameters.Param_Vector thisDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)thisDocParam;
-                                    Grasshopper.Kernel.Parameters.Param_Vector incomingDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)incomingDocParam;
-
-                                    incomingDocVector.SetPersistentData(thisDocVector.PersistentData);
-                                    incomingDocVector.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocVector, false);
-                                    break;
-                                case ("Grasshopper.Kernel.Parameters.Param_Plane"):
-                                    Grasshopper.Kernel.Parameters.Param_Plane thisDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)thisDocParam;
-                                    Grasshopper.Kernel.Parameters.Param_Plane incomingDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)incomingDocParam;
-
-                                    incomingDocPlane.SetPersistentData(thisDocPlane.PersistentData);
-                                    incomingDocPlane.ExpireSolution(false);
-
-                                    this.OnPingDocument().RemoveObject(thisDocPlane, false);
-
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                        //else
-                        //{
-                        //    if (item.NickName.ToUpper().Contains("local".ToUpper()))
-                        //    {
-                        //        incomingDoc.RemoveObject(item,false);
-                        //    }
-                        //}
-
-
-                    }
-
-
-
-
 
                     this.OnPingDocument().MergeDocument(incomingDoc);
 
@@ -1123,6 +1001,124 @@ namespace RemoSharp
             }
             catch
             {
+
+            }
+
+        }
+
+        private void MatchLocalInputComponentValues(GH_Document incomingDoc, List<Guid> localCompsGuids)
+        {
+
+            foreach (var guid in localCompsGuids)
+            {
+                IGH_Param thisDocParam = (IGH_Param)this.OnPingDocument().FindObject(guid, false);
+                IGH_Param incomingDocParam = (IGH_Param)incomingDoc.FindObject(guid, false);
+                if (incomingDocParam == null) continue;
+                if (incomingDocParam.SourceCount != 0) continue;
+
+                switch (incomingDocParam.GetType().ToString())
+                {
+                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                        Grasshopper.Kernel.Special.GH_NumberSlider thisDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_NumberSlider incomingDocSlider = (Grasshopper.Kernel.Special.GH_NumberSlider)incomingDocParam;
+
+                        incomingDocSlider.Slider.Bounds = thisDocSlider.Slider.Bounds;
+                        incomingDocSlider.Slider.Type = thisDocSlider.Slider.Type;
+                        incomingDocSlider.Slider.DecimalPlaces = thisDocSlider.Slider.DecimalPlaces;
+                        incomingDocSlider.SetSliderValue(thisDocSlider.CurrentValue);
+                        incomingDocSlider.ExpireSolution(false);
+
+                        //incomingDocSlider.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_Panel"):
+                        Grasshopper.Kernel.Special.GH_Panel thisDocPanel = (Grasshopper.Kernel.Special.GH_Panel)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_Panel incomingDocGH_Panel = (Grasshopper.Kernel.Special.GH_Panel)incomingDocParam;
+
+                        incomingDocGH_Panel.Properties.Alignment = thisDocPanel.Properties.Alignment;
+                        incomingDocGH_Panel.Properties.Wrap = thisDocPanel.Properties.Wrap;
+                        incomingDocGH_Panel.Properties.Colour = thisDocPanel.Properties.Colour;
+                        incomingDocGH_Panel.Properties.Multiline = thisDocPanel.Properties.Multiline;
+                        incomingDocGH_Panel.Properties.DrawIndices = thisDocPanel.Properties.DrawIndices;
+                        incomingDocGH_Panel.SetUserText(thisDocPanel.UserText);
+                        incomingDocGH_Panel.ExpireSolution(false);
+
+                        //incomingDocGH_Panel.SolutionExpired += remoSetupComp.RemoParameterizePanel;
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                        Grasshopper.Kernel.Special.GH_ColourSwatch thisDocColor = (Grasshopper.Kernel.Special.GH_ColourSwatch)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_ColourSwatch incomingDocClolor = (Grasshopper.Kernel.Special.GH_ColourSwatch)incomingDocParam;
+
+                        incomingDocClolor.SwatchColour = thisDocColor.SwatchColour;
+                        incomingDocClolor.ExpireSolution(false);
+
+                        //incomingDocClolor.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                        Grasshopper.Kernel.Special.GH_MultiDimensionalSlider thisDocMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_MultiDimensionalSlider incomingMDSlider = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)incomingDocParam;
+
+                        incomingMDSlider.XInterval = thisDocMDSlider.XInterval;
+                        incomingMDSlider.YInterval = thisDocMDSlider.YInterval;
+                        incomingMDSlider.Value = thisDocMDSlider.Value;
+                        incomingMDSlider.ExpireSolution(false);
+
+                        //incomingMDSlider.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                        Grasshopper.Kernel.Special.GH_BooleanToggle thisDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_BooleanToggle incomingDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)incomingDocParam;
+
+                        incomingDocToggle.Value = thisDocToggle.Value;
+                        incomingDocToggle.ExpireSolution(false);
+
+                        //incomingDocToggle.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                        Grasshopper.Kernel.Special.GH_ButtonObject thisDocButton = (Grasshopper.Kernel.Special.GH_ButtonObject)thisDocParam;
+                        //Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject) incomingDocParam;
+
+                        //incomingDocParam.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+
+                        break;
+                    case ("Grasshopper.Kernel.Parameters.Param_Point"):
+                        Grasshopper.Kernel.Parameters.Param_Point thisDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)thisDocParam;
+                        Grasshopper.Kernel.Parameters.Param_Point incomingDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)incomingDocParam;
+
+                        incomingDocPoint.SetPersistentData(thisDocPoint.PersistentData);
+                        incomingDocPoint.ExpireSolution(false);
+
+                        //this.OnPingDocument().RemoveObject(thisDocPoint, false);
+
+                        break;
+                    case ("Grasshopper.Kernel.Parameters.Param_Vector"):
+                        Grasshopper.Kernel.Parameters.Param_Vector thisDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)thisDocParam;
+                        Grasshopper.Kernel.Parameters.Param_Vector incomingDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)incomingDocParam;
+
+                        incomingDocVector.SetPersistentData(thisDocVector.PersistentData);
+                        incomingDocVector.ExpireSolution(false);
+
+                        //this.OnPingDocument().RemoveObject(thisDocVector, false);
+                        break;
+                    case ("Grasshopper.Kernel.Parameters.Param_Plane"):
+                        Grasshopper.Kernel.Parameters.Param_Plane thisDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)thisDocParam;
+                        Grasshopper.Kernel.Parameters.Param_Plane incomingDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)incomingDocParam;
+
+                        incomingDocPlane.SetPersistentData(thisDocPlane.PersistentData);
+                        incomingDocPlane.ExpireSolution(false);
+
+                        //this.OnPingDocument().RemoveObject(thisDocPlane, false);
+
+                        break;
+                    default:
+                        break;
+                }
+
 
             }
 
