@@ -37,6 +37,7 @@ using System.ComponentModel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Undo;
+using Machina;
 
 namespace RemoSharp
 {
@@ -191,42 +192,41 @@ namespace RemoSharp
 
             if (enable)
             {
-                if (!subscribed)
+
+                if (this == null || this.OnPingDocument() == null)
                 {
-                    if (this == null || this.OnPingDocument() == null)
-                    {
-                        return;
-                    }
-                    canvas = Grasshopper.Instances.ActiveCanvas;
-                    #region Wire Connection and Move Sub
-                    canvas.MouseDown += Canvas_MouseDown;
-                    canvas.KeyDown += Canvas_KeyDown;
-                    #endregion
-
-                    canvas.MouseUp += Canvas_MouseUp;
-                    canvas.KeyUp += Canvas_KeyUp;
-
-                    #region Add Object Sub
-                    this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
-                    #endregion
-
-                    #region Remove Object Sub
-                    this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
-                    #endregion
-
-                    #region UndoRedo
-                    //this.OnPingDocument().UndoStateChanged += RemoSetupClient_UndoStateChanged;
-                    #endregion
-
-                    #region remoparam mouse move
-                    Grasshopper.Instances.ActiveCanvas.MouseMove += ActiveCanvas_MouseMove;
-                    Grasshopper.Instances.ActiveCanvas.KeyDown += ActiveCanvas_KeyDown;
-                    Grasshopper.Instances.ActiveCanvas.KeyUp += ActiveCanvas_KeyUp;
-                    #endregion
-
-
-                    subscribed = true;
+                    return;
                 }
+                canvas = Grasshopper.Instances.ActiveCanvas;
+                #region Wire Connection and Move Sub
+                canvas.MouseDown += Canvas_MouseDown;
+                canvas.KeyDown += Canvas_KeyDown;
+                #endregion
+
+                canvas.MouseUp += Canvas_MouseUp;
+                canvas.KeyUp += Canvas_KeyUp;
+
+                #region Add Object Sub
+                this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
+                #endregion
+
+                #region Remove Object Sub
+                this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
+                #endregion
+
+                #region UndoRedo
+                //this.OnPingDocument().UndoStateChanged += RemoSetupClient_UndoStateChanged;
+                #endregion
+
+                #region remoparam mouse move
+                Grasshopper.Instances.ActiveCanvas.MouseMove += ActiveCanvas_MouseMove;
+                Grasshopper.Instances.ActiveCanvas.KeyDown += ActiveCanvas_KeyDown;
+                Grasshopper.Instances.ActiveCanvas.KeyUp += ActiveCanvas_KeyUp;
+                #endregion
+
+
+                SubscribeAllParams(this, true);
+
             }
             else
             {
@@ -259,9 +259,132 @@ namespace RemoSharp
                 #endregion
 
                 subscribed = false;
+
+                SubscribeAllParams(this, false);
             }
 
             this.ExpireSolution(true);
+        }
+
+        private void SubscribeAllParams(RemoSetupClient remoSetupComp, bool subscribe)
+        {
+            List<string> accaptableTypes = new List<string>() {
+            "Grasshopper.Kernel.Special.GH_NumberSlider",
+            "Grasshopper.Kernel.Special.GH_Panel",
+            "Grasshopper.Kernel.Special.GH_ColourSwatch",
+            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
+            "Grasshopper.Kernel.Special.GH_BooleanToggle",
+            "Grasshopper.Kernel.Special.GH_ButtonObject"
+            };
+
+            var allParams = this.OnPingDocument().Objects;
+
+
+            if (!subscribe)
+            {
+                var deletionGuids = this.OnPingDocument().Objects
+                    .Where(obj => obj.NickName.Equals(RemoParam.RemoParamKeyword))
+                    .Select(obj => this.OnPingDocument().FindObject(obj.InstanceGuid,false))
+                    .ToList();
+
+                this.OnPingDocument().RemoveObjects(deletionGuids, false);
+            }
+
+            foreach (var item in allParams)
+            {
+                if (subscribe)
+                {
+                    string typeString = item.GetType().FullName;
+
+                    string pause = "";
+
+
+                    bool isInTheList = accaptableTypes.Contains(typeString);
+
+                    if (isInTheList)
+                    {
+                        string nickName = item .NickName;
+                        bool isSetupButtno = nickName.Equals("RemoSetup");
+
+                        if (isSetupButtno) continue;
+
+                        GroupObjParam(item);
+                    }
+
+                }
+                switch (item.GetType().ToString())
+                {
+                    
+                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
+                        }
+                        else
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+                        }
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_Panel"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
+                        }
+                        else 
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+                        }
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+                        }
+                        else 
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+                        }
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
+                        }
+                        else 
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+                        }
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
+                        }
+                        else 
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+                        }
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                        if (subscribe)
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+                            item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+                        }
+                        else 
+                        {
+                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         private void Canvas_KeyUp(object sender, KeyEventArgs e)
@@ -284,7 +407,13 @@ namespace RemoSharp
 
                 if (preventUndo)
                 {
-                    this.OnPingDocument().UndoServer.Clear();
+                    var thisDoc = this.OnPingDocument();
+                    if (thisDoc != null) 
+                    {
+                        var undoServer = thisDoc.UndoServer;
+                        if (undoServer != null) undoServer.Clear();
+                    }
+
                 }
 
             }
@@ -355,7 +484,7 @@ namespace RemoSharp
             
             else if (e.KeyCode == Keys.Z && controlDown && preventUndo)
             {
-                System.Windows.Forms.MessageBox.Show("PLEASE DO NOT USE UNDO OR REDO", "Syncing Error!");
+                System.Windows.Forms.MessageBox.Show("PLEASE DO NOT USE UNDO OR REDO (●◡~)", "Syncing Error!");
             }
         }
 
@@ -622,97 +751,30 @@ namespace RemoSharp
             DA.SetData(0, client);
 
 
-
-
-
-            //if (setup == 0)
-            //{
-
-            //}
-
-
             if (syncThisCanvas)
             {
-                var currentCanvas = Grasshopper.Instances.ActiveCanvas;
-                currentCanvas.Document.ObjectsAdded -= this.RemoCompSource_ObjectsAdded;
-                currentCanvas.Document.ObjectsDeleted -= this.RemoCompSource_ObjectsDeleted;
-                currentCanvas.MouseUp -= this.Canvas_MouseUp;
-                currentCanvas.MouseDown -= this.Canvas_MouseDown;
-
-                this.OnPingDocument().DeselectAll();
-
-                string savePath = @"C:\temp\RemoSharp\saveTempFile.ghx";
-                string openPath = @"C:\temp\RemoSharp\openTempFile" + username + ".ghx";
-                string finalPath = @"C:\temp\RemoSharp\finalTempFile" + username + ".ghx";
-
-                CheckForDirectoryAndFileExistance(savePath);
-                CheckForDirectoryAndFileExistance(openPath);
-                CheckForDirectoryAndFileExistance(finalPath);
-
-                Grasshopper.Kernel.GH_DocumentIO saveDoc = new GH_DocumentIO(this.OnPingDocument());
-                bool saveDocR = saveDoc.SaveQuiet(savePath);
-
-                while (true)
-                {
-                    try
-                    {
-                        System.IO.File.Copy(savePath, openPath, true);
-                        break;
-                    }
-                    catch { }
-                }
-
-                Grasshopper.Kernel.GH_DocumentIO openDoc = new GH_DocumentIO();
-                openDoc.Open(openPath);
-
-                for (int i = openDoc.Document.ObjectCount - 1; i > -1; i--)
-                {
-                    var obj = openDoc.Document.Objects[i];
-                    if (obj.NickName.ToUpper().Contains("RemoSetup".ToUpper()) ||
-                        obj.GetType().ToString().Equals("RemoSharp.RemoCompSource"))
-                    {
-                        openDoc.Document.RemoveObject(obj, false);
-                    }
-
-                }
-                openDoc.SaveQuiet(savePath);
-                openDoc.Document.Dispose();
-
-                currentCanvas.Document.ObjectsAdded += this.RemoCompSource_ObjectsAdded;
-                currentCanvas.Document.ObjectsDeleted += this.RemoCompSource_ObjectsDeleted;
-                currentCanvas.MouseUp += this.Canvas_MouseUp;
-                currentCanvas.MouseDown += this.Canvas_MouseDown;
-
-                try
-                {
-                    string content = "";
-                    using (StreamReader sr = new StreamReader(savePath))
-                    {
-                        content = sr.ReadToEnd();
-
-                        RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, content);
-                        string cmdJson = RemoCommand.SerializeToJson(remoCanvasSync);
-                        if (client != null)
-                        {
-                            client.Send(cmdJson);
-                        }
-                        sr.Close();
-                    }
-                }
-                catch { }
+                ExcecuteShareDocument();
+                return;
             }
+        }
 
+        private void ExcecuteShareDocument()
+        {
+            GH_LooseChunk tempChunk = new GH_LooseChunk(null);
+            this.OnPingDocument().Write(tempChunk);
 
+            GH_Document saveDoc = new GH_Document();
+            saveDoc.Read(tempChunk);
 
+            saveDoc.RemoveObjects(saveDoc.Objects.Where(obj => obj.NickName.Contains("RemoSetup")).ToList(), false);
 
+            GH_LooseChunk toSendChunk = new GH_LooseChunk(null);
+            saveDoc.Write(toSendChunk);
+            string xml = toSendChunk.Serialize_Xml();
 
-            //int commandRepeatCount = 5;
-            //DA.SetData(0,command);
-
-            //if (setup > 100) setup = 5;
-            //if (commandReset > commandRepeatCount) command = new RemoNullCommand(username);
-
-            //setup++;
+            RemoCanvasSync remoCanvasSync  = new RemoCanvasSync(username, xml);
+            string syncCommand = RemoCommand.SerializeToJson(remoCanvasSync);
+            this.client.Send(syncCommand);
         }
 
         private void InitialConnect()
@@ -1140,7 +1202,8 @@ namespace RemoSharp
                 string rpmType = "RemoSharp.RemoParams.RemoParam";
                 if (compTypeString.Equals(rpmType))
                 {
-                    associatedAttribute = AddRemoParamDataComponent(obj, rpmType);
+                    AddRemoParamDataComponent(obj, rpmType);
+                    continue;
                 }
 
                 // check to see if this component has been created from remocreate command coming from outsite
@@ -1360,62 +1423,173 @@ namespace RemoSharp
 
         public void GroupObjParam(IGH_DocumentObject obj)
         {
+            this.OnPingDocument().ScheduleSolution(1, doc => 
+            {
+                GH_Group group = new GH_Group();
+                group.CreateAttributes();
+                group.AddObject(obj.InstanceGuid);
+                group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+                group.NickName = RemoParam.RemoParamKeyword;
+                this.OnPingDocument().AddObject(group, false);
+            });
+        }
+
+        public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
+        {
+
             GH_Group group = new GH_Group();
             group.CreateAttributes();
-            group.AddObject(obj.InstanceGuid);
-            group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
-            group.NickName = RemoParam.RemoParamKeyword;
+            group.AddObject(remoParamComp.InstanceGuid);
+            group.AddObject(remoParamData.InstanceGuid);
+            Random rand = new Random();
+            int hue1 = rand.Next(100, 255);
+            int hue2 = rand.Next(100, 255);
+            int hue3 = rand.Next(100, 255);
+            group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
+            group.Border = GH_GroupBorder.Blob;
+            group.NickName = "";
+
+            remoParamComp.groupGuid = group.InstanceGuid;
 
             this.OnPingDocument().AddObject(group, false);
+        }
+
+        public Color FromHSVA(double hue, double saturation, double value, double alpha)
+        {
+            if (hue < 0 || hue >= 360) throw new ArgumentOutOfRangeException(nameof(hue), "Hue must be between 0 and 360");
+            if (saturation < 0 || saturation > 1) throw new ArgumentOutOfRangeException(nameof(saturation), "Saturation must be between 0 and 1");
+            if (value < 0 || value > 1) throw new ArgumentOutOfRangeException(nameof(value), "Value must be between 0 and 1");
+            if (alpha < 0 || alpha > 1) throw new ArgumentOutOfRangeException(nameof(alpha), "Alpha must be between 0 and 1");
+
+            double chroma = value * saturation;
+            double hueSection = hue / 60.0;
+            double x = chroma * (1 - Math.Abs(hueSection % 2 - 1));
+            double m = value - chroma;
+
+            double red = 0, green = 0, blue = 0;
+            if (hueSection >= 0 && hueSection < 1)
+            {
+                red = chroma;
+                green = x;
+            }
+            else if (hueSection >= 1 && hueSection < 2)
+            {
+                red = x;
+                green = chroma;
+            }
+            else if (hueSection >= 2 && hueSection < 3)
+            {
+                green = chroma;
+                blue = x;
+            }
+            else if (hueSection >= 3 && hueSection < 4)
+            {
+                green = x;
+                blue = chroma;
+            }
+            else if (hueSection >= 4 && hueSection < 5)
+            {
+                red = x;
+                blue = chroma;
+            }
+            else if (hueSection >= 5 && hueSection < 6)
+            {
+                red = chroma;
+                blue = x;
+            }
+
+            red = (red + m) * 255;
+            green = (green + m) * 255;
+            blue = (blue + m) * 255;
+            alpha = alpha * 255; // Convert alpha to 0-255 range
+
+            return Color.FromArgb((int)alpha, (int)red, (int)green, (int)blue);
         }
 
         public void GroupObjParam(IGH_DocumentObject obj, string extraText)
         {
-            GH_Group group = new GH_Group();
-            group.CreateAttributes();
-            group.AddObject(obj.InstanceGuid);
-            group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
-            group.NickName = RemoParam.RemoParamKeyword + extraText;
+            this.OnPingDocument().ScheduleSolution(1, doc => 
+            {
+                GH_Group group = new GH_Group();
+                group.CreateAttributes();
+                group.AddObject(obj.InstanceGuid);
+                group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+                group.NickName = RemoParam.RemoParamKeyword + extraText;
 
-            this.OnPingDocument().AddObject(group, false);
+
+                this.OnPingDocument().AddObject(group, false);
+
+            });
+            
         }
 
-        private string AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
+        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType)
         {
-            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects
-                .Where(comps => comps.GetType().ToString().Equals(rpmType))
-                .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
+            //List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects
+            //    .Where(comps => comps.GetType().ToString().Equals(rpmType))
+            //    .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
 
 
-            List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
+            //List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
 
-            rpmIndeceis.Sort();
+            //rpmIndeceis.Sort();
 
-            int lastRPMIndex = rpmIndeceis[rpmIndeceis.Count - 1];
+            //int lastRPMIndex = rpmIndeceis[rpmIndeceis.Count - 1];
 
-            string newRpmNickname = string.Format("RPM{0}", lastRPMIndex + 1);
+            //string newRpmNickname = string.Format("RPM{0}", lastRPMIndex + 1);
 
-            var cast = (RemoSharp.RemoParams.RemoParam)obj;
-            cast.Message = newRpmNickname;
+            //var cast = (RemoSharp.RemoParams.RemoParam)obj;
+            //cast.Message = newRpmNickname;
+            //cast.message = newRpmNickname;
 
-            var rpmPivot = obj.Attributes.Pivot;
-            PointF dataPivot = new PointF(rpmPivot.X - 54, rpmPivot.Y + 103);
 
-            RemoParamData dataComp = new RemoParamData();
-            dataComp.CreateAttributes();
-            dataComp.Attributes.Pivot = dataPivot;
-            dataComp.Params.RepairParamAssociations();
-            dataComp.Message = newRpmNickname;
 
+            //dataComp.Message = newRpmNickname;
+            //dataComp.message = newRpmNickname;
+
+            RemoParam rpmComp = obj as RemoParam;
             GH_LooseChunk chunk = new GH_LooseChunk(null);
-            dataComp.Write(chunk);
+            rpmComp.Write(chunk);
+            string xml = chunk.Serialize_Xml();
+
+            
 
             this.OnPingDocument().ScheduleSolution(0, doc =>
             {
-                this.OnPingDocument().AddObject(dataComp, false);
-            });
+                var rpmPivot = obj.Attributes.Pivot;
+                PointF dataPivot = new PointF(rpmPivot.X + 36, rpmPivot.Y);
 
-            return chunk.Serialize_Xml();
+                Guid dataGuid = Guid.NewGuid();
+                RemoParam remoParamComp = obj as RemoParam;
+                RemoParamData dataComp = new RemoParamData();
+                dataComp.CreateAttributes();
+                dataComp.Attributes.Pivot = dataPivot;
+                dataComp.Params.RepairParamAssociations();
+                dataComp.ExpireSolution(true);
+
+                GH_LooseChunk chunk2 = new GH_LooseChunk(null);
+                dataComp.Write(chunk2);
+
+
+                RemoCreate remoCreate = new RemoCreate(this.username
+                    , new List<Guid>() { rpmComp.InstanceGuid }
+                    , new List<String>() { chunk2.Serialize_Xml() }
+                    , new List<string>() { rpmComp.GetType().FullName }
+                    , new List<string>() { xml }
+                    , new List<string>() { xml }
+                    );
+
+                SendCommands(remoCreate, commandRepeat, enable);
+
+                
+
+                
+
+                this.OnPingDocument().AddObject(dataComp, false);
+
+                GroupRemoParamDataComponents(remoParamComp, dataComp);
+
+            });
         }
 
 

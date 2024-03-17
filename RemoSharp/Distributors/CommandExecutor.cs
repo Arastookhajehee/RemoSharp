@@ -31,6 +31,7 @@ using GH_IO.Serialization;
 using System.Xml;
 using Grasshopper.Kernel.Undo;
 using Grasshopper.Kernel.Undo.Actions;
+using Grasshopper;
 
 namespace RemoSharp
 {
@@ -430,6 +431,12 @@ namespace RemoSharp
                             ExecuteRemoText(remoParameter);
 
                             break;
+                        case (CommandType.CanvasViewport):
+                            RemoCanvasView remoCanvasView = (RemoCanvasView)remoCommand;
+
+                            ExecuteRemoCanvasView(remoCanvasView);
+
+                            break;
                         default:
 
                             break;
@@ -637,6 +644,20 @@ namespace RemoSharp
 
         }
 
+        private void ExecuteRemoCanvasView(RemoCanvasView remoCanvasView)
+        {
+            string str = remoCanvasView.canvasViewport;
+
+            if (str == null || str == "" || str == " " || str == "Hello World") return;
+
+            string[] parts = str.Split(',');
+            Single x = Convert.ToSingle(parts[4]);
+            Single y = Convert.ToSingle(parts[5]);
+            float zoom = (float)Convert.ToDouble(parts[6]);
+            Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint = new System.Drawing.PointF(x, y);
+            Grasshopper.Instances.ActiveCanvas.Viewport.Zoom = zoom;
+        }
+
         private void ExecuteRemoCompSync(RemoCompSync remoCompSync)
         {
 
@@ -819,25 +840,36 @@ namespace RemoSharp
         {
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                if (string.IsNullOrEmpty(remoParameter.remoParamName)) return;
-                RemoParamData pointComp = this.OnPingDocument().Objects.Where(obj => obj is RemoParamData)
-                    .Select(obj => obj as RemoParamData).Where(obj => obj.Message.Equals(remoParameter.remoParamName)).FirstOrDefault();
 
-                GH_LooseChunk chunk = new GH_LooseChunk(null);
-                chunk.Deserialize_Xml(remoParameter.xmlTree);
+                RemoParam remoParamComp = this.OnPingDocument().FindObject(remoParameter.remoParamGuid, false) as RemoSharp.RemoParams.RemoParam;
+                var remoGroup = this.OnPingDocument().FindObject(remoParamComp.groupGuid, false) as GH_Group;
 
-                try
+                foreach (var item in remoGroup.ObjectIDs)
                 {
-                    GH_Structure<IGH_Goo> gooTree = new GH_Structure<IGH_Goo>();
-                    gooTree.Read(chunk);
+                    var obj = this.OnPingDocument().FindObject(item, false);
+                    if (obj is RemoSharp.RemoParams.RemoParamData)
+                    {
+                        try
+                        {
+                            RemoParamData remoParamData = obj as RemoParamData;
+                            GH_LooseChunk chunk = new GH_LooseChunk(null);
+                            chunk.Deserialize_Xml(remoParameter.xmlTree);
 
-                    pointComp.currentValue = gooTree;
-                    pointComp.ExpireSolution(true);
-                }
-                catch
-                {
+                            GH_Structure<IGH_Goo> gooTree = new GH_Structure<IGH_Goo>();
+                            gooTree.Read(chunk);
 
+                            remoParamData.currentValue = gooTree;
+                            remoParamData.ExpireSolution(true);
+                        }
+                        catch
+                        {
+
+                        }
+                    }
                 }
+
+
+                
                 
             });
         }
@@ -890,21 +922,7 @@ namespace RemoSharp
             ResetGHColorsToDefault();
 
             //https://stackoverflow.com/questions/674479/how-do-i-get-the-directory-from-a-files-full-path
-            string path = @"C:\temp\RemoSharp\ReceiveStream.ghx";
-            CheckForDirectoryAndFileExistance(path);
-
-            string stream = remoCanvasSync.xmlString;
-
-            if (string.IsNullOrEmpty(stream) ||
-                stream == " " ||
-                stream == "Hello World" ||
-                !stream.Substring(0, 15).Contains("?xml version")) return;
-
-            using (StreamWriter sw = new StreamWriter(path))
-            {
-                sw.Write(stream);
-            }
-
+            //string path = @"C:\temp\RemoSharp\ReceiveStream.ghx";
 
             try
             {
@@ -949,9 +967,11 @@ namespace RemoSharp
                         }
                     }
 
-                    Grasshopper.Kernel.GH_DocumentIO ioDoc = new GH_DocumentIO();
-                    ioDoc.Open(path);
-                    var incomingDoc = ioDoc.Document;
+                    GH_LooseChunk recieveChunk = new GH_LooseChunk(null);
+                    recieveChunk.Deserialize_Xml(remoCanvasSync.xmlString);
+
+                    GH_Document incomingDoc = new GH_Document();
+                    incomingDoc.Read(recieveChunk);
 
                     foreach (var item in incomingDoc.Objects)
                     {
@@ -974,6 +994,7 @@ namespace RemoSharp
                                     incomingDocSlider.ExpireSolution(false);
 
                                     this.OnPingDocument().RemoveObject(thisDocSlider, false);
+                                    incomingDocSlider.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
 
                                     break;
                                 case ("Grasshopper.Kernel.Special.GH_Panel"):
@@ -989,6 +1010,7 @@ namespace RemoSharp
                                     incomingDocGH_Panel.ExpireSolution(false);
 
                                     this.OnPingDocument().RemoveObject(thisDocPanel, false);
+                                    incomingDocGH_Panel.SolutionExpired += remoSetupComp.RemoParameterizePanel;
 
                                     break;
                                 case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
@@ -999,6 +1021,8 @@ namespace RemoSharp
                                     incomingDocClolor.ExpireSolution(false);
 
                                     this.OnPingDocument().RemoveObject(thisDocColor, false);
+                                    incomingDocClolor.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+
 
                                     break;
                                 case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
@@ -1011,6 +1035,7 @@ namespace RemoSharp
                                     incomingMDSlider.ExpireSolution(false);
 
                                     this.OnPingDocument().RemoveObject(thisDocMDSlider, false);
+                                    incomingMDSlider.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
 
                                     break;
                                 case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
@@ -1021,6 +1046,7 @@ namespace RemoSharp
                                     incomingDocToggle.ExpireSolution(false);
 
                                     this.OnPingDocument().RemoveObject(thisDocToggle, false);
+                                    incomingDocToggle.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
 
                                     break;
                                 case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
@@ -1028,6 +1054,8 @@ namespace RemoSharp
                                     //Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject) incomingDocParam;
 
                                     this.OnPingDocument().RemoveObject(thisDocButton, false);
+                                    incomingDocParam.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+
 
                                     break;
                                 case ("Grasshopper.Kernel.Parameters.Param_Point"):
@@ -1084,6 +1112,10 @@ namespace RemoSharp
                     currentCanvas.Document.ObjectsDeleted += remoSetupComp.RemoCompSource_ObjectsDeleted;
                     currentCanvas.MouseUp += remoSetupComp.Canvas_MouseUp;
                     currentCanvas.MouseDown += remoSetupComp.Canvas_MouseDown;
+
+
+                    SubscribeAllParams(remoSetupComp);
+
                 });
 
 
@@ -1094,6 +1126,49 @@ namespace RemoSharp
 
             }
 
+        }
+
+        private void SubscribeAllParams(RemoSetupClient remoSetupComp)
+        {
+            List<string> accaptableTypes = new List<string>() {
+            "Grasshopper.Kernel.Special.GH_NumberSlider",
+            "Grasshopper.Kernel.Special.GH_Panel",
+            "Grasshopper.Kernel.Special.GH_ColourSwatch",
+            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
+            "Grasshopper.Kernel.Special.GH_BooleanToggle",
+            "Grasshopper.Kernel.Special.GH_ButtonObject"
+            };
+
+            var allParams = this.OnPingDocument().Objects
+                .Where(obj =>accaptableTypes.Contains(obj.GetType().ToString()))
+                .Where(obj => !obj.NickName.Contains("RemoSetup"));
+
+            foreach (var item in allParams)
+            {
+                switch (item.GetType().ToString())
+                {
+                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_Panel"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+                        item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         private RemoSetupClient GetSourceCompFromInput()
@@ -1615,42 +1690,58 @@ namespace RemoSharp
 
         }
 
-        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string rpmType, string associatedAttribute)
+        private void AddRemoParamDataComponent(IGH_DocumentObject obj,string dataCompXml)
         {
-            List<RemoSharp.RemoParams.RemoParam> rpmList = this.OnPingDocument().Objects.Where(comps => comps.GetType().ToString().Equals(rpmType))
-                                    .ToList().Select(comps => (RemoSharp.RemoParams.RemoParam)comps).ToList();
 
-
-            List<int> rpmIndeceis = rpmList.Select(comps => comps.Message == null ? 0 : Convert.ToInt32(comps.Message.Replace("RPM", ""))).ToList();
-
-            rpmIndeceis.Sort();
-
-            int lastRPMIndex = rpmIndeceis[rpmIndeceis.Count - 1];
-
-            string newRpmNickname = string.Format("RPM{0}", lastRPMIndex + 1);
-
-            var cast = (RemoSharp.RemoParams.RemoParam)obj;
-            cast.Message = newRpmNickname;
-
-            var rpmPivot = obj.Attributes.Pivot;
-            PointF dataPivot = new PointF(rpmPivot.X - 54, rpmPivot.Y + 103);
-
-            RemoParamData dataComp = new RemoParamData();
-            dataComp.CreateAttributes();
-            dataComp.Attributes.Pivot = dataPivot;
-            dataComp.Params.RepairParamAssociations();
-            dataComp.Message = newRpmNickname;
-
-
-            GH_LooseChunk chunk = new GH_LooseChunk(null);
-            chunk.Deserialize_Xml(associatedAttribute);
-            dataComp.Read(chunk);
 
             this.OnPingDocument().ScheduleSolution(0, doc =>
             {
+                var rpmPivot = obj.Attributes.Pivot;
+                PointF dataPivot = new PointF(rpmPivot.X + 36, rpmPivot.Y);
+
+                RemoParam remoParamComp = obj as RemoParam;
+                RemoParamData dataComp = new RemoParamData();
+                dataComp.CreateAttributes();
+                dataComp.Attributes.Pivot = dataPivot;
+                dataComp.Params.RepairParamAssociations();
+                dataComp.Params.RepairProxyParams(this.OnPingDocument());
+
+
+                GH_LooseChunk chunk2 = new GH_LooseChunk(null);
+                chunk2.Deserialize_Xml(dataCompXml);
+                dataComp.Read(chunk2);
+
+                dataComp.ExpireSolution(true);
+
+
+
                 this.OnPingDocument().AddObject(dataComp, false);
+
+                GroupRemoParamDataComponents(remoParamComp, dataComp);
+
             });
         }
+
+        public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
+        {
+
+            GH_Group group = new GH_Group();
+            group.CreateAttributes();
+            group.AddObject(remoParamComp.InstanceGuid);
+            group.AddObject(remoParamData.InstanceGuid);
+            Random rand = new Random();
+            int hue1 = rand.Next(100, 255);
+            int hue2 = rand.Next(100, 255);
+            int hue3 = rand.Next(100, 255);
+            group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
+            group.Border = GH_GroupBorder.Blob;
+            group.NickName = "";
+
+            remoParamComp.groupGuid = group.InstanceGuid;
+
+            this.OnPingDocument().AddObject(group, false);
+        }
+
         private void ExcecuteMove(RemoMove moveCommand)
         {
             if (this.MoveCommands.Contains(moveCommand.translationGuid)) return;
@@ -1868,7 +1959,7 @@ namespace RemoSharp
                 string rpmType = "RemoSharp.RemoParams.RemoParam";
                 if (gh_Component.GetType().ToString().Equals(rpmType))
                 {
-                    AddRemoParamDataComponent(gh_Component, rpmType, associatedAttribute);
+                    AddRemoParamDataComponent(gh_Component,associatedAttribute);
 
                 }
 
@@ -1994,8 +2085,7 @@ namespace RemoSharp
                 string rpmType = "RemoSharp.RemoParams.RemoParam";
                 if (gh_Component.GetType().ToString().Equals(rpmType))
                 {
-                    AddRemoParamDataComponent(gh_Component, rpmType, associatedAttribute);
-
+                    AddRemoParamDataComponent(gh_Component, associatedAttribute);
                 }
                 
 

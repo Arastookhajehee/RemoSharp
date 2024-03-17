@@ -18,6 +18,7 @@ namespace RemoSharp
         //GH_Document GrasshopperDocument;
         //IGH_Component Component;
 
+        PushButton LookButton;
         PushButton selectButton;
         PushButton hideButton;
         PushButton lockButton;
@@ -47,6 +48,8 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            LookButton = new PushButton("Look",
+                "Syncs your canvas viewport with others", "Look");
             selectButton = new PushButton("Select",
                 "Select a component on the main remote GH_Canvas.", "Sel");
             hideButton = new PushButton("Hide",
@@ -56,14 +59,14 @@ namespace RemoSharp
             syncComponents = new PushButton("SyncComp",
                             "Syncs selected components' attributes.", "SyncComp");
 
-
+            LookButton.OnValueChanged += LookButton_OnValueChanged;
             selectButton.OnValueChanged += SelectButton_OnValueChanged;
             hideButton.OnValueChanged += HideButton_OnValueChanged;
             lockButton.OnValueChanged += LockButton_OnValueChanged;
             syncComponents.OnValueChanged += SyncComponents_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                selectButton, hideButton, lockButton, syncComponents
+                LookButton,selectButton, hideButton, lockButton, syncComponents
                 );
 
             AddCustomControl(stackPanel);
@@ -71,6 +74,31 @@ namespace RemoSharp
 
             pManager.AddTextParameter("Username", "user", "This client's username", GH_ParamAccess.item, "");
             pManager.AddGenericParameter("WSClient", "wsc", "Command Websocket Client", GH_ParamAccess.item);
+        }
+
+        private void LookButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            bool currentValue = Convert.ToBoolean(e.Value);
+            if (!currentValue) return;
+
+            var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
+            var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+            var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
+            string bnds4XML = bounds_for_xml.X
+                + "," + bounds_for_xml.Y
+                + "," + bounds_for_xml.Width
+                + "," + bounds_for_xml.Height
+                + "," + screenMidPnt.X
+                + "," + screenMidPnt.Y
+                + "," + zoomLevel;
+            RemoCanvasView remoCanvasView= new RemoCanvasView(username, bnds4XML);
+
+            string cmdJson = RemoCommand.SerializeToJson(remoCanvasView);
+
+            for (int i = 0; i < (commandRepeat / 2 > 0 ? commandRepeat / 2 : 1); i++)
+            {
+                client.Send(cmdJson);
+            }
         }
 
         private void SyncComponents_OnValueChanged(object sender, ValueChangeEventArgumnet e)

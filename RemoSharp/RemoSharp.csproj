@@ -112,7 +112,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="RemoCSharp\ServerAddress.cs" />
-    <Compile Include="Distributors\RemoCompSource.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
     <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />

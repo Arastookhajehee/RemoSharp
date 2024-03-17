@@ -41,9 +41,10 @@ namespace RemoSharp.RemoParams
         string username = "";
         string password = "";
         RemoSetupClient remoSetupClient = null;
+        public string message = "";
 
 
-        public Guid syncCompGuid = Guid.Empty;
+        public Guid groupGuid = Guid.Empty;
 
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
@@ -53,7 +54,6 @@ namespace RemoSharp.RemoParams
               "Syncs parameter accross connected computers.",
               "RemoSharp", "RemoParams")
         {
-            this.syncCompGuid = Guid.NewGuid();
         }
 
         
@@ -114,29 +114,54 @@ namespace RemoSharp.RemoParams
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (remoSetupClient == null) FindRemoSetupComponent();
+            try
+            {
+                var inputCompSources = this.Params.Input[0].Sources;
 
-            var inputCompSources = this.Params.Input[0].Sources;
+                var inputComp = inputCompSources[0];
 
-            var inputComp = inputCompSources[0];
+                GH_Structure<IGH_Goo> dataTree = new GH_Structure<IGH_Goo>();
+                DA.GetDataTree(0, out dataTree);
 
-            GH_Structure<IGH_Goo> dataTree = new GH_Structure<IGH_Goo>();
-            DA.GetDataTree(0, out dataTree);
+                RemoParameter remoParameter = new RemoParameter(username, this.InstanceGuid, dataTree);
 
-            RemoParameter remoText = new RemoParameter(username,this.Message, dataTree);
-            string remoCommandJson = RemoCommand.SerializeToJson(remoText);
+                Guid thisGroupGuid = this.groupGuid;
+                if (thisGroupGuid == null)
+                {
+                    Guid grpGuid = this.OnPingDocument().Objects.Where(obj => obj is GH_Group).Select(obj => obj as GH_Group)
+                        .Where(obj => obj.ObjectIDs.Contains(thisGroupGuid)).Select(obj => obj.InstanceGuid).FirstOrDefault();
+                    this.groupGuid = grpGuid;
+                }
 
-            if (remoSetupClient != null) remoSetupClient.client.Send(remoCommandJson);
+                string remoCommandJson = RemoCommand.SerializeToJson(remoParameter);
 
-            RemoParamData dataComp = (RemoParamData)this.OnPingDocument().Objects
-                .Where(obj => obj is RemoParamData).Select(obj => obj as RemoParamData)
-                .Where(obj => obj.Message.Equals(this.Message)).FirstOrDefault();
+                if (remoSetupClient != null) remoSetupClient.client.Send(remoCommandJson);
 
-            dataComp.currentValue = dataTree;
+                
 
-            this.OnPingDocument().ScheduleSolution(0, doc => {
-                dataComp.currentValue = dataTree;
-                dataComp.ExpireSolution(true);
-            });
+                var remoGroup = this.OnPingDocument().FindObject(this.groupGuid, false) as GH_Group;
+
+                foreach (var item in remoGroup.ObjectIDs)
+                {
+                    var obj = this.OnPingDocument().FindObject(item, false);
+                    if (obj is RemoSharp.RemoParams.RemoParamData) 
+                    {
+                        RemoParamData dataComp = (RemoParamData)obj;
+                        dataComp.currentValue = dataTree;
+
+                        this.OnPingDocument().ScheduleSolution(0, doc => {
+                            dataComp.currentValue = dataTree;
+                            dataComp.ExpireSolution(true);
+                        });
+                    }
+                }
+                
+            }
+            catch
+            {
+                FindRemoSetupComponent();
+            }
+            
 
         }
 

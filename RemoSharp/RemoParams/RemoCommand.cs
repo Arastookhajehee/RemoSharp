@@ -52,7 +52,8 @@ namespace RemoSharp.RemoCommandTypes
         RemoScriptCS = 23,
         RemoRelay = 24,
         RemoUndo = 25,
-        RemoCompSync = 26
+        RemoCompSync = 26,
+        CanvasViewport = 27
     }
 
     public enum RemoConnectType
@@ -172,6 +173,9 @@ namespace RemoSharp.RemoCommandTypes
                     break;
                 case (int)CommandType.RemoCompSync:
                     remoCommand = JsonConvert.DeserializeObject<RemoCompSync>(commandJson);
+                    break;
+                case (int)CommandType.CanvasViewport:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCanvasView>(commandJson);
                     break;
                 case (int)CommandType.StreamGeom:
 
@@ -969,18 +973,31 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoParameter : RemoCommand
     {
         public string xmlTree;
-        public string remoParamName;
+        public Guid remoParamGuid;
         public RemoParameter() { }
-        public RemoParameter(string issuerID,string remoParamName, GH_Structure<IGH_Goo> dataTree)
+        public RemoParameter(string issuerID, Guid remoParamGuid, GH_Structure<IGH_Goo> dataTree)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoText;
-            this.remoParamName = remoParamName;
+            this.remoParamGuid = remoParamGuid;
 
             GH_LooseChunk chunk = new GH_LooseChunk(null);
             dataTree.Write(chunk);
             this.xmlTree = chunk.Serialize_Xml();
 
+            this.commandID = Guid.NewGuid();
+        }
+    }
+
+    public class RemoCanvasView : RemoCommand
+    {
+        public string canvasViewport;
+        public RemoCanvasView() { }
+        public RemoCanvasView(string issuerID, string canvasViewport)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.CanvasViewport;
+            this.canvasViewport = canvasViewport;
             this.commandID = Guid.NewGuid();
         }
     }

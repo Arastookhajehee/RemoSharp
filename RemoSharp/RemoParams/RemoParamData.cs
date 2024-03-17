@@ -15,20 +15,9 @@ namespace RemoSharp.RemoParams
     
     public class RemoParamData : GHCustomComponent
     {
-        public double remoSliderValue = 0;
-        public bool booleanValue = false;
-        public string textValue = "";
-        public System.Drawing.Color colorValue = System.Drawing.Color.Black;
-        public Point3d pointValue = Point3d.Unset;
-        public GH_Structure<GH_Point> points;
-        public Plane planeValue = Plane.Unset;
-        public RemoCommandTypes.CommandType valueType = RemoCommandTypes.CommandType.RemoParamNone;
 
         public GH_Structure<IGH_Goo> currentValue = new GH_Structure<IGH_Goo>();
-
-        int maxlabellength = 15;
-
-        GHCustomControls.Label label;
+        public string message = "";
 
         /// <summary>
         /// Initializes a new instance of the RemoParamData class.
@@ -67,6 +56,7 @@ namespace RemoSharp.RemoParams
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (currentValue == null) return;
+            if (string.IsNullOrEmpty(this.Message)) this.Message = this.message;
             DA.SetDataTree(0, currentValue);
         }
 
@@ -94,7 +84,7 @@ namespace RemoSharp.RemoParams
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return null;
+                return RemoSharp.Properties.Resources.RemoSliderBreaker.ToBitmap();
             }
         }
 
