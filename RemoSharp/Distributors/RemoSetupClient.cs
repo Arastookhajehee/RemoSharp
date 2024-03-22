@@ -531,6 +531,23 @@ namespace RemoSharp
             }
         }
 
+        private static void SendCommands(RemoSetupClient setupComp, RemoCommand command)
+        {
+            string cmdJson = RemoCommand.SerializeToJson(command);
+
+            try
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    setupComp.client.Send(cmdJson);
+                }
+            }
+            catch
+            {
+                System.Windows.Forms.MessageBox.Show("Connection to the server may not be properly working!", "Conncetion Error", MessageBoxButtons.OK);
+            }
+        }
+
         private void SetupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -696,8 +713,38 @@ namespace RemoSharp
 
 
             ToolStripItemCollection items = ((ToolStrip)(Grasshopper.Instances.DocumentEditor).Controls[0].Controls[1]).Items;
-            if (!items.ContainsKey("SyncComps")) { 
-                items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.SyncCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
+            if (!items.ContainsKey("Look")) { 
+                items.Add(new ToolStripButton("Look", (Image)Properties.Resources.Sync_Camera.ToBitmap(), onClick: (s, e) => LookButton_OnValueChanged(s, e))
+                {
+                    AutoSize = true,
+                    DisplayStyle = ToolStripItemDisplayStyle.Image,
+                    ImageAlign = ContentAlignment.MiddleCenter,
+                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                    Margin = new Padding(0, 0, 0, 0),
+                    Name = "Look",
+                    Size = new Size(28, 28),
+                    ToolTipText = "Looks in the same spot in other connected GH documents.",
+                });
+            }
+
+            if (!items.ContainsKey("Select"))
+            {
+                items.Add(new ToolStripButton("Select", (Image)Properties.Resources.SyncGHviewport.ToBitmap(), onClick: (s, e) => SelectButton_OnValueChanged(s, e))
+                {
+                    AutoSize = true,
+                    DisplayStyle = ToolStripItemDisplayStyle.Image,
+                    ImageAlign = ContentAlignment.MiddleCenter,
+                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                    Margin = new Padding(0, 0, 0, 0),
+                    Name = "Select",
+                    Size = new Size(28, 28),
+                    ToolTipText = "Selects components on other connected GH documents.",
+                });
+            }
+
+            if (!items.ContainsKey("SyncComps"))
+            {
+                items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.BroadcastCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
                 {
                     AutoSize = true,
                     DisplayStyle = ToolStripItemDisplayStyle.Image,
@@ -724,8 +771,11 @@ namespace RemoSharp
 
             var selection = thisDoc.SelectedObjects();
 
+            thisDoc.UnselectedObjects();
+
             foreach (var item in selection)
             {
+
                 Guid itemGuid = item.InstanceGuid;
 
                 string componentXML = RemoCommand.SerializeToXML(item);
@@ -737,23 +787,50 @@ namespace RemoSharp
             }
 
             RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, docXmls);
-            string cmdJson = RemoCommand.SerializeToJson(remoCompSync);
-
-            try
-            {
-                int commandRepeat = 5;
-                for (int i = 0; i < commandRepeat; i++)
-                {
-                    setupComp.client.Send(cmdJson);
-                }
-            }
-            catch
-            {
-                System.Windows.Forms.MessageBox.Show("RemoSharp Is Not Setup Properly!", "Connection Error", MessageBoxButtons.OK);
-            }
+            RemoSetupClient.SendCommands(setupComp, remoCompSync);
 
         }
 
+        
+
+        private void LookButton_OnValueChanged(object sender, EventArgs e)
+        {
+            GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+            RemoSetupClient setupComp = (RemoSetupClient)thisDoc.Objects.Where(obj => obj is RemoSetupClient).FirstOrDefault();
+            if (setupComp == null) return;
+
+            var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
+            var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+            var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
+            string bnds4XML = bounds_for_xml.X
+                + "," + bounds_for_xml.Y
+                + "," + bounds_for_xml.Width
+                + "," + bounds_for_xml.Height
+                + "," + screenMidPnt.X
+                + "," + screenMidPnt.Y
+                + "," + zoomLevel;
+            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, bnds4XML);
+            RemoSetupClient.SendCommands(setupComp, remoCanvasView);
+        }
+
+        private void SelectButton_OnValueChanged(object sender, EventArgs e)
+        {
+            GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+            RemoSetupClient setupComp = (RemoSetupClient)thisDoc.Objects.Where(obj => obj is RemoSetupClient).FirstOrDefault();
+            if (setupComp == null) return;
+
+            var selection = thisDoc.SelectedObjects();
+
+            List<Guid> slectionGuids = new List<Guid>();
+            foreach (var item in selection)
+            {
+                slectionGuids.Add(item.InstanceGuid);
+            }
+            RemoSelect cmd = new RemoSelect(setupComp.username, slectionGuids, DateTime.Now.Second);
+            RemoSetupClient.SendCommands(setupComp, cmd); 
+        }
+
+        
 
         /// <summary>
         /// Registers all the output parameters for this component.
@@ -1720,7 +1797,7 @@ namespace RemoSharp
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.SourceComp.ToBitmap();
+                return RemoSharp.Properties.Resources.RemoSharp.ToBitmap();
             }
         }
 

@@ -19,11 +19,8 @@ namespace RemoSharp
         //GH_Document GrasshopperDocument;
         //IGH_Component Component;
 
-        PushButton LookButton;
-        PushButton selectButton;
         PushButton hideButton;
         PushButton lockButton;
-        PushButton syncComponents;
         StackPanel stackPanel;
 
 
@@ -49,25 +46,17 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            LookButton = new PushButton("Look",
-                "Syncs your canvas viewport with others", "Look");
-            selectButton = new PushButton("Select",
-                "Select a component on the main remote GH_Canvas.", "Sel");
+            
             hideButton = new PushButton("Hide",
                 "Hides a component on the main remote GH_Canvas.", "Hide");
             lockButton = new PushButton("Lock",
                             "Unhides a component on the main remote GH_Canvas.", "Lock");
-            syncComponents = new PushButton("SyncComp",
-                            "Syncs selected components' attributes.", "SyncComp");
-
-            LookButton.OnValueChanged += LookButton_OnValueChanged;
-            selectButton.OnValueChanged += SelectButton_OnValueChanged;
+            
             hideButton.OnValueChanged += HideButton_OnValueChanged;
             lockButton.OnValueChanged += LockButton_OnValueChanged;
-            syncComponents.OnValueChanged += SyncComponents_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                LookButton,selectButton, hideButton, lockButton, syncComponents
+                hideButton, lockButton
                 );
 
             AddCustomControl(stackPanel);
@@ -76,66 +65,6 @@ namespace RemoSharp
             pManager.AddTextParameter("Username", "user", "This client's username", GH_ParamAccess.item, "");
             pManager.AddGenericParameter("WSClient", "wsc", "Command Websocket Client", GH_ParamAccess.item);
         }
-
-        private void LookButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (!currentValue) return;
-
-            var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
-            var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
-            var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
-            string bnds4XML = bounds_for_xml.X
-                + "," + bounds_for_xml.Y
-                + "," + bounds_for_xml.Width
-                + "," + bounds_for_xml.Height
-                + "," + screenMidPnt.X
-                + "," + screenMidPnt.Y
-                + "," + zoomLevel;
-            RemoCanvasView remoCanvasView= new RemoCanvasView(username, bnds4XML);
-
-            string cmdJson = RemoCommand.SerializeToJson(remoCanvasView);
-
-            for (int i = 0; i < (commandRepeat / 2 > 0 ? commandRepeat / 2 : 1); i++)
-            {
-                client.Send(cmdJson);
-            }
-        }
-
-        public void SyncComponents_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (!currentValue) return;
-
-
-            List<Guid> guids = new List<Guid>();
-            List<string> xmls = new List<string>();
-            List<string> docXmls = new List<string>();
-
-            var selection = this.OnPingDocument().SelectedObjects();
-
-            foreach (var item in selection)
-            {
-                Guid itemGuid = item.InstanceGuid;
-
-                string componentXML = RemoCommand.SerializeToXML(item);
-                string componentDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(item);
-
-                guids.Add(itemGuid);
-                xmls.Add(componentXML);
-                docXmls.Add(componentDocXML);
-            }
-
-            RemoCompSync remoCompSync = new RemoCompSync(this.username,guids, xmls,docXmls);
-            string cmdJson = RemoCommand.SerializeToJson(remoCompSync);
-
-            for (int i = 0; i < commandRepeat; i++)
-            {
-                client.Send(cmdJson);
-            }
-
-        }
-
         private void HideButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -239,29 +168,6 @@ namespace RemoSharp
                     {
                         client.Send(cmdJson);
                     }
-                }
-            }
-        }
-
-
-        private void SelectButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                var selection = this.OnPingDocument().SelectedObjects();
-
-                List<Guid> slectionGuids = new List<Guid>();
-                foreach (var item in selection)
-                {
-                    slectionGuids.Add(item.InstanceGuid);
-                }
-                RemoSelect cmd = new RemoSelect(this.username, slectionGuids, DateTime.Now.Second);
-                string cmdJson = RemoCommand.SerializeToJson(cmd);
-
-                for (int i = 0; i < commandRepeat; i++)
-                {
-                    client.Send(cmdJson);
                 }
             }
         }

@@ -702,6 +702,7 @@ namespace RemoSharp
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
                 var thisDoc = this.OnPingDocument();
+                thisDoc.UnselectedObjects();
 
                 RemoSetupClient sourceComp = thisDoc.Objects
                 .Where(obj => obj is RemoSharp.RemoSetupClient)
