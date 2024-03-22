@@ -696,25 +696,22 @@ namespace RemoSharp
 
 
             ToolStripItemCollection items = ((ToolStrip)(Grasshopper.Instances.DocumentEditor).Controls[0].Controls[1]).Items;
-            if (items.ContainsKey("SyncComps")) return;
-            items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.SyncCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
-            {
-                AutoSize = true,
-                DisplayStyle = ToolStripItemDisplayStyle.Image,
-                ImageAlign = ContentAlignment.MiddleCenter,
-                ImageScaling = ToolStripItemImageScaling.SizeToFit,
-                Margin = new Padding(0, 0, 0, 0),
-                Name = "SyncComps",
-                Size = new Size(28, 28),
-                ToolTipText = "Syncronize the Selected Components.",
-            });
+            if (!items.ContainsKey("SyncComps")) { 
+                items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.SyncCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
+                {
+                    AutoSize = true,
+                    DisplayStyle = ToolStripItemDisplayStyle.Image,
+                    ImageAlign = ContentAlignment.MiddleCenter,
+                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                    Margin = new Padding(0, 0, 0, 0),
+                    Name = "SyncComps",
+                    Size = new Size(28, 28),
+                    ToolTipText = "Syncronize the Selected Components.",
+                });
+            }
 
         }
         
-
-
-    
-
         private void SyncComponents_OnValueChanged(object sender, EventArgs e)
         {
             List<Guid> guids = new List<Guid>();
@@ -723,7 +720,7 @@ namespace RemoSharp
 
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             RemoSetupClient setupComp = (RemoSetupClient)thisDoc.Objects.Where(obj => obj is RemoSetupClient).FirstOrDefault();
-            if (setupComp != null) return;
+            if (setupComp == null) return;
 
             var selection = thisDoc.SelectedObjects();
 
