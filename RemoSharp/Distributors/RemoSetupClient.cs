@@ -521,8 +521,12 @@ namespace RemoSharp
         {
             if (!enabled) return;
             string cmdJson = RemoCommand.SerializeToJson(command);
+
             for (int i = 0; i < commandRepeat; i++)
             {
+
+                int stringLength = cmdJson.Length;
+
                 client.Send(cmdJson);
             }
         }
@@ -533,6 +537,10 @@ namespace RemoSharp
             if (this.Params.Input[0].Sources.Count > 0) return;
             if (currentValue)
             {
+
+                AddInteractionButtonsToTopBar();
+
+
                 int xShift = 2;
                 int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
@@ -682,6 +690,73 @@ namespace RemoSharp
             }
             this.ExpireSolution(true);
         }
+
+        private void AddInteractionButtonsToTopBar()
+        {
+
+
+            ToolStripItemCollection items = ((ToolStrip)(Grasshopper.Instances.DocumentEditor).Controls[0].Controls[1]).Items;
+            if (items.ContainsKey("SyncComps")) return;
+            items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.SyncCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
+            {
+                AutoSize = true,
+                DisplayStyle = ToolStripItemDisplayStyle.Image,
+                ImageAlign = ContentAlignment.MiddleCenter,
+                ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                Margin = new Padding(0, 0, 0, 0),
+                Name = "SyncComps",
+                Size = new Size(28, 28),
+                ToolTipText = "Syncronize the Selected Components.",
+            });
+
+        }
+        
+
+
+    
+
+        private void SyncComponents_OnValueChanged(object sender, EventArgs e)
+        {
+            List<Guid> guids = new List<Guid>();
+            List<string> xmls = new List<string>();
+            List<string> docXmls = new List<string>();
+
+            GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+            RemoSetupClient setupComp = (RemoSetupClient)thisDoc.Objects.Where(obj => obj is RemoSetupClient).FirstOrDefault();
+            if (setupComp != null) return;
+
+            var selection = thisDoc.SelectedObjects();
+
+            foreach (var item in selection)
+            {
+                Guid itemGuid = item.InstanceGuid;
+
+                string componentXML = RemoCommand.SerializeToXML(item);
+                string componentDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(item);
+
+                guids.Add(itemGuid);
+                xmls.Add(componentXML);
+                docXmls.Add(componentDocXML);
+            }
+
+            RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, docXmls);
+            string cmdJson = RemoCommand.SerializeToJson(remoCompSync);
+
+            try
+            {
+                int commandRepeat = 5;
+                for (int i = 0; i < commandRepeat; i++)
+                {
+                    setupComp.client.Send(cmdJson);
+                }
+            }
+            catch
+            {
+                System.Windows.Forms.MessageBox.Show("RemoSharp Is Not Setup Properly!", "Connection Error", MessageBoxButtons.OK);
+            }
+
+        }
+
 
         /// <summary>
         /// Registers all the output parameters for this component.
@@ -1039,22 +1114,14 @@ namespace RemoSharp
                     System.Guid inGuid = GetComponentGuidAnd_Input_Index(
                       connectionInteraction.target, out inIndex, out inIsSpecial);
 
-                    var sourceParentComponent = this.OnPingDocument().FindObject(outGuid, false);
-                    var targetParentComponent = this.OnPingDocument().FindObject(inGuid, false);
-                    float sourceX = sourceParentComponent.Attributes.Pivot.X;
-                    float sourceY = sourceParentComponent.Attributes.Pivot.Y;
-                    float targetX = targetParentComponent.Attributes.Pivot.X;
-                    float targetY = targetParentComponent.Attributes.Pivot.Y;
-                    string sourceNickname = sourceParentComponent.NickName;
-                    string targetNickname = targetParentComponent.NickName;
-                    string listItemParamNickname = connectionInteraction.source.NickName;
+                    string outCompXML = RemoCommand.SerializeToXML(outGuid);
+                    string inCompXML = RemoCommand.SerializeToXML(inGuid);
 
-                    string outCompXML = GetXMLCodeFromGuid(outGuid);
-                    string inCompXML = GetXMLCodeFromGuid(inGuid);
-
+                    string outCompDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(outGuid);
+                    string inCompDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(inGuid);
 
                     command = new RemoConnect(connectionInteraction.issuerID, outGuid, inGuid, connectionInteraction.RemoConnectType,
-                        outCompXML, inCompXML);
+                        outCompXML, inCompXML,outCompDocXML,inCompDocXML);
                     SendCommands(command, commandRepeat, enable);
 
                 }
@@ -1117,15 +1184,7 @@ namespace RemoSharp
 
         }
 
-        private string GetXMLCodeFromGuid(Guid guid)
-        {
-            var component = this.OnPingDocument().FindObject(guid, false);
-
-            GH_LooseChunk chunk = new GH_LooseChunk(null);
-
-            component.Write(chunk);
-            return chunk.Serialize_Xml();
-        }
+        
 
         public void RemoCompSource_ObjectsDeleted(object sender, GH_DocObjectEventArgs e)
         {
@@ -1185,7 +1244,6 @@ namespace RemoSharp
             List<string> componentTypes = new List<string>();
             List<string> componentStructures = new List<string>();
             List<string> specialParameters = new List<string>();
-
 
             var objs = e.Objects;
             foreach (var obj in objs)
@@ -1262,6 +1320,8 @@ namespace RemoSharp
                     continue;
                 }
 
+
+
                 // check to see if this component has been created from remocreate command coming from outsite
                 //bool alreadyMade = remoCreatedcomponens.Contains(newCompGuid);
                 //if (alreadyMade) continue;
@@ -1315,9 +1375,12 @@ namespace RemoSharp
                 }
                 else
                 {
-                    command = new RemoCreate(username, guids, associatedAttributes, componentTypes, componentStructures, specialParameters);
+                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, e.Objects.ToList());
+                    SendCommands(remoPartialDoc, 5, enable);
+                    //return;
+                    //command = new RemoCreate(username, guids, associatedAttributes, componentTypes, componentStructures, specialParameters);
 
-                    SendCommands(command, commandRepeat, enable);
+                    //SendCommands(command, commandRepeat, enable);
                 }
                 
             }
@@ -1332,7 +1395,7 @@ namespace RemoSharp
             upPnt[1] = 0;
             interaction = null;
 
-        }
+        }    
 
         private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
         {

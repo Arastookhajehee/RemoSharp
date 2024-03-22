@@ -10,6 +10,7 @@ using RemoSharp.RemoCommandTypes;
 using Grasshopper.Kernel.Types;
 using WebSocketSharp;
 using GH_IO.Serialization;
+using System.Collections.ObjectModel;
 
 namespace RemoSharp
 {
@@ -101,34 +102,31 @@ namespace RemoSharp
             }
         }
 
-        private void SyncComponents_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        public void SyncComponents_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
             if (!currentValue) return;
 
 
-            List<string> types = new List<string>();
             List<Guid> guids = new List<Guid>();
             List<string> xmls = new List<string>();
+            List<string> docXmls = new List<string>();
 
             var selection = this.OnPingDocument().SelectedObjects();
+
             foreach (var item in selection)
             {
-                string type = item.GetType().ToString();
                 Guid itemGuid = item.InstanceGuid;
 
-                GH_LooseChunk chunk = new GH_LooseChunk(null);
-                item.Write(chunk);
+                string componentXML = RemoCommand.SerializeToXML(item);
+                string componentDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(item);
 
-                string xml = chunk.Serialize_Xml();
-
-                types.Add(type);
                 guids.Add(itemGuid);
-                xmls.Add(xml);
-
+                xmls.Add(componentXML);
+                docXmls.Add(componentDocXML);
             }
 
-            RemoCompSync remoCompSync = new RemoCompSync(this.username,types,guids,xmls);
+            RemoCompSync remoCompSync = new RemoCompSync(this.username,guids, xmls,docXmls);
             string cmdJson = RemoCommand.SerializeToJson(remoCompSync);
 
             for (int i = 0; i < commandRepeat; i++)
