@@ -491,7 +491,26 @@ namespace RemoSharp.RemoCommandTypes
     {
         public string xml;
         public RemoPartialDoc() { }
-        public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects)
+        //public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects)
+        //{
+        //    this.issuerID = issuerID;
+        //    this.executed = false;
+        //    this.objectGuid = Guid.Empty;
+        //    this.commandID = Guid.NewGuid();
+        //    this.commandType = CommandType.RemoPartialDocument;
+        //    this.executionAttempts = 0;
+
+        //    GH_Document tempDoc = new GH_Document();
+        //    foreach (var item in objects)
+        //    {
+        //        tempDoc.AddObject(item, false);
+        //    }
+        //    tempDoc.ExpireSolution();
+        //    string xml = RemoCommand.SerializeToXML(tempDoc);
+        //    this.xml = xml;
+        //}
+
+        public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
         {
             this.issuerID = issuerID;
             this.executed = false;
@@ -500,14 +519,45 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoPartialDocument;
             this.executionAttempts = 0;
 
+            string xml = "";
             GH_Document tempDoc = new GH_Document();
+
+            List<WireHistory> hitory = new List<WireHistory>();
             foreach (var item in objects)
             {
+                string xmlHistory = SerializeToXML(item);
+                hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
+
                 tempDoc.AddObject(item, false);
             }
-            tempDoc.ExpireSolution();
-            string xml = RemoCommand.SerializeToXML(tempDoc);
+            xml = RemoCommand.SerializeToXML(tempDoc);
+
+            currentDoc.RemoveObjects(objects, false);
+            currentDoc.MergeDocument(tempDoc, true, true);
+
+            foreach (var item in hitory)
+            {
+                var obj = currentDoc.FindObject(item.componentGuid, false);
+                var chunk = DeserializeFromXML(item.wireHistoryXml);
+                obj.Read(chunk);
+
+                if (obj is IGH_Param)
+                {
+                    IGH_Param gH_Param = (IGH_Param)obj;
+                    gH_Param.RelinkProxySources(currentDoc);
+                }
+                else if (obj is IGH_Component)
+                {
+                    IGH_Component gH_Component = (IGH_Component)obj;
+                    foreach (var input in gH_Component.Params.Input)
+                    {
+                        input.RelinkProxySources(currentDoc);
+                    }
+                }
+            }
+
             this.xml = xml;
+
         }
     }
 

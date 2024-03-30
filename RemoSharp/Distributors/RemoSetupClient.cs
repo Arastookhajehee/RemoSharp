@@ -86,6 +86,7 @@ namespace RemoSharp
         int counterTest = 0;
 
         public List<Guid> remoCommandIDs = new List<Guid>();
+        List<Guid> addedObjects = new List<Guid>();
 
         public string username = "";
         public string password = "";
@@ -903,6 +904,7 @@ namespace RemoSharp
                 {
                     this.Message = "Connecting...";
                     client.Close();
+                    client.Close();
                     client.OnOpen -= Client_OnOpen;
                     client.OnClose -= Client_OnClose;
                     client.OnMessage -= Client_OnMessage;
@@ -1449,8 +1451,31 @@ namespace RemoSharp
                 }
                 else
                 {
-                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, e.Objects.ToList());
-                    SendCommands(remoPartialDoc, 5, enable);
+                    GH_Document activeDoc = (GH_Document)sender;
+
+                    activeDoc.ScheduleSolution(1, doc =>
+                    {
+
+                        addedObjects.Clear();
+                        addedObjects.AddRange(e.Objects.Select(obj => obj.InstanceGuid));
+
+
+                        this.OnPingDocument().ObjectsAdded -= RemoCompSource_ObjectsAdded;
+                        this.OnPingDocument().ObjectsDeleted -= RemoCompSource_ObjectsDeleted;
+
+                        List<IGH_DocumentObject> creationObjs = new List<IGH_DocumentObject>();
+                        creationObjs.AddRange(this.addedObjects.Select(guid => activeDoc.FindObject(guid, false)));
+
+                        RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, creationObjs, activeDoc);
+
+                        GH_Document rewiringDoc = new GH_Document();
+                        this.OnPingDocument().MergeDocument(rewiringDoc, true, true);
+
+                        this.OnPingDocument().ObjectsAdded += RemoCompSource_ObjectsAdded;
+                        this.OnPingDocument().ObjectsDeleted += RemoCompSource_ObjectsDeleted;
+
+                        SendCommands(remoPartialDoc, 3, enable);
+                    });
                     //return;
                     //command = new RemoCreate(username, guids, associatedAttributes, componentTypes, componentStructures, specialParameters);
 
@@ -1469,7 +1494,7 @@ namespace RemoSharp
             upPnt[1] = 0;
             interaction = null;
 
-        }    
+        }
 
         private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
         {
@@ -1850,6 +1875,7 @@ namespace RemoSharp
             }
 
         }
+
 
         string RecognizeStructure(string typeName, string specialContent, Guid newCompGuid)
         {

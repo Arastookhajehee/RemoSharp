@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Grasshopper.Kernel;
+using RemoSharp.Distributors;
 using Rhino.Geometry;
 
 namespace RemoSharp.WebSocketClient
@@ -52,7 +53,12 @@ namespace RemoSharp.WebSocketClient
                 RemoSetupClient client = (RemoSetupClient)inputComponent;
                 DA.SetDataList(0, client.messages);
             }
-            
+            else if (inputComponent is RemoSetupClientV3)
+            {
+                RemoSetupClientV3 client = (RemoSetupClientV3)inputComponent;
+                DA.SetDataList(0, client.messages);
+            }
+
         }
 
         /// <summary>
