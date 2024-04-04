@@ -140,6 +140,7 @@ namespace RemoSharp
 
             // server list
             var serverList = new List<string>();
+            serverList.Add("ws://133.247.128.84:18580");
             for (int i = 1; i < 17; i++)
             {
                 string addressIndex = i.ToString("00");

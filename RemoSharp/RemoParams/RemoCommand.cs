@@ -22,6 +22,7 @@ using Grasshopper.Kernel.Undo.Actions;
 using System.Reflection;
 using System.Collections.ObjectModel;
 using System.Xml.Linq;
+using System.Security.Cryptography;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -57,7 +58,8 @@ namespace RemoSharp.RemoCommandTypes
         RemoUndo = 25,
         RemoCompSync = 26,
         CanvasViewport = 27,
-        RemoPartialDocument = 28
+        RemoPartialDocument = 28,
+        RemoParameter = 29
     }
 
     public enum RemoConnectType
@@ -202,7 +204,7 @@ namespace RemoSharp.RemoCommandTypes
                     remoCommand = JsonConvert.DeserializeObject<RemoLock>(commandJson);
 
                     break;
-                case (int)CommandType.RemoText:
+                case (int)CommandType.RemoParameter:
                     remoCommand = JsonConvert.DeserializeObject<RemoParameter>(commandJson);
                     break;
                 case (int)CommandType.RemoSlider:
@@ -796,6 +798,149 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoParameter : RemoCommand
+    {
+        public string xml;
+        public string persistentDataXML;
+        public bool hasPersistentData;
+        public RemoParameter() { }
+        public RemoParameter(string issuerID, IGH_DocumentObject parameter)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoParameter;
+            this.objectGuid = parameter.InstanceGuid;
+            this.commandID = Guid.NewGuid();
+            
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            parameter.Write(chunk);
+            this.xml = chunk.Serialize_Xml();
+
+            bool hasPersData = false;
+            object persistentData = GetPersistentData(parameter, out hasPersData);
+
+            string persDataXML = "";
+            if (hasPersData)
+            {
+                GH_LooseChunk persDataChunk = new GH_LooseChunk(null);
+                object[] arguments = new object[] { persDataChunk };
+                InvokeWriteMethod(persistentData, arguments);
+
+                persDataXML = persDataChunk.Serialize_Xml();
+            }
+            this.persistentDataXML = persDataXML;
+            this.hasPersistentData = hasPersData;
+
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParameter Command from {0}", this.issuerID);
+        }
+
+        public static object GetPersistentData(object objectToInspect, out bool hasPersistentData)
+        {
+            string propertyName = "PersistentData";
+            // Use reflection to get the Type of the object
+            Type type = objectToInspect.GetType();
+
+            // Get the PropertyInfo object for the specified property
+            PropertyInfo propertyInfo = type.GetProperty(propertyName);
+
+            if (propertyInfo != null)
+            {
+                // Use the PropertyInfo object to get the value of the property
+                hasPersistentData = true;
+                return propertyInfo.GetValue(objectToInspect);
+            }
+            else
+            {
+                // The property was not found on the object
+                hasPersistentData = false;
+                return null;
+            }
+        }
+
+        public static bool InvokeWriteMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Write";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeReadMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Read";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeWritePersistentDataMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Write";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeReadPersistentDataMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "SetPersistentData";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+
+            var param_gh = (Param_Brep)objectToInvoke;
+
+            GH_Structure<GH_Brep> persistentData = new GH_Structure<GH_Brep>();
+
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                object[] auguments = new object[] { persistentData };
+                methodInfo.Invoke(objectToInvoke, auguments);
+                return true;
+            }
+            return false;
+        }
+
+    }
+
     public class RemoParamSlider : RemoCommand
     {
         // for slider *
@@ -1106,25 +1251,6 @@ namespace RemoSharp.RemoCommandTypes
         public override string ToString()
         {
             return string.Format("RemoParamPlane Command from {0}", this.issuerID);
-        }
-    }
-
-    public class RemoParameter : RemoCommand
-    {
-        public string xmlTree;
-        public Guid remoParamGuid;
-        public RemoParameter() { }
-        public RemoParameter(string issuerID, Guid remoParamGuid, GH_Structure<IGH_Goo> dataTree)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.RemoText;
-            this.remoParamGuid = remoParamGuid;
-
-            GH_LooseChunk chunk = new GH_LooseChunk(null);
-            dataTree.Write(chunk);
-            this.xmlTree = chunk.Serialize_Xml();
-
-            this.commandID = Guid.NewGuid();
         }
     }
 

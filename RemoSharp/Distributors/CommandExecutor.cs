@@ -421,10 +421,10 @@ namespace RemoSharp
                             ExecuteRemoCompSync(remoCompSync);
 
                             break;
-                        case (CommandType.RemoText):
+                        case (CommandType.RemoParameter):
                             RemoParameter remoParameter = (RemoParameter)remoCommand;
 
-                            ExecuteRemoText(remoParameter);
+                            ExecuteRemoParameter(remoParameter);
 
                             break;
                         case (CommandType.CanvasViewport):
@@ -600,7 +600,7 @@ namespace RemoSharp
                             #region RemoParamText
                             case (CommandType.RemoText):
                                 RemoParameter remoText = (RemoParameter)remoCommand;
-                                ExecuteRemoText(remoText);
+                                ExecuteRemoParameter(remoText);
 
 
                                 break;
@@ -662,36 +662,47 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var subscribe = SubcriptionType.Subscribe;
                 var unsubscribe = SubcriptionType.Unsubscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
-                var newCompGuids = tempDoc.Objects.Select(obj => obj.InstanceGuid).ToList();
+                //var newCompGuids = tempDoc.Objects.Select(obj => obj.InstanceGuid).ToList();
                 this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
-                List<WireHistory> hitory = new List<WireHistory>();
-                List<IGH_DocumentObject> deletionObjs = new List<IGH_DocumentObject>();
-                foreach (var guid in newCompGuids)
-                {
-                    var obj = this.OnPingDocument().FindObject(guid, false);
-                    deletionObjs.Add(obj);
-                    string xmlHistory = RemoCommand.SerializeToXML(obj);
-                    hitory.Add(new WireHistory(guid, xmlHistory));
-                }
-                this.OnPingDocument().RemoveObjects(deletionObjs, false);
-                this.OnPingDocument().MergeDocument(tempDoc, true, true);
+                //List<WireHistory> hitory = new List<WireHistory>();
+                //List<IGH_DocumentObject> deletionObjs = new List<IGH_DocumentObject>();
+                //foreach (var guid in newCompGuids)
+                //{
+                //    var obj = this.OnPingDocument().FindObject(guid, false);
+                //    deletionObjs.Add(obj);
+                //    string xmlHistory = RemoCommand.SerializeToXML(obj);
+                //    hitory.Add(new WireHistory(guid, xmlHistory));
+                //}
+                //this.OnPingDocument().RemoveObjects(deletionObjs, false);
+                //this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
 
-                foreach (var item in hitory)
-                {
-                    var obj = this.OnPingDocument().FindObject(item.componentGuid, false);
-                    var historyChunk = RemoCommand.DeserializeFromXML(item.wireHistoryXml);
-                    obj.Read(historyChunk);
-                }
+                //foreach (var item in hitory)
+                //{
+                //    var obj = this.OnPingDocument().FindObject(item.componentGuid, false);
+                //    var historyChunk = RemoCommand.DeserializeFromXML(item.wireHistoryXml);
+                //    obj.Read(historyChunk);
+                //}
 
 
-                GH_Document rewiringDoc = new GH_Document();
-                this.OnPingDocument().MergeDocument(rewiringDoc, true, true);
+                //GH_Document rewiringDoc = new GH_Document();
+                //this.OnPingDocument().MergeDocument(rewiringDoc, true, true);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
 
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip);
+
+                return;
+                //var objs = new List<IGH_DocumentObject>();
+                //foreach (var item in newCompGuids)
+                //{
+                //    objs.Add(this.OnPingDocument().FindObject(item, false));
+                //}
+
+                //RemoSetupClientV3.SubscribeAllParams(sourceComp, objs, true);
+
+
 
 
             });
@@ -728,7 +739,7 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 var subscribe = SubcriptionType.Subscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
                 foreach (var item in remoCompSync.componentGuids)
                 {
@@ -754,7 +765,7 @@ namespace RemoSharp
                 GH_Document dummyDoc = new GH_Document();
                 this.OnPingDocument().MergeDocument(dummyDoc, true, true);
 
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
 
             });
         }
@@ -772,7 +783,7 @@ namespace RemoSharp
             var skip = SubcriptionType.Skip;
             var unsubscribe = SubcriptionType.Unsubscribe;
             var subscribe = SubcriptionType.Subscribe;
-            sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip);
+            sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
 
             // converting the string format of the closest component to an actual type
@@ -805,7 +816,7 @@ namespace RemoSharp
             thisDoc.AddObject(myObject, false);
 
 
-            sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip);
+            sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
 
             return myObject;
         }
@@ -855,7 +866,7 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 var subscribe = SubcriptionType.Subscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
                 GH_LooseChunk chunk = new GH_LooseChunk(null);
                 chunk.Deserialize_Xml(relayCommand.relayXML);
@@ -866,7 +877,7 @@ namespace RemoSharp
                 relay.AddSource(sourceOutput);
                 targetInput.AddSource(relay);
 
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
             });
 
         }
@@ -917,41 +928,48 @@ namespace RemoSharp
             });
         }
 
-        private void ExecuteRemoText(RemoParameter remoParameter)
+        private void ExecuteRemoParameter(RemoParameter remoParameter)
         {
+                    
+            
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
 
-                RemoParam remoParamComp = this.OnPingDocument().FindObject(remoParameter.remoParamGuid, false) as RemoSharp.RemoParams.RemoParam;
-                var remoGroup = this.OnPingDocument().FindObject(remoParamComp.groupGuid, false) as GH_Group;
 
-                foreach (var item in remoGroup.ObjectIDs)
+
+                RemoSetupClientV3 sourceComp = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
+                if (sourceComp == null) return;
+                var paramComp = this.OnPingDocument().FindObject(remoParameter.objectGuid, false);
+
+
+
+                if (paramComp == null) return;
+
+                GH_LooseChunk sourceAttributes = DeserilizeXMLAttributes(remoParameter.xml);
+
+                if (sourceComp.subscribedObjs.Contains(paramComp)) paramComp.SolutionExpired -= sourceComp.SendRemoParameterCommand;
+
+                RelinkComponentWires(paramComp, sourceAttributes);
+
+                GH_LooseChunk persistentDataChunk = new GH_LooseChunk(null);
+                if (remoParameter.hasPersistentData)
                 {
-                    var obj = this.OnPingDocument().FindObject(item, false);
-                    if (obj is RemoSharp.RemoParams.RemoParamData)
-                    {
-                        try
-                        {
-                            RemoParamData remoParamData = obj as RemoParamData;
-                            GH_LooseChunk chunk = new GH_LooseChunk(null);
-                            chunk.Deserialize_Xml(remoParameter.xmlTree);
-
-                            GH_Structure<IGH_Goo> gooTree = new GH_Structure<IGH_Goo>();
-                            gooTree.Read(chunk);
-
-                            remoParamData.currentValue = gooTree;
-                            remoParamData.ExpireSolution(true);
-                        }
-                        catch
-                        {
-
-                        }
-                    }
+                    persistentDataChunk.Deserialize_Xml(remoParameter.persistentDataXML);
+                    
                 }
 
+                bool hasPersistentData = false;
+                var persistentData = RemoParameter.GetPersistentData(paramComp, out hasPersistentData);
 
-                
-                
+
+                object[] objects = new object[] { persistentDataChunk };
+                RemoParameter.InvokeReadMethod(persistentData, objects);
+
+                paramComp.Attributes.Selected = false;
+                paramComp.ExpireSolution(true);
+
+                if (sourceComp.subscribedObjs.Contains(paramComp)) paramComp.SolutionExpired += sourceComp.SendRemoParameterCommand;
+
             });
         }
 
@@ -1023,7 +1041,7 @@ namespace RemoSharp
                     var skip = SubcriptionType.Skip;
                     var unsubscribe = SubcriptionType.Unsubscribe;
                     var subscribe = SubcriptionType.Subscribe;
-                    remoSetupComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, unsubscribe, unsubscribe);
+                    remoSetupComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, unsubscribe, unsubscribe,unsubscribe);
 
                     var currentCanvas = Grasshopper.Instances.ActiveCanvas;
 
@@ -1067,10 +1085,11 @@ namespace RemoSharp
 
                     this.OnPingDocument().MergeDocument(incomingDoc);
 
-                    remoSetupComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, subscribe, unsubscribe);
+                    //RemoSetupClientV3.SubscribeAllParams(remoSetupComp, this.OnPingDocument().Objects.ToList(), true);
+                    
+                    remoSetupComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, subscribe, subscribe, subscribe);
 
 
-                    SubscribeAllParams(remoSetupComp);
 
                 });
 
@@ -1202,54 +1221,6 @@ namespace RemoSharp
 
         }
 
-        private void SubscribeAllParams(RemoSetupClientV3 remoSetupComp)
-        {
-            List<string> accaptableTypes = new List<string>() {
-            "Grasshopper.Kernel.Special.GH_NumberSlider",
-            "Grasshopper.Kernel.Special.GH_Panel",
-            "Grasshopper.Kernel.Special.GH_ColourSwatch",
-            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
-            "Grasshopper.Kernel.Special.GH_BooleanToggle",
-            "Grasshopper.Kernel.Special.GH_ButtonObject"
-            };
-
-            var allParams = this.OnPingDocument().Objects
-                .Where(obj =>accaptableTypes.Contains(obj.GetType().ToString()))
-                .Where(obj => !obj.NickName.Contains("RemoSetup"));
-
-            foreach (var item in allParams)
-            {
-                switch (item.GetType().ToString())
-                {
-                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_Panel"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
-                        item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
-                        item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
 
         private RemoSharp.RemoParams.RemoParam GetSourceCompFromRemoParamInput(Guid paramGuid)
         {
@@ -1685,7 +1656,7 @@ namespace RemoSharp
                     var skip = SubcriptionType.Skip;
                     var unsubscribe = SubcriptionType.Unsubscribe;
                     var subscribe = SubcriptionType.Subscribe;
-                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, unsubscribe, skip, skip);
+                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, unsubscribe, skip, skip, skip);
 
                     this.OnPingDocument().RemoveObjects(deletionObjs, false);
 
@@ -1697,7 +1668,7 @@ namespace RemoSharp
                         }
                     }
 
-                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, subscribe, skip, skip);
+                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, subscribe, skip, skip, skip);
                 });
             }
             catch
@@ -1826,7 +1797,7 @@ namespace RemoSharp
             {
                 this.MoveCommands.Add(moveCommand.translationGuid);
             }
-            while (MoveCommands.Count > 30)
+            while (MoveCommands.Count > 100)
             {
                 MoveCommands.RemoveAt(0);
             }
@@ -1986,7 +1957,7 @@ namespace RemoSharp
             else if (sourceComp is Grasshopper.Kernel.IGH_Param)
             {
                 Grasshopper.Kernel.IGH_Param sourceCompGH_param = (Grasshopper.Kernel.IGH_Param)sourceComp;
-
+                
                 ParameterWireHistory paramHistory = new ParameterWireHistory(sourceCompGH_param.NickName, sourceCompGH_param.Recipients.ToList());
 
                 sourceCompGH_param.Read(attributes);
@@ -1997,6 +1968,7 @@ namespace RemoSharp
                 {
                     receiving.AddSource(sourceCompGH_param);
                 }
+
             }
         }
 

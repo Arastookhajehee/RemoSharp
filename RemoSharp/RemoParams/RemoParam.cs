@@ -123,38 +123,38 @@ namespace RemoSharp.RemoParams
                 GH_Structure<IGH_Goo> dataTree = new GH_Structure<IGH_Goo>();
                 DA.GetDataTree(0, out dataTree);
 
-                RemoParameter remoParameter = new RemoParameter(username, this.InstanceGuid, dataTree);
+                //RemoParameter remoParameter = new RemoParameter(username, this.InstanceGuid, dataTree);
 
-                Guid thisGroupGuid = this.groupGuid;
-                if (thisGroupGuid == null)
-                {
-                    Guid grpGuid = this.OnPingDocument().Objects.Where(obj => obj is GH_Group).Select(obj => obj as GH_Group)
-                        .Where(obj => obj.ObjectIDs.Contains(thisGroupGuid)).Select(obj => obj.InstanceGuid).FirstOrDefault();
-                    this.groupGuid = grpGuid;
-                }
+                //Guid thisGroupGuid = this.groupGuid;
+                //if (thisGroupGuid == null)
+                //{
+                //    Guid grpGuid = this.OnPingDocument().Objects.Where(obj => obj is GH_Group).Select(obj => obj as GH_Group)
+                //        .Where(obj => obj.ObjectIDs.Contains(thisGroupGuid)).Select(obj => obj.InstanceGuid).FirstOrDefault();
+                //    this.groupGuid = grpGuid;
+                //}
 
-                string remoCommandJson = RemoCommand.SerializeToJson(remoParameter);
+                //string remoCommandJson = RemoCommand.SerializeToJson(remoParameter);
 
-                if (remoSetupClient != null) remoSetupClient.client.Send(remoCommandJson);
+                //if (remoSetupClient != null) remoSetupClient.client.Send(remoCommandJson);
 
                 
 
-                var remoGroup = this.OnPingDocument().FindObject(this.groupGuid, false) as GH_Group;
+                //var remoGroup = this.OnPingDocument().FindObject(this.groupGuid, false) as GH_Group;
 
-                foreach (var item in remoGroup.ObjectIDs)
-                {
-                    var obj = this.OnPingDocument().FindObject(item, false);
-                    if (obj is RemoSharp.RemoParams.RemoParamData) 
-                    {
-                        RemoParamData dataComp = (RemoParamData)obj;
-                        dataComp.currentValue = dataTree;
+                //foreach (var item in remoGroup.ObjectIDs)
+                //{
+                //    var obj = this.OnPingDocument().FindObject(item, false);
+                //    if (obj is RemoSharp.RemoParams.RemoParamData) 
+                //    {
+                //        RemoParamData dataComp = (RemoParamData)obj;
+                //        dataComp.currentValue = dataTree;
 
-                        this.OnPingDocument().ScheduleSolution(0, doc => {
-                            dataComp.currentValue = dataTree;
-                            dataComp.ExpireSolution(true);
-                        });
-                    }
-                }
+                //        this.OnPingDocument().ScheduleSolution(0, doc => {
+                //            dataComp.currentValue = dataTree;
+                //            dataComp.ExpireSolution(true);
+                //        });
+                //    }
+                //}
                 
             }
             catch

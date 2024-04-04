@@ -20,6 +20,8 @@ using Grasshopper.Kernel.Special;
 using static RemoSharp.RemoSetupClient;
 
 using System.Threading.Tasks;
+using Grasshopper;
+using System.Drawing.Drawing2D;
 
 
 
@@ -67,12 +69,16 @@ namespace RemoSharp.Distributors
         List<Guid> addedObjects = new List<Guid>();
         public bool remoParamModeActive = false;
         public PointF mouseLocation = PointF.Empty;
+        Guid hoverParam = Guid.Empty;
+
+        public List<IGH_DocumentObject> subscribedObjs = new List<IGH_DocumentObject>();
+
 
         /// <summary>
         /// Initializes a new instance of the RemoSetupClientV3 class.
         /// </summary>
         public RemoSetupClientV3()
-          : base("RemoSetupV3", "RemoSetupV3",
+          : base("RemoSetupV3", "RemoSetup",
               "Creates, connects, disconnects, and moves components remotely on the main remote GH_Canvas",
               "RemoSharp", "RemoSetup")
         {
@@ -83,17 +89,17 @@ namespace RemoSharp.Distributors
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            setupButton = new PushButton("Set Up",
-                   "Creates The Required RemoSharp Components to Connect to a Session.", "Set Up");
+            setupButton = new PushButton("SetUp",
+                   "Creates The Required RemoSharp Components to Connect to a Session.", "SetUp");
             setupButton.OnValueChanged += SetupButton_OnValueChanged;
             AddCustomControl(setupButton);
 
 
-            enableSwitch = new ToggleSwitch("Enable Interactions", "It has to be turned on if we want interactions with the server", false);
+            enableSwitch = new ToggleSwitch("Connect", "It has to be turned on if we want interactions with the server", false);
             enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
             AddCustomControl(enableSwitch);
 
-            undoPreventionSwitch = new ToggleSwitch("Prevent Undo", "Warns the user not to use undo or redo", true);
+            undoPreventionSwitch = new ToggleSwitch("No Undo", "Warns the user not to use undo or redo", true);
             undoPreventionSwitch.OnValueChanged += UndoPreventionSwitch_OnValueChanged;
             AddCustomControl(undoPreventionSwitch);
 
@@ -109,38 +115,46 @@ namespace RemoSharp.Distributors
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
-            if (this.Params.Input[0].SourceCount == 0)
-            {
-                this.enableSwitch.CurrentValue = false;
-                return;
-            }
+            
 
             enable = Convert.ToBoolean(e.Value);
 
-            AddInteractionButtonsToTopBar();
+            var comp = sender as ToggleSwitch;
+
+            //if (this.Params.Input[0].SourceCount == 0)
+            //{
+            //    this.enableSwitch.CurrentValue = false;
+            //    return;
+            //}
+
+
+            
 
             if (enable)
             {
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
                 this.NickName = "RemoSetup";
+                AddInteractionButtonsToTopBar(SubcriptionType.Subscribe);
 
                 client = new WebSocket(url);
                 //this.Message = "Connecting";
 
                 SubcriptionType subType = SubcriptionType.Subscribe;
-                SetUpRemoSharpEvents(subType, subType, subType, subType, subType);
+                SetUpRemoSharpEvents(subType, subType, subType, subType, subType, subType);
 
                 CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
                 executor.enable = enable;
+
             }
             else
             {
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
+                AddInteractionButtonsToTopBar(SubcriptionType.Unsubscribe);
 
-                SubcriptionType subType = SubcriptionType.Unsubscribe;
-                SetUpRemoSharpEvents(subType, subType, subType, subType, subType);
+                SubcriptionType unsubType = SubcriptionType.Unsubscribe;
+                SetUpRemoSharpEvents(unsubType, unsubType, unsubType, unsubType, unsubType, unsubType);
                 client.Close();
 
                 CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
@@ -156,11 +170,12 @@ namespace RemoSharp.Distributors
             , SubcriptionType objectsDeleted
             , SubcriptionType mouse
             , SubcriptionType keyboard
+            , SubcriptionType canvas
             )
         {
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var client = this.client;
-            bool isAlive = client.IsAlive;
+            //bool isAlive = client.IsAlive;
 
             RemoNullCommand nullCommand;
             string connectionString = "";
@@ -288,7 +303,27 @@ namespace RemoSharp.Distributors
                     break;
                 default:
                     break;
-            }           
+            }
+
+            var gh_Canvas = Grasshopper.Instances.ActiveCanvas;
+            switch (canvas)
+            {
+                case SubcriptionType.Subscribe:
+                    gh_Canvas.CanvasPrePaintObjects += HighlightRemoParameters;
+
+                    break;
+                case SubcriptionType.Unsubscribe:
+                    gh_Canvas.CanvasPrePaintObjects -= HighlightRemoParameters;
+                    break;
+                case SubcriptionType.Skip:
+                    break;
+                case SubcriptionType.Resubscribe:
+                    gh_Canvas.CanvasPrePaintObjects -= HighlightRemoParameters;
+                    gh_Canvas.CanvasPrePaintObjects += HighlightRemoParameters;
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void EstablishConnection(WebSocket client)
@@ -307,7 +342,7 @@ namespace RemoSharp.Distributors
             if (thisDoc == null || this == null)
             {
                 var unsub = SubcriptionType.Unsubscribe;
-                this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub);
+                this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub,unsub);
                 gh_document = null;
                 return false;
             }
@@ -318,6 +353,7 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_KeyUp(object sender, KeyEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             GH_Document thisDoc = this.OnPingDocument();
             if (!CheckForHealthyGH(out thisDoc)) return;
 
@@ -329,15 +365,24 @@ namespace RemoSharp.Distributors
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
-                this.remoParamModeActive = false;
-                var gh_groups = this.OnPingDocument().Objects;
-                System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
-                {
-                    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
-                    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
-                    if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+                //this.remoParamModeActive = false;
+                //var gh_groups = this.OnPingDocument().Objects;
+                //System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
+                //{
+                //    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
+                //    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
+                //    if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
 
-                });
+                //});
+
+                IGH_Param igh_param = (IGH_Param)thisDoc.FindObject(hoverParam, false);
+                if (igh_param != null)
+                {
+                    igh_param.RuntimeMessages(GH_RuntimeMessageLevel.Remark)
+                    .Remove(igh_param.RuntimeMessages(GH_RuntimeMessageLevel.Remark)
+                    .Where(obj => obj.Equals("Syncing")).FirstOrDefault());
+                    ResetGHColorsToDefault();
+                }
 
             }
             
@@ -345,6 +390,7 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_KeyDown(object sender, KeyEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             GH_Document thisDoc = this.OnPingDocument();
             if (!CheckForHealthyGH(out thisDoc)) return;
 
@@ -357,14 +403,44 @@ namespace RemoSharp.Distributors
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
-                this.remoParamModeActive = true;
-                var gh_groups = thisDoc.Objects;
-                System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
+                //this.remoParamModeActive = true;
+                //var gh_groups = thisDoc.Objects;
+                //System.Threading.Tasks.Parallel.ForEach(gh_groups, item =>
+                //{
+                //    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
+                //    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
+                //    if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(125, 225, 100, 250);
+                //});
+
+                var hoverObject = thisDoc.FindObject(this.mouseLocation, 5);
+                if (hoverObject != null)
                 {
-                    if (!(item is Grasshopper.Kernel.Special.GH_Group)) return;
-                    Grasshopper.Kernel.Special.GH_Group group = (Grasshopper.Kernel.Special.GH_Group)item;
-                    if (group.NickName.Contains(RemoParam.RemoParamKeyword)) group.Colour = System.Drawing.Color.FromArgb(125, 225, 100, 250);
-                });
+
+                    if (hoverObject is IGH_Param)
+                    {
+                        IGH_Param param = (IGH_Param)hoverObject;
+                        if (param != null)
+                        {
+                            if (param.Attributes.Parent == null)
+                            {
+                                param.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Syncing");
+                                hoverParam = param.InstanceGuid;
+                                SetColorToSyncMode();
+                                //param.SolutionExpired += Param_SolutionExpired;
+                            }
+                        }
+                        else
+                        {
+                            IGH_Param igh_param = (IGH_Param)thisDoc.FindObject(hoverParam, false);
+                            if (igh_param != null)
+                            {
+                                igh_param.ClearRuntimeMessages();
+                                //igh_param.SolutionExpired -= Param_SolutionExpired;
+                            }
+                        }
+
+                    }
+                }
             }
            
             bool controlDown = this.controlDown;
@@ -381,7 +457,12 @@ namespace RemoSharp.Distributors
            
         }
 
-        private void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, bool subscribe)
+        //private void Param_SolutionExpired(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    Rhino.RhinoApp.WriteLine(sender.ToString() + "Solution Expired");
+        //}
+
+        public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, bool subscribe)
         {
             List<string> accaptableTypes = new List<string>() {
             "Grasshopper.Kernel.Special.GH_NumberSlider",
@@ -392,17 +473,17 @@ namespace RemoSharp.Distributors
             "Grasshopper.Kernel.Special.GH_ButtonObject"
             };
 
-            var allParams = this.OnPingDocument().Objects;
+            var allParams = remoSetupComp.OnPingDocument().Objects;
 
 
             if (!subscribe)
             {
-                var deletionGuids = this.OnPingDocument().Objects
+                var deletionGuids = remoSetupComp.OnPingDocument().Objects
                     .Where(obj => obj.NickName.Equals(RemoParam.RemoParamKeyword))
-                    .Select(obj => this.OnPingDocument().FindObject(obj.InstanceGuid, false))
+                    .Select(obj => remoSetupComp.OnPingDocument().FindObject(obj.InstanceGuid, false))
                     .ToList();
 
-                this.OnPingDocument().RemoveObjects(deletionGuids, false);
+                remoSetupComp.OnPingDocument().RemoveObjects(deletionGuids, false);
             }
 
             foreach (var item in allParams)
@@ -423,7 +504,7 @@ namespace RemoSharp.Distributors
 
                         if (isSetupButtno) continue;
 
-                        GroupObjParam(item);
+                        GroupObjParam(remoSetupComp, item);
                     }
 
                 }
@@ -502,7 +583,7 @@ namespace RemoSharp.Distributors
             }
         }
 
-        private void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, List<IGH_DocumentObject> allParams, bool subscribe)
+        public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, List<IGH_DocumentObject> allParams, bool subscribe)
         {
             List<string> accaptableTypes = new List<string>() {
             "Grasshopper.Kernel.Special.GH_NumberSlider",
@@ -531,7 +612,7 @@ namespace RemoSharp.Distributors
 
                         if (isSetupButtno) continue;
 
-                        GroupObjParam(item);
+                        GroupObjParam(remoSetupComp, item);
                     }
 
                 }
@@ -742,16 +823,16 @@ namespace RemoSharp.Distributors
 
         }
 
-        public void GroupObjParam(IGH_DocumentObject obj)
+        public static void GroupObjParam(RemoSetupClientV3 remoSetupComp,  IGH_DocumentObject obj)
         {
-            this.OnPingDocument().ScheduleSolution(1, doc =>
+            remoSetupComp.OnPingDocument().ScheduleSolution(1, doc =>
             {
                 GH_Group group = new GH_Group();
                 group.CreateAttributes();
                 group.AddObject(obj.InstanceGuid);
                 group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
                 group.NickName = RemoParam.RemoParamKeyword;
-                this.OnPingDocument().AddObject(group, false);
+                remoSetupComp.OnPingDocument().AddObject(group, false);
             });
         }
 
@@ -886,6 +967,7 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
             Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
             this.mouseLocation = mouseEvent.CanvasLocation;
@@ -926,7 +1008,7 @@ namespace RemoSharp.Distributors
             {
                 this.Message = "Connection Failed";
                 SubcriptionType unsub = SubcriptionType.Unsubscribe;
-                SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub);
+                SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub, unsub);
                 this.enableSwitch.CurrentValue = false;
             }
         }
@@ -934,74 +1016,127 @@ namespace RemoSharp.Distributors
         private void ActiveCanvas_DragOver(object sender, DragEventArgs e)
         {
             //Rhino.RhinoApp.WriteLine("DragOver");
+            if (DisconnectOnImproperClose()) return;
         }
 
         private void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
         {
+            if(DisconnectOnImproperClose()) return;
+
             GH_Canvas canvas = sender as GH_Canvas;
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.downPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
             this.interaction = canvas.ActiveInteraction;
         }
 
+        private bool DisconnectOnImproperClose()
+        {
+            var thisComp = this;
+            var thisDoc = thisComp.OnPingDocument();
+            if (thisComp == null || thisDoc == null)
+            {
+                SubcriptionType unsub = SubcriptionType.Unsubscribe;
+                this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub, unsub);
+                System.Windows.Forms.MessageBox.Show("Connection closed due to improper disconnection!", "RemoSharp Connection Error!");
+                return true;
+            }
+            return false;
+        }
+
         private void ActiveCanvas_MouseUp(object sender, MouseEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             GH_Canvas canvas = sender as GH_Canvas;
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.upPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
 
             if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction)
             {
-                Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction);
-                object mode = type
-                  .GetField("m_mode", BindingFlags.NonPublic | BindingFlags.Instance)
-                  .GetValue(interaction);
-                IGH_Param source = type
-                  .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
-                  .GetValue(interaction) as IGH_Param;
-                IGH_Param target = type
-                  .GetField("m_target", BindingFlags.NonPublic | BindingFlags.Instance)
-                  .GetValue(interaction) as IGH_Param;
-
-                if (source == null || target == null) return;
-
-                RemoConnectType remoConnectType = RemoConnectType.None;
-                if (mode.ToString().Equals("Replace"))
-                {
-                    remoConnectType = RemoConnectType.Replace;
-                }
-                else if (mode.ToString().Equals("Remove"))
-                {
-                    remoConnectType = RemoConnectType.Remove;
-                }
-                else
-                {
-                    remoConnectType = RemoConnectType.Add;
-                }
-
-                int outIndex = -1;
-                bool outIsSpecial = false;
-                System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-                  source, out outIndex, out outIsSpecial);
-
-                int inIndex = -1;
-                bool inIsSpecial = false;
-                if (target == null || source == null) return;
-                System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-                  target, out inIndex, out inIsSpecial);
-
-                string outCompXML = RemoCommand.SerializeToXML(outGuid);
-                string inCompXML = RemoCommand.SerializeToXML(inGuid);
-
-                string outCompDocXML = "";
-                string inCompDocXML =  "";
-
-                command = new RemoConnect(this.username, outGuid, inGuid, remoConnectType,
-                    outCompXML, inCompXML, outCompDocXML, inCompDocXML);
-                SendCommands(this,command, commandRepeat, enable);
+                SendRemoWireCommand();
+            }
+            else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
+            {
+                SendRemoMoveCommand();
             }
 
-            
+
+        }
+
+        private void SendRemoMoveCommand()
+        {
+            GH_Document thisDoc = null;
+            if (!CheckForHealthyGH(out thisDoc)) return;
+
+            float downPntX = downPnt[0];
+            float downPntY = downPnt[1];
+            float upPntX = upPnt[0];
+            float upPntY = upPnt[1];
+
+            float distance = (float)Math.Sqrt(Math.Pow(upPntX - downPntX, 2) + Math.Pow(upPntY - downPntY, 2));
+            if (distance < 5) return;
+
+            if (thisDoc.SelectedCount < 1) return;
+
+            var selection = this.OnPingDocument().SelectedObjects();
+
+            List<Guid> moveGuids = selection.Select(obj => obj.InstanceGuid).ToList();
+            float xDiff = upPntX - downPntX;
+            float yDiff = upPntY - downPntY;
+
+            command = new RemoMove(username, moveGuids, new Size((int)xDiff, (int)yDiff));
+            SendCommands(this, command, commandRepeat, enable);
+
+        }
+
+        private void SendRemoWireCommand()
+        {
+            Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction);
+            object mode = type
+              .GetField("m_mode", BindingFlags.NonPublic | BindingFlags.Instance)
+              .GetValue(interaction);
+            IGH_Param source = type
+              .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
+              .GetValue(interaction) as IGH_Param;
+            IGH_Param target = type
+              .GetField("m_target", BindingFlags.NonPublic | BindingFlags.Instance)
+              .GetValue(interaction) as IGH_Param;
+
+            if (source == null || target == null) return;
+
+            RemoConnectType remoConnectType = RemoConnectType.None;
+            if (mode.ToString().Equals("Replace"))
+            {
+                remoConnectType = RemoConnectType.Replace;
+            }
+            else if (mode.ToString().Equals("Remove"))
+            {
+                remoConnectType = RemoConnectType.Remove;
+            }
+            else
+            {
+                remoConnectType = RemoConnectType.Add;
+            }
+
+            int outIndex = -1;
+            bool outIsSpecial = false;
+            System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+              source, out outIndex, out outIsSpecial);
+
+            int inIndex = -1;
+            bool inIsSpecial = false;
+            if (target == null || source == null) return;
+            System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+              target, out inIndex, out inIsSpecial);
+
+            string outCompXML = RemoCommand.SerializeToXML(outGuid);
+            string inCompXML = RemoCommand.SerializeToXML(inGuid);
+
+            string outCompDocXML = "";
+            string inCompDocXML = "";
+
+            command = new RemoConnect(this.username, outGuid, inGuid, remoConnectType,
+                outCompXML, inCompXML, outCompDocXML, inCompDocXML);
+            SendCommands(this, command, commandRepeat, enable);
         }
 
         private System.Guid GetComponentGuidAnd_Input_Index(
@@ -1057,8 +1192,11 @@ namespace RemoSharp.Distributors
 
         private void ThisDoc_ObjectsDeleted(object sender, GH_DocObjectEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             GH_Document activeDoc = (GH_Document)sender;
             if (activeDoc == null) return;
+
+
 
             List<Guid> deleteGuids = new List<Guid>();
             var objs = e.Objects;
@@ -1097,8 +1235,10 @@ namespace RemoSharp.Distributors
 
         private void ThisDoc_ObjectsAdded(object sender, GH_DocObjectEventArgs e)
         {
+            if (DisconnectOnImproperClose()) return;
             GH_Document activeDoc = (GH_Document)sender;
             if (activeDoc == null) return;
+            
 
             activeDoc.ScheduleSolution(1, doc =>
             {
@@ -1110,16 +1250,19 @@ namespace RemoSharp.Distributors
                 var unsub = SubcriptionType.Unsubscribe;
                 var sub = SubcriptionType.Subscribe;
 
-                SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip);
+                SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip,skip);
                 List<IGH_DocumentObject> objs = e.Objects.ToList();
 
                 RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
 
-                SubscribeAllParams(this, objs, true);
-
-                SetUpRemoSharpEvents(skip, sub, sub, skip, skip);
-
                 SendCommands(this, remoPartialDoc, 3, enable);
+
+
+                //SubscribeAllParams(this, objs, true);
+
+                SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
+
+                //SendCommands(this, remoPartialDoc, 3, enable);
 
             });
 
@@ -1137,10 +1280,6 @@ namespace RemoSharp.Distributors
             if (this.Params.Input[0].Sources.Count > 0) return;
             if (currentValue)
             {
-
-                AddInteractionButtonsToTopBar();
-
-
                 int xShift = 2;
                 int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
@@ -1168,7 +1307,7 @@ namespace RemoSharp.Distributors
                 wscToggle.CreateAttributes();
                 wscToggle.Attributes.Pivot = wscTogglePivot;
                 wscToggle.NickName = "RemoSetup";
-                wscToggle.Value = false;
+                wscToggle.Value = true;
                 wscToggle.ExpireSolution(false);
 
                 // RemoSharp trigger
@@ -1291,59 +1430,79 @@ namespace RemoSharp.Distributors
             this.ExpireSolution(true);
         }
 
-        private void AddInteractionButtonsToTopBar()
+        private void AddInteractionButtonsToTopBar(SubcriptionType subcriptionType)
         {
 
 
+
             ToolStripItemCollection items = ((ToolStrip)(Grasshopper.Instances.DocumentEditor).Controls[0].Controls[1]).Items;
-            if (!items.ContainsKey("Look"))
-            {
-                items.Add(new ToolStripButton("Look", (Image)Properties.Resources.Sync_Camera.ToBitmap(), onClick: (s, e) => LookButton_OnValueChanged(s, e))
-                {
-                    AutoSize = true,
-                    DisplayStyle = ToolStripItemDisplayStyle.Image,
-                    ImageAlign = ContentAlignment.MiddleCenter,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
-                    Margin = new Padding(0, 0, 0, 0),
-                    Name = "Look",
-                    Size = new Size(28, 28),
-                    ToolTipText = "Looks in the same spot in other connected GH documents.",
-                });
-            }
 
-            if (!items.ContainsKey("Select"))
+            switch (subcriptionType)
             {
-                items.Add(new ToolStripButton("Select", (Image)Properties.Resources.SyncGHviewport.ToBitmap(), onClick: (s, e) => SelectButton_OnValueChanged(s, e))
-                {
-                    AutoSize = true,
-                    DisplayStyle = ToolStripItemDisplayStyle.Image,
-                    ImageAlign = ContentAlignment.MiddleCenter,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
-                    Margin = new Padding(0, 0, 0, 0),
-                    Name = "Select",
-                    Size = new Size(28, 28),
-                    ToolTipText = "Selects components on other connected GH documents.",
-                });
-            }
+                case SubcriptionType.Subscribe:
+                    if (!items.ContainsKey("Look"))
+                    {
+                        items.Add(new ToolStripButton("Look", (Image)Properties.Resources.Sync_Camera.ToBitmap(), onClick: (s, e) => LookButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "Look",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Looks in the same spot in other connected GH documents.",
+                        });
+                    }
 
-            if (!items.ContainsKey("SyncComps"))
-            {
-                items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.BroadcastCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
-                {
-                    AutoSize = true,
-                    DisplayStyle = ToolStripItemDisplayStyle.Image,
-                    ImageAlign = ContentAlignment.MiddleCenter,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
-                    Margin = new Padding(0, 0, 0, 0),
-                    Name = "SyncComps",
-                    Size = new Size(28, 28),
-                    ToolTipText = "Syncronize the Selected Components.",
-                });
-            }
+                    if (!items.ContainsKey("Select"))
+                    {
+                        items.Add(new ToolStripButton("Select", (Image)Properties.Resources.Distributor.ToBitmap(), onClick: (s, e) => SelectButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "Select",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Selects components on other connected GH documents.",
+                        });
+                    }
 
-            if (!items.ContainsKey("SyncCanvas"))
+                    if (!items.ContainsKey("RemoParam"))
+                    {
+                        items.Add(new ToolStripButton("RemoParam", (Image)Properties.Resources.RemoSlider.ToBitmap(), onClick: (s, e) => RemoParamButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "RemoParam",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Turn the parameter components shareable.",
+                        });
+                    }
+
+                    if (!items.ContainsKey("SyncComps"))
+                    {
+                        items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.BroadcastCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncComps",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize the Selected Components.",
+                        });
+                    }
+
+                    if (!items.ContainsKey("SyncCanvas"))
             {
-                items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.SyncCanvas.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
+                items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
                 {
                     AutoSize = true,
                     DisplayStyle = ToolStripItemDisplayStyle.Image,
@@ -1355,7 +1514,174 @@ namespace RemoSharp.Distributors
                     ToolTipText = "Syncronize all the components from this canvas to the other canvases.",
                 });
             }
+                    break;
+                case SubcriptionType.Unsubscribe:
+                    if(items.ContainsKey("Look")) items.RemoveByKey("Look");
+                    if (items.ContainsKey("Select")) items.RemoveByKey("Select");
+                    if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
+                    if(items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
+                    if(items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
+                    break;
+                case SubcriptionType.Skip:
+                    break;
+                case SubcriptionType.Resubscribe:
+                    if (items.ContainsKey("Look")) items.RemoveByKey("Look");
+                    if (items.ContainsKey("Select")) items.RemoveByKey("Select");
+                    if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
+                    if (items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
+                    if (items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
+                    if (!items.ContainsKey("Look"))
+                    {
+                        items.Add(new ToolStripButton("Look", (Image)Properties.Resources.Sync_Camera.ToBitmap(), onClick: (s, e) => LookButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "Look",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Looks in the same spot in other connected GH documents.",
+                        });
+                    }
+                    if (!items.ContainsKey("Select"))
+                    {
+                        items.Add(new ToolStripButton("Select", (Image)Properties.Resources.Distributor.ToBitmap(), onClick: (s, e) => SelectButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "Select",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Selects components on other connected GH documents.",
+                        });
+                    }
+                    if (!items.ContainsKey("RemoParam"))
+                    {
+                        items.Add(new ToolStripButton("RemoParam", (Image)Properties.Resources.RemoSlider.ToBitmap(), onClick: (s, e) => RemoParamButton_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "RemoParam",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Turn the parameter components shareable.",
+                        });
+                    }
+                    if (!items.ContainsKey("SyncComps"))
+                    {
+                        items.Add(new ToolStripButton("SyncComps", (Image)Properties.Resources.BroadcastCanvas.ToBitmap(), onClick: (s, e) => SyncComponents_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncComps",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize the Selected Components.",
+                        });
+                    }
+                    if (!items.ContainsKey("SyncCanvas"))
+                    {
+                        items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncCanvas",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize all the components from this canvas to the other canvases.",
+                        });
+                    }
 
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void RemoParamButton_OnValueChanged(object s, EventArgs e)
+        {
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+            var canvas = Instances.ActiveCanvas;
+
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComp == null) return;
+
+            foreach (var item in remoSetupComp.subscribedObjs)
+            {
+                item.SolutionExpired -= SendRemoParameterCommand;
+                //remoSetupComp.subscribedObjs.Remove(item);
+            }
+
+            remoSetupComp.subscribedObjs.Clear();
+            var selection = thisDoc.SelectedObjects();
+            if (selection.Count < 1) return;
+
+            remoSetupComp.subscribedObjs.AddRange(selection);
+
+            foreach (IGH_DocumentObject item in remoSetupComp.subscribedObjs)
+            {
+                item.SolutionExpired += SendRemoParameterCommand;                
+            }
+
+        }
+
+        private void HighlightRemoParameters(GH_Canvas sender)
+        {
+            if (this == null || this.OnPingDocument() == null) return;
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)this.OnPingDocument().Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+
+            System.Drawing.Color color = System.Drawing.Color.FromArgb(150, 237, 76, 226);
+
+            foreach (IGH_DocumentObject item in remoSetupComp.subscribedObjs)
+            {
+                System.Drawing.RectangleF bound = item.Attributes.Bounds;
+
+                sender.Graphics.DrawPath(new System.Drawing.Pen(color, 10), DrawFilletedRectangle(bound, 0));
+            }            
+        }
+
+        public void SendRemoParameterCommand(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        {
+           var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComp == null) return;
+
+            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, sender);
+
+            SendCommands(remoSetupComp, remoParameter, 1, enable);
+
+        }
+
+        GraphicsPath DrawFilletedRectangle(RectangleF rectangle, float radius)
+        {
+            // Check for valid radius
+            if (radius <= 0) radius = 1;
+
+            // Create a GraphicsPath object
+            GraphicsPath path = new GraphicsPath();
+
+            // Add arcs for the rounded corners
+            path.AddArc(rectangle.X, rectangle.Y, radius * 2, radius * 2, 180, 90); // Top left corner
+            path.AddArc(rectangle.Right - radius * 2, rectangle.Y, radius * 2, radius * 2, 270, 90); // Top right corner
+            path.AddArc(rectangle.Right - radius * 2, rectangle.Bottom - radius * 2, radius * 2, radius * 2, 0, 90); // Bottom right corner
+            path.AddArc(rectangle.X, rectangle.Bottom - radius * 2, radius * 2, radius * 2, 90, 90); // Bottom left corner
+
+            // Connect the arcs with lines
+            path.CloseFigure(); // This connects the end of the last arc with the start of the first arc
+
+            return path;
         }
 
         private void SyncCanvas_OnValueChanged(object s, EventArgs e)
@@ -1369,7 +1695,7 @@ namespace RemoSharp.Distributors
             if (remoclientv3 == null || commandExecutor == null) return;
 
             commandExecutor.errors.Clear();
-            commandExecutor.ExpirePreview(true);
+            commandExecutor.ExpireSolution(true);
             thisDoc.DeselectAll();
 
             GH_LooseChunk tempChunk = new GH_LooseChunk(null);
@@ -1433,6 +1759,20 @@ namespace RemoSharp.Distributors
             Grasshopper.GUI.Canvas.GH_Skin.canvas_back = Color.FromArgb(255, 212, 208, 200);
             Grasshopper.GUI.Canvas.GH_Skin.canvas_edge = Color.FromArgb(255, 0, 0, 0);
             Grasshopper.GUI.Canvas.GH_Skin.canvas_shade = Color.FromArgb(80, 0, 0, 0);
+        }
+
+        private static void SetColorToSyncMode()
+        {
+            //DEFAULTS
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_grid = Color.FromArgb(80, 255, 255, 255);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_back = Color.FromArgb(255, 212, 208, 200);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_edge = Color.FromArgb(255, 0, 0, 0);
+            Grasshopper.GUI.Canvas.GH_Skin.canvas_shade = Color.FromArgb(80, 0, 0, 0);
+        }
+
+        private static void HighlightParameter()
+        {
+            //DEFAULTS
         }
 
         public static void SendCommands(RemoSetupClientV3 setupComp, RemoCommand command, int repeat, bool enable)
@@ -1530,7 +1870,7 @@ namespace RemoSharp.Distributors
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return null;
+                return RemoSharp.Properties.Resources.Setup_Component.ToBitmap();
             }
         }
 

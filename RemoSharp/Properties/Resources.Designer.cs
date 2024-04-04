@@ -403,6 +403,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        public static System.Drawing.Icon Setup_Component {
+            get {
+                object obj = ResourceManager.GetObject("Setup_Component", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         public static System.Drawing.Icon SourceComp {
             get {
                 object obj = ResourceManager.GetObject("SourceComp", resourceCulture);

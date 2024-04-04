@@ -68,6 +68,8 @@ namespace RemoSharp.RemoCommandTypes
             Grasshopper.Kernel.Special.GH_BooleanToggle toggle = new GH_BooleanToggle();
             toggle.CreateAttributes();
             toggle.Attributes.Pivot = togglePivot;
+            toggle.Value = true;
+            toggle.ExpireSolution(true);
             toggle.NickName = "RemoSetup";
 
             RemoSharp.WS_Server_Samples wS_Server_Samples = new RemoSharp.WS_Server_Samples();

@@ -217,6 +217,9 @@
   <data name="Server_Samples" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Server Samples.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Setup_Component" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Setup Component.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="SourceComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\SourceComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
