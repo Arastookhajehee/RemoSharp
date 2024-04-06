@@ -23,6 +23,7 @@ using System.Reflection;
 using System.Collections.ObjectModel;
 using System.Xml.Linq;
 using System.Security.Cryptography;
+using GhPython;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -411,10 +412,8 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoCreate : RemoCommand
     {
         public List<Guid> guids;
-        public List<string> associatedAttributes;
+        public List<string> attributeXMLs;
         public List<string> componentTypes;
-        public List<string> componentStructures;
-        public List<string> specialParameters;
 
         public RemoCreate()
         {
@@ -424,21 +423,15 @@ namespace RemoSharp.RemoCommandTypes
         public RemoCreate(string issuerID,
             List<Guid> guids,
             List<string> associatedAttributes,
-            List<string> componentTypes,
-            List<string> componentStructures,
-            List<string> specialParameters)
-
+            List<string> componentTypes)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Create;
             this.objectGuid = Guid.Empty;
             this.guids = guids;
-            this.associatedAttributes = associatedAttributes;
+            this.attributeXMLs = associatedAttributes;
             this.componentTypes = componentTypes;
-            this.componentStructures = componentStructures;
-            this.specialParameters = specialParameters;
             this.commandID = Guid.NewGuid();
-
         }
 
 
@@ -492,26 +485,14 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoPartialDoc : RemoCommand
     {
         public string xml;
+        public List<WireHistory> pythonWireHistories;
+        public Dictionary<Guid, List<Guid>> relayConnections;
+        
         public RemoPartialDoc() { }
-        //public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects)
-        //{
-        //    this.issuerID = issuerID;
-        //    this.executed = false;
-        //    this.objectGuid = Guid.Empty;
-        //    this.commandID = Guid.NewGuid();
-        //    this.commandType = CommandType.RemoPartialDocument;
-        //    this.executionAttempts = 0;
 
-        //    GH_Document tempDoc = new GH_Document();
-        //    foreach (var item in objects)
-        //    {
-        //        tempDoc.AddObject(item, false);
-        //    }
-        //    tempDoc.ExpireSolution();
-        //    string xml = RemoCommand.SerializeToXML(tempDoc);
-        //    this.xml = xml;
-        //}
-
+        public static List<string> specialComponentTypes  = new List<string>()
+        {  };
+       
         public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
         {
             this.issuerID = issuerID;
@@ -520,17 +501,51 @@ namespace RemoSharp.RemoCommandTypes
             this.commandID = Guid.NewGuid();
             this.commandType = CommandType.RemoPartialDocument;
             this.executionAttempts = 0;
+            this.pythonWireHistories = new List<WireHistory>();
+            this.relayConnections = new Dictionary<Guid, List<Guid>>();
 
             string xml = "";
             GH_Document tempDoc = new GH_Document();
 
             List<WireHistory> hitory = new List<WireHistory>();
+
+            if (objects.Count == 1 && objects[0] is GH_Relay)
+            {
+                GH_Relay relay = (GH_Relay)objects[0];
+                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
+            }
+
             foreach (var item in objects)
             {
-                string xmlHistory = SerializeToXML(item);
-                hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
+                
+                string type = item.GetType().FullName;
 
-                tempDoc.AddObject(item, false);
+                if (type.Equals("GhPython.Component.ZuiPythonComponent"))
+                {
+                    string xmlHistory = SerializeToXML(item);
+                    hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
+
+                    GhPython.Component.ZuiPythonComponent zuiPythonComponent = (GhPython.Component.ZuiPythonComponent)item;
+                    pythonWireHistories.Add(new WireHistory(zuiPythonComponent));
+
+                    GH_LooseChunk chunk = new GH_LooseChunk(null);
+                    zuiPythonComponent.Write(chunk);
+                    
+                    GhPython.Component.ZuiPythonComponent pythonComponent = new GhPython.Component.ZuiPythonComponent();
+                    pythonComponent.CreateAttributes();
+                    pythonComponent.Read(chunk);
+                    pythonComponent.NewInstanceGuid(zuiPythonComponent.InstanceGuid);
+
+                    tempDoc.AddObject(pythonComponent, false);
+
+                }
+                else
+                {
+                    string xmlHistory = SerializeToXML(item);
+                    hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
+
+                    tempDoc.AddObject(item, false);
+                }
             }
             xml = RemoCommand.SerializeToXML(tempDoc);
 
@@ -881,6 +896,7 @@ namespace RemoSharp.RemoCommandTypes
         public static bool InvokeReadMethod(object objectToInvoke, object[] parameters = null)
         {
             string methodName = "Read";
+            if (objectToInvoke == null) return false;
             // Use reflection to get the Type of the object
             Type type = objectToInvoke.GetType();
 
@@ -1412,12 +1428,32 @@ namespace RemoSharp.RemoCommandTypes
     {
         public Guid componentGuid;
         public string wireHistoryXml;
+        public Dictionary<int, List<Guid>> inputGuidsDictionary; // inputIndex, sourceGuids
 
         public WireHistory() { }
         public WireHistory(Guid componentGuid, string wireHistoryXml)
         {
             this.componentGuid = componentGuid;
             this.wireHistoryXml = wireHistoryXml;
+            this.inputGuidsDictionary = null;
+        }
+        public WireHistory(GhPython.Component.ZuiPythonComponent pythonComponent)
+        {
+            this.componentGuid = pythonComponent.InstanceGuid;
+            inputGuidsDictionary = new Dictionary<int, List<Guid>>();
+            for (int i = 0; i < pythonComponent.Params.Input.Count; i++)
+            {
+                var input = pythonComponent.Params.Input[i];
+                List<Guid> sourceGuids = new List<Guid>();
+                foreach (var source in input.Sources)
+                {
+                    
+                    sourceGuids.Add(source.InstanceGuid);
+                  
+                }
+                inputGuidsDictionary.Add(i, sourceGuids);
+            }
+            this.wireHistoryXml = "";
         }
     }
 

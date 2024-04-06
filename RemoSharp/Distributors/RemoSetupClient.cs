@@ -1789,15 +1789,15 @@ namespace RemoSharp
                 dataComp.Write(chunk2);
 
 
-                RemoCreate remoCreate = new RemoCreate(this.username
-                    , new List<Guid>() { rpmComp.InstanceGuid }
-                    , new List<String>() { chunk2.Serialize_Xml() }
-                    , new List<string>() { rpmComp.GetType().FullName }
-                    , new List<string>() { xml }
-                    , new List<string>() { xml }
-                    );
+                //RemoCreate remoCreate = new RemoCreate(this.username
+                //    , new List<Guid>() { rpmComp.InstanceGuid }
+                //    , new List<String>() { chunk2.Serialize_Xml() }
+                //    , new List<string>() { rpmComp.GetType().FullName }
+                //    , new List<string>() { xml }
+                //    , new List<string>() { xml }
+                //    );
 
-                SendCommands(remoCreate, commandRepeat, enable);
+                //SendCommands(remoCreate, commandRepeat, enable);
 
                 
 

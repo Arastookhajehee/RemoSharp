@@ -39,6 +39,10 @@
     <Reference Include="GHCustomControls">
       <HintPath>..\..\dlls\GHCustomControls.dll</HintPath>
     </Reference>
+    <Reference Include="GhPython">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Components\GhPython.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="GH_IO">
       <HintPath>C:\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
       <Private>False</Private>

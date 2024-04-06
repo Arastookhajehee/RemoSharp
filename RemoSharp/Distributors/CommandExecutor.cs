@@ -653,7 +653,6 @@ namespace RemoSharp
             tempDoc.Read(chunk);
 
             OnPingDocument().ScheduleSolution(1, doc => {
-                string pause = "";
 
                 RemoSetupClientV3 sourceComp = OnPingDocument().Objects
                 .Where(obj => obj is RemoSetupClientV3)
@@ -664,46 +663,54 @@ namespace RemoSharp
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
-                //var newCompGuids = tempDoc.Objects.Select(obj => obj.InstanceGuid).ToList();
                 this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
-                //List<WireHistory> hitory = new List<WireHistory>();
-                //List<IGH_DocumentObject> deletionObjs = new List<IGH_DocumentObject>();
-                //foreach (var guid in newCompGuids)
-                //{
-                //    var obj = this.OnPingDocument().FindObject(guid, false);
-                //    deletionObjs.Add(obj);
-                //    string xmlHistory = RemoCommand.SerializeToXML(obj);
-                //    hitory.Add(new WireHistory(guid, xmlHistory));
-                //}
-                //this.OnPingDocument().RemoveObjects(deletionObjs, false);
-                //this.OnPingDocument().MergeDocument(tempDoc, true, true);
+                Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
+                bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
+                List<IGH_Param> relayRecepients = new List<IGH_Param>();
+                if (incomingSingleRelay)
+                {
+                    Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
+                    relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
+                        .Select(obj => this.OnPingDocument().FindObject<IGH_Param>(obj,false)));
 
+                    IGH_Param sourceParam = this.OnPingDocument().FindObject<IGH_Param>(relaySourceParamGuid, false);
+                    foreach (var recepient in relayRecepients)
+                    {
+                        recepient.RemoveSource(sourceParam);
+                    }
+                }
 
-                //foreach (var item in hitory)
-                //{
-                //    var obj = this.OnPingDocument().FindObject(item.componentGuid, false);
-                //    var historyChunk = RemoCommand.DeserializeFromXML(item.wireHistoryXml);
-                //    obj.Read(historyChunk);
-                //}
+                foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
+                {
+                    GhPython.Component.ZuiPythonComponent zuiPythonComponent = 
+                    (GhPython.Component.ZuiPythonComponent)OnPingDocument().FindObject(item.componentGuid, false);
 
+                    var wires = item.inputGuidsDictionary;
+                    for (int i = 0; i < wires.Count; i++)
+                    {
+                        List<Guid> inputs = wires[i];
+                        foreach (var source in inputs)
+                        {
+                            zuiPythonComponent.Params.Input[i].AddSource((IGH_Param) OnPingDocument().FindObject(source, false));
+                        }
+                    }
 
-                //GH_Document rewiringDoc = new GH_Document();
-                //this.OnPingDocument().MergeDocument(rewiringDoc, true, true);
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
+                }
 
+                if (incomingSingleRelay)
+                {
+                    IGH_Param relayParam = this.OnPingDocument().FindObject<IGH_Param>(singleComponentGuid, false);
+                    foreach (var item in relayRecepients)
+                    {
+                        item.AddSource(relayParam);
+                    }
+                }
 
+                
+
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, skip);
                 return;
-                //var objs = new List<IGH_DocumentObject>();
-                //foreach (var item in newCompGuids)
-                //{
-                //    objs.Add(this.OnPingDocument().FindObject(item, false));
-                //}
-
-                //RemoSetupClientV3.SubscribeAllParams(sourceComp, objs, true);
-
-
-
 
             });
 
@@ -940,7 +947,7 @@ namespace RemoSharp
                 RemoSetupClientV3 sourceComp = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
                 if (sourceComp == null) return;
                 var paramComp = this.OnPingDocument().FindObject(remoParameter.objectGuid, false);
-
+                var ogPivot  = paramComp.Attributes.Pivot;
 
 
                 if (paramComp == null) return;
@@ -966,6 +973,7 @@ namespace RemoSharp
                 RemoParameter.InvokeReadMethod(persistentData, objects);
 
                 paramComp.Attributes.Selected = false;
+                paramComp.Attributes.Pivot = ogPivot;
                 paramComp.ExpireSolution(true);
 
                 if (sourceComp.subscribedObjs.Contains(paramComp)) paramComp.SolutionExpired += sourceComp.SendRemoParameterCommand;

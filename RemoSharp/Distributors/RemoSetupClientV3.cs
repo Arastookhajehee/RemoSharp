@@ -42,6 +42,7 @@ namespace RemoSharp.Distributors
         bool connect = false;
         bool preventUndo = true;
         bool controlDown = false;
+        bool shiftDown = false;
         public static string DISCONNECTION_KEYWORD = "<<DisconnectFromRemoSharpServer>>";
 
         PushButton setupButton;
@@ -362,6 +363,11 @@ namespace RemoSharp.Distributors
                 this.controlDown = false;
                 return;
             }
+            if  (e.KeyCode == Keys.ShiftKey)
+            {
+                this.shiftDown = false;
+                return;
+            }   
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
@@ -400,6 +406,11 @@ namespace RemoSharp.Distributors
                 this.controlDown = true;
                 return;
             }
+            if (e.KeyCode == Keys.ShiftKey)
+            {
+                this.shiftDown = true;
+                return;
+            }   
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
@@ -1249,25 +1260,47 @@ namespace RemoSharp.Distributors
                 var skip = SubcriptionType.Skip;
                 var unsub = SubcriptionType.Unsubscribe;
                 var sub = SubcriptionType.Subscribe;
-
                 SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip,skip);
                 List<IGH_DocumentObject> objs = e.Objects.ToList();
 
+                Guid relayGuid = Guid.Empty;
+                List<IGH_Param> relayRecepients = new List<IGH_Param>();
+
+                // For relays we temporarily save the connections to connect them again later
+                if (objs.Count == 1 && objs[0] is GH_Relay)
+                {
+                    var relay = (objs[0] as GH_Relay);
+                    relayGuid = relay.InstanceGuid;                    
+                    relayRecepients.AddRange(relay.Recipients);                    
+                }
+
                 RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
 
+                IGH_Param newRelay = activeDoc.FindObject<IGH_Param>(relayGuid, false);
+                foreach (var target in relayRecepients)
+                {
+                    target.AddSource(newRelay);
+                }
+
                 SendCommands(this, remoPartialDoc, 3, enable);
-
-
-                //SubscribeAllParams(this, objs, true);
-
                 SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
-
-                //SendCommands(this, remoPartialDoc, 3, enable);
-
             });
 
         }
 
+        private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)sourceOutput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Output.IndexOf(sourceOutput);
+        }
+
+        private int FindInputIndexFromGH_Param(IGH_Param targetInput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)targetInput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Input.IndexOf(targetInput);
+        }
 
         private void UndoPreventionSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
@@ -1622,11 +1655,33 @@ namespace RemoSharp.Distributors
                 //remoSetupComp.subscribedObjs.Remove(item);
             }
 
-            remoSetupComp.subscribedObjs.Clear();
-            var selection = thisDoc.SelectedObjects();
-            if (selection.Count < 1) return;
+            bool controlShift = controlDown && shiftDown;
+            bool noControlShift = !controlDown && !shiftDown;
 
-            remoSetupComp.subscribedObjs.AddRange(selection);
+            if (controlShift || noControlShift)
+            {
+                remoSetupComp.subscribedObjs.Clear();
+                var selection = thisDoc.SelectedObjects();
+                remoSetupComp.subscribedObjs.AddRange(selection);
+            }
+            else if (controlDown)
+            {
+                var selection = thisDoc.SelectedObjects().Select(obj => obj.InstanceGuid).ToList();
+                for (int i = remoSetupComp.subscribedObjs.Count - 1; i > -1; i--)
+                {
+                    var item = remoSetupComp.subscribedObjs[i];
+                    if (selection.Contains(item.InstanceGuid))
+                    {
+                        remoSetupComp.subscribedObjs.RemoveAt(i);
+                    }
+                }
+            }
+            else if (shiftDown)
+            {
+                var selection = thisDoc.SelectedObjects();
+                remoSetupComp.subscribedObjs.AddRange(selection);
+            }
+            
 
             foreach (IGH_DocumentObject item in remoSetupComp.subscribedObjs)
             {
@@ -1657,6 +1712,13 @@ namespace RemoSharp.Distributors
 
             RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (remoSetupComp == null) return;
+
+            if (sender is GH_ButtonObject)
+            {
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, (GH_ButtonObject) sender);
+                SendCommands(remoSetupComp, remoParamButton, 1, enable);
+                return;
+            }
 
             RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, sender);
 
