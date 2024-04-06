@@ -332,8 +332,8 @@ namespace RemoSharp.RemoCommandTypes
         public RemoConnectType RemoConnectType = RemoConnectType.None;
         public string sourceXML;
         public string targetXML;
-        public string sourceCreationXML;
-        public string targetCreationXML;
+        public string sourceType;
+        public string targetType;
 
         public RemoConnect()
         {
@@ -342,7 +342,7 @@ namespace RemoSharp.RemoCommandTypes
 
         public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
             RemoConnectType remoConnectType,
-            string sourceXML, string targetXML, string sourceCreationXML, string targetCreationXML)
+            string sourceXML, string targetXML, string sourceType, string targetType)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.WireConnection;
@@ -351,57 +351,9 @@ namespace RemoSharp.RemoCommandTypes
             this.targetObjectGuid = targetObjectGuid;
             this.sourceXML = sourceXML;
             this.targetXML = targetXML;
-            this.sourceCreationXML = sourceCreationXML;
-            this.targetCreationXML = targetCreationXML;
+            this.sourceType = sourceType;
+            this.targetType = targetType;
         }
-
-        //public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
-        //    int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-        //    RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY, string sourceNickname, string targetNickname)
-        //{
-        //    this.issuerID = issuerID;
-        //    this.commandType = CommandType.WireConnection;
-        //    this.RemoConnectType = remoConnectType;
-        //    this.sourceObjectGuid = sourceObjectGuid;
-        //    this.targetObjectGuid = targetObjectGuid;
-        //    this.sourceOutput = sourceOutput;
-        //    this.targetInput = targetInput;
-        //    this.isSourceSpecial = isSourceSpecial;
-        //    this.isTargetSpecial = isTargetSpecial;
-        //    this.sourceX = sourceX;
-        //    this.sourceY = sourceY;
-        //    this.targetX = targetX;
-        //    this.targetY = targetY;
-        //    this.sourceNickname = sourceNickname;
-        //    this.targetNickname = targetNickname;
-        //    this.commandID = Guid.NewGuid();
-
-        //}
-
-        //public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
-        //    int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-        //    RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY,
-        //    string sourceNickname, string targetNickname, string listItemParamNickName)
-        //{
-        //    this.issuerID = issuerID;
-        //    this.commandType = CommandType.WireConnection;
-        //    this.RemoConnectType = remoConnectType;
-        //    this.sourceObjectGuid = sourceObjectGuid;
-        //    this.targetObjectGuid = targetObjectGuid;
-        //    this.sourceOutput = sourceOutput;
-        //    this.targetInput = targetInput;
-        //    this.isSourceSpecial = isSourceSpecial;
-        //    this.isTargetSpecial = isTargetSpecial;
-        //    this.sourceX = sourceX;
-        //    this.sourceY = sourceY;
-        //    this.targetX = targetX;
-        //    this.targetY = targetY;
-        //    this.sourceNickname = sourceNickname;
-        //    this.targetNickname = targetNickname;
-        //    this.listItemParamNickName = listItemParamNickName;
-        //    this.commandID = Guid.NewGuid();
-
-        //}
 
         public override string ToString()
         {
@@ -719,18 +671,18 @@ namespace RemoSharp.RemoCommandTypes
     {
         public List<Guid> componentGuids;
         public List<string> componentXMLs;
-        public List<string> componentDocXMLs;
+        public List<RemoPartialDoc> partialDocCommands;
 
         //constructor
         public RemoCompSync() { }
-        public RemoCompSync(string issuerID, List<Guid> componentGuids, List<string> componentXMLs, List<string> componentDocXMLs)
+        public RemoCompSync(string issuerID, List<Guid> componentGuids, List<string> componentXMLs, List<RemoPartialDoc> partialDocCommands)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoCompSync;
             this.objectGuid = Guid.Empty;
             this.componentGuids = componentGuids;
             this.componentXMLs = componentXMLs;
-            this.componentDocXMLs = componentDocXMLs;
+            this.partialDocCommands = partialDocCommands;
         }
     }
 

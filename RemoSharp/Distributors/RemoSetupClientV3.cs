@@ -1128,25 +1128,29 @@ namespace RemoSharp.Distributors
                 remoConnectType = RemoConnectType.Add;
             }
 
-            int outIndex = -1;
-            bool outIsSpecial = false;
-            System.Guid outGuid = GetComponentGuidAnd_Output_Index(
-              source, out outIndex, out outIsSpecial);
+            //int outIndex = -1;
+            //bool outIsSpecial = false;
+            //System.Guid outGuid = GetComponentGuidAnd_Output_Index(
+            //  source, out outIndex, out outIsSpecial);
 
-            int inIndex = -1;
-            bool inIsSpecial = false;
-            if (target == null || source == null) return;
-            System.Guid inGuid = GetComponentGuidAnd_Input_Index(
-              target, out inIndex, out inIsSpecial);
+            //int inIndex = -1;
+            //bool inIsSpecial = false;
+            //if (target == null || source == null) return;
+            //System.Guid inGuid = GetComponentGuidAnd_Input_Index(
+            //  target, out inIndex, out inIsSpecial);
 
-            string outCompXML = RemoCommand.SerializeToXML(outGuid);
-            string inCompXML = RemoCommand.SerializeToXML(inGuid);
+            var souceComp = source.Attributes.Parent == null ? source : source.Attributes.Parent.DocObject;
+            var targetComp = target.Attributes.Parent == null ? target : target.Attributes.Parent.DocObject;
 
-            string outCompDocXML = "";
-            string inCompDocXML = "";
 
-            command = new RemoConnect(this.username, outGuid, inGuid, remoConnectType,
-                outCompXML, inCompXML, outCompDocXML, inCompDocXML);
+            string outCompXML = RemoCommand.SerializeToXML(souceComp);
+            string inCompXML = RemoCommand.SerializeToXML(targetComp);
+
+            string sourceType = souceComp.GetType().FullName;
+            string targetType = targetComp.GetType().FullName;
+
+            command = new RemoConnect(this.username, souceComp.InstanceGuid, targetComp.InstanceGuid, remoConnectType,
+                outCompXML, inCompXML, sourceType, targetType);
             SendCommands(this, command, commandRepeat, enable);
         }
 
@@ -1786,31 +1790,47 @@ namespace RemoSharp.Distributors
         {
             List<Guid> guids = new List<Guid>();
             List<string> xmls = new List<string>();
-            List<string> docXmls = new List<string>();
+            List<RemoPartialDoc> creationCommands = new List<RemoPartialDoc>();
 
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
+
+
             var selection = thisDoc.SelectedObjects();
 
             thisDoc.UnselectedObjects();
 
-            foreach (var item in selection)
+
+            thisDoc.ScheduleSolution(1, doc =>
             {
 
-                Guid itemGuid = item.InstanceGuid;
+                var skip = SubcriptionType.Skip;
+                var unsubscribe = SubcriptionType.Unsubscribe;
+                var subscribe = SubcriptionType.Subscribe;
+                setupComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
 
-                string componentXML = RemoCommand.SerializeToXML(item);
-                string componentDocXML = RemoCommand.SerizlizeToSinglecomponentDocXML(item);
+                foreach (var item in selection)
+                {
 
-                guids.Add(itemGuid);
-                xmls.Add(componentXML);
-                docXmls.Add(componentDocXML);
-            }
+                    Guid itemGuid = item.InstanceGuid;
 
-            RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, docXmls);
-            RemoSetupClientV3.SendCommands(setupComp, remoCompSync,3,enable);
+                    string componentXML = RemoCommand.SerializeToXML(item);
+                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, new List<IGH_DocumentObject> { item }, thisDoc);
+
+                    guids.Add(itemGuid);
+                    xmls.Add(componentXML);
+                    creationCommands.Add(remoPartialDoc);
+                }
+
+                RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, creationCommands);
+
+                setupComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+
+                RemoSetupClientV3.SendCommands(setupComp, remoCompSync, 3, enable);
+            });
+            
 
         }
 

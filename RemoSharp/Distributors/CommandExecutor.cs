@@ -263,7 +263,7 @@ namespace RemoSharp
                         #region wireconnection
                         case (CommandType.WireConnection):
                             RemoConnect wireCommand = (RemoConnect)remoCommand;
-                            bool wireSuccess = ConnectWires(wireCommand);
+                            bool wireSuccess = ExecuteRemoConnect(wireCommand);
 
                             if (!wireSuccess)
                             {
@@ -283,8 +283,8 @@ namespace RemoSharp
                         #endregion
                         #region relayCreation
                         case (CommandType.RemoRelay):
-                            RemoRelay relayCommand = (RemoRelay)remoCommand;
-                            ExecuteRemoRelay(relayCommand);
+                            //RemoRelay relayCommand = (RemoRelay)remoCommand;
+                            //ExecuteRemoRelay(relayCommand);
                             break;
                         #endregion
                         #region deleteComponent
@@ -319,8 +319,8 @@ namespace RemoSharp
 
                         #region RemoParamSlider
                         case (CommandType.RemoSlider):
-                            RemoParamSlider remoSlider = (RemoParamSlider)remoCommand;
-                            ExecuteRemoSlider(remoSlider);
+                            //RemoParamSlider remoSlider = (RemoParamSlider)remoCommand;
+                            //ExecuteRemoSlider(remoSlider);
 
                             break;
                         #endregion
@@ -334,56 +334,56 @@ namespace RemoSharp
 
                         #region RemoParamToggle
                         case (CommandType.RemoToggle):
-                            RemoParamToggle remoToggle = (RemoParamToggle)remoCommand;
-                            ExecuteRemoToggle(remoToggle);
+                            //RemoParamToggle remoToggle = (RemoParamToggle)remoCommand;
+                            //ExecuteRemoToggle(remoToggle);
                             break;
                         #endregion
 
                         #region RemoParamPanel
                         case (CommandType.RemoPanel):
-                            RemoParamPanel remoPanel = (RemoParamPanel)remoCommand;
-                            ExecuteRemoPanel(remoPanel);
+                            //RemoParamPanel remoPanel = (RemoParamPanel)remoCommand;
+                            //ExecuteRemoPanel(remoPanel);
 
                             break;
                         #endregion
 
                         #region RemoParamColor
                         case (CommandType.RemoColor):
-                            RemoParamColor remoColor = (RemoParamColor)remoCommand;
-                            ExecuteRemoColor(remoColor);
+                            //RemoParamColor remoColor = (RemoParamColor)remoCommand;
+                            //ExecuteRemoColor(remoColor);
 
                             break;
                         #endregion
 
                         #region RemoParamMDSlider
                         case (CommandType.RemoMDSlider):
-                            RemoParamMDSlider remoMDSlider = (RemoParamMDSlider)remoCommand;
-                            ExecuteRemoMDSlider(remoMDSlider);
+                            //RemoParamMDSlider remoMDSlider = (RemoParamMDSlider)remoCommand;
+                            //ExecuteRemoMDSlider(remoMDSlider);
 
                             break;
                         #endregion
 
                         #region RemoParamPoint3d
                         case (CommandType.RemoPoint3d):
-                            RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
+                            //RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
 
-                            ExecuteRemoPoint3d(remoPoint3d);
+                            //ExecuteRemoPoint3d(remoPoint3d);
 
                             break;
                         #endregion
 
                         #region RemoParamVector3d
                         case (CommandType.RemoVector3d):
-                            RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
-                            ExecuteRemoVector3d(remoVector3d);
+                            //RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
+                            //ExecuteRemoVector3d(remoVector3d);
 
                             break;
                         #endregion
 
                         #region RemoParamPlane
                         case (CommandType.RemoPlane):
-                            RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
-                            ExecuteRemoPlane(remoPlane);
+                            //RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
+                            //ExecuteRemoPlane(remoPlane);
                             break;
                         #endregion
 
@@ -404,9 +404,9 @@ namespace RemoSharp
                             break;
 
                         case (CommandType.RemoScriptCS):
-                            RemoScriptCS remoScriptCS = (RemoScriptCS)remoCommand;
+                            //RemoScriptCS remoScriptCS = (RemoScriptCS)remoCommand;
 
-                            ExecuteSelectRemoScriptCS(remoScriptCS);
+                            //ExecuteSelectRemoScriptCS(remoScriptCS);
 
                             break;
                         case (CommandType.RemoUndo):
@@ -480,7 +480,7 @@ namespace RemoSharp
                             #region wireconnection
                             case (CommandType.WireConnection):
                                 RemoConnect wireCommand = (RemoConnect)remoCommand;
-                                ConnectWires(wireCommand);
+                                ExecuteRemoConnect(wireCommand);
                                 break;
                             #endregion
                             #region componentCreation
@@ -491,8 +491,8 @@ namespace RemoSharp
                             #endregion
                             #region relayCreation
                             case (CommandType.RemoRelay):
-                                RemoRelay relayCommand = (RemoRelay)remoCommand;
-                                ExecuteRemoRelay(relayCommand);
+                                //RemoRelay relayCommand = (RemoRelay)remoCommand;
+                                //ExecuteRemoRelay(relayCommand);
                                 break;
                             #endregion
                             #region deleteComponent
@@ -652,7 +652,8 @@ namespace RemoSharp
             GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
             tempDoc.Read(chunk);
 
-            OnPingDocument().ScheduleSolution(1, doc => {
+            OnPingDocument().ScheduleSolution(1, doc =>
+            {
 
                 RemoSetupClientV3 sourceComp = OnPingDocument().Objects
                 .Where(obj => obj is RemoSetupClientV3)
@@ -661,55 +662,60 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var subscribe = SubcriptionType.Subscribe;
                 var unsubscribe = SubcriptionType.Unsubscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
 
-                this.OnPingDocument().MergeDocument(tempDoc, true, true);
-
-                Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
-                bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
-                List<IGH_Param> relayRecepients = new List<IGH_Param>();
-                if (incomingSingleRelay)
+                try
                 {
-                    Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
-                    relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
-                        .Select(obj => this.OnPingDocument().FindObject<IGH_Param>(obj,false)));
+                    this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
-                    IGH_Param sourceParam = this.OnPingDocument().FindObject<IGH_Param>(relaySourceParamGuid, false);
-                    foreach (var recepient in relayRecepients)
+                    Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
+                    bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
+                    List<IGH_Param> relayRecepients = new List<IGH_Param>();
+                    if (incomingSingleRelay)
                     {
-                        recepient.RemoveSource(sourceParam);
-                    }
-                }
+                        Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
+                        relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
+                            .Select(obj => this.OnPingDocument().FindObject<IGH_Param>(obj, false)));
 
-                foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
-                {
-                    GhPython.Component.ZuiPythonComponent zuiPythonComponent = 
-                    (GhPython.Component.ZuiPythonComponent)OnPingDocument().FindObject(item.componentGuid, false);
-
-                    var wires = item.inputGuidsDictionary;
-                    for (int i = 0; i < wires.Count; i++)
-                    {
-                        List<Guid> inputs = wires[i];
-                        foreach (var source in inputs)
+                        IGH_Param sourceParam = this.OnPingDocument().FindObject<IGH_Param>(relaySourceParamGuid, false);
+                        foreach (var recepient in relayRecepients)
                         {
-                            zuiPythonComponent.Params.Input[i].AddSource((IGH_Param) OnPingDocument().FindObject(source, false));
+                            recepient.RemoveSource(sourceParam);
                         }
                     }
 
-                }
-
-                if (incomingSingleRelay)
-                {
-                    IGH_Param relayParam = this.OnPingDocument().FindObject<IGH_Param>(singleComponentGuid, false);
-                    foreach (var item in relayRecepients)
+                    foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
                     {
-                        item.AddSource(relayParam);
+                        GhPython.Component.ZuiPythonComponent zuiPythonComponent =
+                        (GhPython.Component.ZuiPythonComponent)OnPingDocument().FindObject(item.componentGuid, false);
+
+                        var wires = item.inputGuidsDictionary;
+                        for (int i = 0; i < wires.Count; i++)
+                        {
+                            List<Guid> inputs = wires[i];
+                            foreach (var source in inputs)
+                            {
+                                zuiPythonComponent.Params.Input[i].AddSource((IGH_Param)OnPingDocument().FindObject(source, false));
+                            }
+                        }
+
+                    }
+
+                    if (incomingSingleRelay)
+                    {
+                        IGH_Param relayParam = this.OnPingDocument().FindObject<IGH_Param>(singleComponentGuid, false);
+                        foreach (var item in relayRecepients)
+                        {
+                            item.AddSource(relayParam);
+                        }
                     }
                 }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);
+                }
 
-                
-
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, skip);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
                 return;
 
             });
@@ -726,8 +732,26 @@ namespace RemoSharp
             Single x = Convert.ToSingle(parts[4]);
             Single y = Convert.ToSingle(parts[5]);
             float zoom = (float)Convert.ToDouble(parts[6]);
-            Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint = new System.Drawing.PointF(x, y);
-            Grasshopper.Instances.ActiveCanvas.Viewport.Zoom = zoom;
+
+            var currentMidPointX = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint.X;
+            var currentMidPointY = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint.Y;
+            var currentZoom = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
+
+            int millisecs = 300;
+            int step = 30;
+            for (int i = 0; i < 50; i++)
+            {
+                double ratio = (i + 1) / (double) step;
+                float x1 = (float)(currentMidPointX + (x - currentMidPointX) * ratio);
+                float y1 = (float)(currentMidPointY + (y - currentMidPointY) * ratio);
+                float zoom1 = (float)(currentZoom + (zoom - currentZoom) * ratio);
+
+                Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint = new System.Drawing.PointF(x1, y1);
+                Grasshopper.Instances.ActiveCanvas.Viewport.Zoom = zoom1;
+                Thread.Sleep(millisecs/step);
+                Grasshopper.Instances.ActiveCanvas.Refresh();
+            }
+
         }
 
 
@@ -746,33 +770,32 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 var subscribe = SubcriptionType.Subscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
-
-                foreach (var item in remoCompSync.componentGuids)
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
+                try
                 {
-                    var component = thisDoc.FindObject(item, false);
-                    if (component == null) 
+                    for (int i = 0; i < remoCompSync.componentGuids.Count; i++)
                     {
-                        GH_Document tempDoc = RemoCommand.DeserializeGH_DocumentFromXML(remoCompSync.componentDocXMLs[remoCompSync.componentGuids.IndexOf(item)]);
-                        this.OnPingDocument().MergeDocument(tempDoc, true, true);
+                        var component = thisDoc.FindObject(remoCompSync.componentGuids[i], false);
+                        string xml = remoCompSync.componentXMLs[i];
+                        RemoPartialDoc remoPartialDoc = remoCompSync.partialDocCommands[i];
+                        if (component == null)
+                        {
+                            ExecuteRemoPartialDoc(remoPartialDoc);
+                        }
+                        else
+                        {
+                            GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(xml);
+                            component.Read(chunk);
+                        }
                     }
+                    GH_Document dummyDoc = new GH_Document();
+                    this.OnPingDocument().MergeDocument(dummyDoc, true, true);
                 }
-                foreach (var item in remoCompSync.componentGuids)
+                catch (Exception error)
                 {
-                    var component = thisDoc.FindObject(item, false);
-                    GH_LooseChunk tempChunk = RemoCommand.DeserializeFromXML(remoCompSync.componentXMLs[remoCompSync.componentGuids.IndexOf(item)]);
-                    component.Read(tempChunk);
-                    if (component is ScriptComponents.Component_CSNET_Script || component is IGH_Param)
-                    {
-                        component.ExpireSolution(false);
-                    }
+                    Rhino.RhinoApp.WriteLine(error.Message);
                 }
-
-
-                GH_Document dummyDoc = new GH_Document();
-                this.OnPingDocument().MergeDocument(dummyDoc, true, true);
-
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
 
             });
         }
@@ -844,50 +867,50 @@ namespace RemoSharp
             });
         }
 
-        private void ExecuteRemoRelay(RemoRelay relayCommand)
-        {
-            var thisDoc = this.OnPingDocument();
-            if (thisDoc == null) return;
+        //private void ExecuteRemoRelay(RemoRelay relayCommand)
+        //{
+        //    var thisDoc = this.OnPingDocument();
+        //    if (thisDoc == null) return;
 
-            var thisGHObjects = this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList();
-            if (thisGHObjects.Contains(relayCommand.objectGuid)) return;
+        //    var thisGHObjects = this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList();
+        //    if (thisGHObjects.Contains(relayCommand.objectGuid)) return;
             
             
-            GH_Relay relay = new GH_Relay();
-            relay.CreateAttributes();
-            relay.NewInstanceGuid(relayCommand.objectGuid);
+        //    GH_Relay relay = new GH_Relay();
+        //    relay.CreateAttributes();
+        //    relay.NewInstanceGuid(relayCommand.objectGuid);
 
-            IGH_Param sourceOutput = relayCommand.sourceIndex == -1
-                ? (IGH_Param)this.OnPingDocument().FindObject(relayCommand.sourceGuid, false)
-                : FindRelaySourceOutput(relayCommand);
-            IGH_Param targetInput = relayCommand.targetIndex == -1
-                ? (IGH_Param) this.OnPingDocument().FindObject(relayCommand.targetGuid, false)
-                : FindRelayTargetInput(relayCommand);
+        //    IGH_Param sourceOutput = relayCommand.sourceIndex == -1
+        //        ? (IGH_Param)this.OnPingDocument().FindObject(relayCommand.sourceGuid, false)
+        //        : FindRelaySourceOutput(relayCommand);
+        //    IGH_Param targetInput = relayCommand.targetIndex == -1
+        //        ? (IGH_Param) this.OnPingDocument().FindObject(relayCommand.targetGuid, false)
+        //        : FindRelayTargetInput(relayCommand);
 
-            this.OnPingDocument().ScheduleSolution(1, doc => 
-            {
-                RemoSetupClientV3 sourceComp = thisDoc.Objects
-                .Where(obj => obj is RemoSetupClientV3)
-                .FirstOrDefault() as RemoSetupClientV3;
+        //    this.OnPingDocument().ScheduleSolution(1, doc => 
+        //    {
+        //        RemoSetupClientV3 sourceComp = thisDoc.Objects
+        //        .Where(obj => obj is RemoSetupClientV3)
+        //        .FirstOrDefault() as RemoSetupClientV3;
 
-                var skip = SubcriptionType.Skip;
-                var unsubscribe = SubcriptionType.Unsubscribe;
-                var subscribe = SubcriptionType.Subscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
+        //        var skip = SubcriptionType.Skip;
+        //        var unsubscribe = SubcriptionType.Unsubscribe;
+        //        var subscribe = SubcriptionType.Subscribe;
+        //        sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip,skip);
 
-                GH_LooseChunk chunk = new GH_LooseChunk(null);
-                chunk.Deserialize_Xml(relayCommand.relayXML);
-                relay.Read(chunk);
+        //        GH_LooseChunk chunk = new GH_LooseChunk(null);
+        //        chunk.Deserialize_Xml(relayCommand.relayXML);
+        //        relay.Read(chunk);
 
-                this.OnPingDocument().AddObject(relay, false);
-                targetInput.RemoveSource(sourceOutput);
-                relay.AddSource(sourceOutput);
-                targetInput.AddSource(relay);
+        //        this.OnPingDocument().AddObject(relay, false);
+        //        targetInput.RemoveSource(sourceOutput);
+        //        relay.AddSource(sourceOutput);
+        //        targetInput.AddSource(relay);
 
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
-            });
+        //        sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip,skip);
+        //    });
 
-        }
+        //}
 
         private IGH_Param FindRelaySourceOutput(RemoRelay remoRelay)
         {
@@ -956,25 +979,34 @@ namespace RemoSharp
 
                 if (sourceComp.subscribedObjs.Contains(paramComp)) paramComp.SolutionExpired -= sourceComp.SendRemoParameterCommand;
 
-                RelinkComponentWires(paramComp, sourceAttributes);
-
-                GH_LooseChunk persistentDataChunk = new GH_LooseChunk(null);
-                if (remoParameter.hasPersistentData)
+                try
                 {
-                    persistentDataChunk.Deserialize_Xml(remoParameter.persistentDataXML);
-                    
+
+                    RelinkComponentWires(paramComp, sourceAttributes);
+
+                    GH_LooseChunk persistentDataChunk = new GH_LooseChunk(null);
+                    if (remoParameter.hasPersistentData)
+                    {
+                        persistentDataChunk.Deserialize_Xml(remoParameter.persistentDataXML);
+
+                    }
+
+                    bool hasPersistentData = false;
+                    var persistentData = RemoParameter.GetPersistentData(paramComp, out hasPersistentData);
+
+
+                    object[] objects = new object[] { persistentDataChunk };
+                    RemoParameter.InvokeReadMethod(persistentData, objects);
+
+                    paramComp.Attributes.Selected = false;
+                    paramComp.Attributes.Pivot = ogPivot;
+                    paramComp.ExpireSolution(true);
+                }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);    
                 }
 
-                bool hasPersistentData = false;
-                var persistentData = RemoParameter.GetPersistentData(paramComp, out hasPersistentData);
-
-
-                object[] objects = new object[] { persistentDataChunk };
-                RemoParameter.InvokeReadMethod(persistentData, objects);
-
-                paramComp.Attributes.Selected = false;
-                paramComp.Attributes.Pivot = ogPivot;
-                paramComp.ExpireSolution(true);
 
                 if (sourceComp.subscribedObjs.Contains(paramComp)) paramComp.SolutionExpired += sourceComp.SendRemoParameterCommand;
 
@@ -1272,6 +1304,7 @@ namespace RemoSharp
             foreach (Guid guid in selectionCommand.selectionGuids)
             {
                 var selectionComp = this.OnPingDocument().FindObject(guid, false);
+                if (selectionComp == null) continue;
                 selectionComp.Attributes.Selected = true;
             }
         }
@@ -1473,11 +1506,8 @@ namespace RemoSharp
 
         private void ExecuteRemoButton(RemoParamButton remoButton)
         {
-            if (remoButton.objectGuid == Guid.Empty) return;
             GH_ButtonObject buttonComp = (GH_ButtonObject)this.OnPingDocument().FindObject(remoButton.objectGuid, false);
-
-            //RemoParamData remoParamDataComponent = FindAssociatedRemoParamDataComp(buttonComp);
-
+            if (buttonComp == null) return;
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -1636,6 +1666,15 @@ namespace RemoSharp
 
         private void ExecuteDelete(RemoDelete remoDelete)
         {
+            RemoSetupClientV3 remoSetupComp = this.OnPingDocument().Objects
+                    .Where(obj => obj is RemoSetupClientV3)
+                    .FirstOrDefault() as RemoSetupClientV3;
+            if (remoSetupComp == null) return;
+
+            var skip = SubcriptionType.Skip;
+            var unsubscribe = SubcriptionType.Unsubscribe;
+            var subscribe = SubcriptionType.Subscribe;
+            remoSetupComp.SetUpRemoSharpEvents(skip, skip, unsubscribe, skip, skip, skip);
             try
             {
                 List<IGH_Param> relaySources = new List<IGH_Param>();
@@ -1658,13 +1697,7 @@ namespace RemoSharp
 
                 this.OnPingDocument().ScheduleSolution(1, doc => 
                 {
-                    RemoSetupClientV3 remoSetupComp = this.OnPingDocument().Objects
-                    .Where(obj => obj is RemoSetupClientV3)
-                    .FirstOrDefault() as RemoSetupClientV3;
-                    var skip = SubcriptionType.Skip;
-                    var unsubscribe = SubcriptionType.Unsubscribe;
-                    var subscribe = SubcriptionType.Subscribe;
-                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, unsubscribe, skip, skip, skip);
+                    
 
                     this.OnPingDocument().RemoveObjects(deletionObjs, false);
 
@@ -1676,12 +1709,15 @@ namespace RemoSharp
                         }
                     }
 
-                    remoSetupComp.SetUpRemoSharpEvents(skip, skip, subscribe, skip, skip, skip);
                 });
             }
-            catch
+            catch (Exception error)
             {
+                Rhino.RhinoApp.WriteLine(error.Message);
             }
+
+            remoSetupComp.SetUpRemoSharpEvents(skip, skip, subscribe, skip, skip, skip);
+
         }
 
         /*
@@ -1872,7 +1908,7 @@ namespace RemoSharp
         //}
 
 
-        private bool ConnectWires(RemoConnect wireCommand)
+        private bool ExecuteRemoConnect(RemoConnect wireCommand)
         {
             System.Guid sourceId = wireCommand.sourceObjectGuid;
             System.Guid targetId = wireCommand.targetObjectGuid;
@@ -1889,36 +1925,45 @@ namespace RemoSharp
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
 
+                RemoSetupClientV3 remoSetupClientV3 = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
 
-                //RemoSetupClient remoSetupComp = sourceComp == null || targetComp == null ? OnPingDocument().Objects
-                //.Where(obj => obj is RemoSharp.RemoSetupClient)
-                //.FirstOrDefault() as RemoSetupClient : null;
+                var skip = SubcriptionType.Skip;
+                var unsub = SubcriptionType.Unsubscribe;
+                var sub = SubcriptionType.Subscribe;
+                remoSetupClientV3.SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip, skip);
 
-                //if (remoSetupComp != null) this.OnPingDocument().ObjectsAdded -= remoSetupComp.RemoCompSource_ObjectsAdded;
-
-                //if (sourceComp == null)
-                //{
-                //    this.OnPingDocument().MergeDocument(sourceCompAddition, true, true);
-                //    sourceComp = this.OnPingDocument().FindObject(sourceId, false);
-                //}
-                //if (targetComp == null)
-                //{
-                //    this.OnPingDocument().MergeDocument(targetCompAddition, true, true);
-                //    targetComp = this.OnPingDocument().FindObject(targetId, false);
-                //}
-
-                if (sourceComp != null)
+                try
                 {
-                    RelinkComponentWires(sourceComp, sourceAttributes);
-                    if (sourceComp is ScriptComponents.Component_CSNET_Script) sourceComp.ExpireSolution(true);
+                    if (sourceComp == null)
+                    {
+                        sourceComp = RecognizeAndMake(wireCommand.sourceType, wireCommand.sourceObjectGuid, wireCommand.sourceXML);
+                    }
+                    if (targetComp == null)
+                    {
+                        targetComp = RecognizeAndMake(wireCommand.targetType, wireCommand.targetObjectGuid, wireCommand.targetXML);
+                    }
+
+                    if (sourceComp != null)
+                    {
+                        RelinkComponentWires(sourceComp, sourceAttributes);
+                        if (sourceComp is ScriptComponents.Component_CSNET_Script) sourceComp.ExpireSolution(true);
+                    }
+                    if (targetComp != null)
+                    {
+                        RelinkComponentWires(targetComp, targetAttributes);
+                        if (targetComp is ScriptComponents.Component_CSNET_Script) targetComp.ExpireSolution(true);
+                    }
+                    GH_Document dummydoc = new GH_Document();
+                    this.OnPingDocument().MergeDocument(dummydoc, true, true);
                 }
-                if (targetComp != null)
+                catch (Exception error)
                 {
-                    RelinkComponentWires(targetComp, targetAttributes);
-                    if (targetComp is ScriptComponents.Component_CSNET_Script) targetComp.ExpireSolution(true);
+
+                    Rhino.RhinoApp.WriteLine(error.Message);
                 }
-                GH_Document dummydoc = new GH_Document();
-                this.OnPingDocument().MergeDocument(dummydoc, true, true);
+                
+
+                remoSetupClientV3.SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
 
                 //if (remoSetupComp != null) this.OnPingDocument().ObjectsAdded += remoSetupComp.RemoCompSource_ObjectsAdded;
 
@@ -2009,6 +2054,49 @@ namespace RemoSharp
             GH_LooseChunk singleCompChunk = new GH_LooseChunk(null);
             component.Write(singleCompChunk);
             return singleCompChunk;
+        }
+
+        private IGH_DocumentObject RecognizeAndMake(string typeName, Guid newCompGuid, string associatedAttribute)
+        {
+            var thisDoc = this.OnPingDocument();
+            // converting the string format of the closest component to an actual type
+            var type = Type.GetType(typeName);
+            // most probable the type is going to return null
+            // for that we search through all the loaded dlls in Grasshopper and Rhino's application
+            // to find out which one matches that of the closest component
+            if (type == null)
+            {
+                // going through the loaded components
+                foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    // trying for all dll types unless one would return an actual type
+                    // since almost all of them give us null we check for this condition
+                    if (type == null)
+                    {
+                        type = a.GetType(typeName);
+                    }
+                }
+            }
+            // we can instantiate a class with this line based on the type we found in string format
+            // we have to cast it into an (IGH_DocumentObject) format so that we can access the methods
+            // that we need to add it to the grasshopper document
+            // also in order to add any object into the GH canvas it has to be cast into (IGH_DocumentObject)
+            var myObject = (IGH_DocumentObject)Activator.CreateInstance(type);
+            // creating atts to create the pivot point
+            // this pivot point can be anywhere
+            if (myObject == null) return null;
+            myObject.NewInstanceGuid(newCompGuid);
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            chunk.Deserialize_Xml(associatedAttribute);
+
+            RemoParameter.InvokeReadMethod(myObject, new object[1] { chunk });
+            RemoParameter.InvokeReadMethod(myObject, new object[1] { chunk });
+
+            thisDoc.AddObject(myObject, false);
+
+            return myObject;
+
         }
 
         private void RecognizeAndMake(string typeName, int pivotX, int pivotY,Guid newCompGuid, string associatedAttribute)

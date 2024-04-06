@@ -787,8 +787,8 @@ namespace RemoSharp
                 docXmls.Add(componentDocXML);
             }
 
-            RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, docXmls);
-            RemoSetupClient.SendCommands(setupComp, remoCompSync);
+            //RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, docXmls);
+            //RemoSetupClient.SendCommands(setupComp, remoCompSync);
 
         }
 
