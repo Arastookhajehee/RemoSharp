@@ -24,6 +24,7 @@ using System.Collections.ObjectModel;
 using System.Xml.Linq;
 using System.Security.Cryptography;
 using GhPython;
+using System.Data.SqlTypes;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -60,7 +61,8 @@ namespace RemoSharp.RemoCommandTypes
         RemoCompSync = 26,
         CanvasViewport = 27,
         RemoPartialDocument = 28,
-        RemoParameter = 29
+        RemoParameter = 29,
+            RemoReWire = 30
     }
 
     public enum RemoConnectType
@@ -153,6 +155,33 @@ namespace RemoSharp.RemoCommandTypes
 
             // Save the XDocument to a string with no indentation
             return xDocument.ToString(SaveOptions.DisableFormatting);
+        }
+
+        public static string GetSelectXMLAttributesToFalse(string xml)
+        {
+            // Load the XML string into an XDocument
+            XDocument xDocument = XDocument.Parse(xml);
+
+            // Get the first node with the name "Attributes"
+
+
+            XDocument doc = XDocument.Parse(xml);
+            XElement selectedElement = doc.Descendants("item")
+                                          .FirstOrDefault(x => (string)x.Attribute("name") == "Selected");
+
+
+
+
+            if (selectedElement != null)
+            {
+                selectedElement.SetValue("false");
+            }
+
+
+            string newXML = doc.ToString();
+
+            // Save the XDocument to a string with no indentation
+            return newXML;
         }
 
         public static RemoCommand DeserializeFromJson(string commandJson)
@@ -261,6 +290,9 @@ namespace RemoSharp.RemoCommandTypes
                     break;
                 case (int)CommandType.RemoPartialDocument:
                     remoCommand = JsonConvert.DeserializeObject<RemoPartialDoc>(commandJson);
+                    break;
+                case (int)CommandType.RemoReWire:
+                    remoCommand = JsonConvert.DeserializeObject<RemoReWire>(commandJson);
                     break;
                 //break;
                 default:
@@ -434,6 +466,23 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoReWire : RemoCommand
+    {
+        public Guid sourceGuid;
+        public Guid targetGuid;
+        public RemoReWire() { }
+        public RemoReWire(string issuerID,IGH_Param source, IGH_Param target)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoReWire;
+            this.objectGuid = Guid.Empty;
+            this.sourceGuid = source.InstanceGuid;
+            this.targetGuid = target.InstanceGuid;
+            this.commandID = Guid.NewGuid();
+        }
+    }
+
+
     public class RemoPartialDoc : RemoCommand
     {
         public string xml;
@@ -457,7 +506,22 @@ namespace RemoSharp.RemoCommandTypes
             this.relayConnections = new Dictionary<Guid, List<Guid>>();
 
             string xml = "";
-            GH_Document tempDoc = new GH_Document();
+
+            GH_Document tempDoc = GH_Document.DuplicateDocument(currentDoc);
+            var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
+            var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, false);
+
+            if (objects.Count == 1 && objects[0] is GH_Relay)
+            {
+                GH_Relay relay = (GH_Relay)objects[0];
+                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
+            }
+
+            this.xml = SerializeToXML(tempDoc);
+
+            return;
+
 
             List<WireHistory> hitory = new List<WireHistory>();
 
@@ -498,6 +562,7 @@ namespace RemoSharp.RemoCommandTypes
 
                     tempDoc.AddObject(item, false);
                 }
+                tempDoc.Objects.Last().Attributes.Selected = false;
             }
             xml = RemoCommand.SerializeToXML(tempDoc);
 
@@ -671,20 +736,73 @@ namespace RemoSharp.RemoCommandTypes
     {
         public List<Guid> componentGuids;
         public List<string> componentXMLs;
-        public List<RemoPartialDoc> partialDocCommands;
+        public string partialDocCommandXML;
+        public List<Dictionary<int, List<Guid>>> outputHistory;
 
         //constructor
         public RemoCompSync() { }
-        public RemoCompSync(string issuerID, List<Guid> componentGuids, List<string> componentXMLs, List<RemoPartialDoc> partialDocCommands)
+        public RemoCompSync(string issuerID, List<IGH_DocumentObject> components, GH_Document partialDoc)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoCompSync;
             this.objectGuid = Guid.Empty;
-            this.componentGuids = componentGuids;
-            this.componentXMLs = componentXMLs;
-            this.partialDocCommands = partialDocCommands;
+
+            foreach (var item in components)
+            {
+                item.Attributes.Selected = false;
+            }
+
+            this.componentGuids = components.Select(x => x.InstanceGuid).ToList();
+            this.componentXMLs = components.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
+            this.partialDocCommandXML = SerializeToXML(partialDoc);
+
+
+            List<Dictionary<int, List<Guid>>> pairs = new List<Dictionary<int, List<Guid>>>();
+            foreach (var item in components)
+            {
+                pairs.Add(GetAllOutputConnectionGuids(item));
+            }
+            this.outputHistory = pairs;
         }
+
+        private static Dictionary<int,List<Guid>> GetAllOutputConnectionGuids(IGH_DocumentObject component)
+        {
+            Dictionary<int, List<Guid>> outputConnections = new Dictionary<int, List<Guid>>();
+            if (component is IGH_Component)
+            {
+                IGH_Component gH_Component = (IGH_Component)component;
+                
+                for (int i = 0; i < gH_Component.Params.Output.Count; i++)
+                {
+                    IGH_Param output = gH_Component.Params.Output[i];
+                    List<Guid> outputGuids = new List<Guid>();
+                    foreach (var item in output.Recipients)
+                    {
+                        outputGuids.Add(item.InstanceGuid);
+                    }
+                    outputConnections.Add(i, outputGuids);
+                }
+            }
+            else if (component is IGH_Param)
+            {
+                IGH_Param gH_Param = (IGH_Param)component;
+                List<Guid> outputGuids = new List<Guid>();
+                foreach (var item in gH_Param.Recipients)
+                {
+                    outputGuids.Add(item.InstanceGuid);
+                }
+                outputConnections.Add(-1, outputGuids);
+            }
+            else
+            {
+                return null;
+            }
+            return outputConnections;
+        }
+
     }
+
+     
 
     public class RemoLock : RemoCommand
     {
@@ -780,7 +898,12 @@ namespace RemoSharp.RemoCommandTypes
             
             GH_LooseChunk chunk = new GH_LooseChunk(null);
             parameter.Write(chunk);
-            this.xml = chunk.Serialize_Xml();
+
+            string xml = chunk.Serialize_Xml();
+            //parse the xml string
+            string attributesXML = GetSelectXMLAttributesToFalse(xml);
+
+            this.xml = attributesXML;
 
             bool hasPersData = false;
             object persistentData = GetPersistentData(parameter, out hasPersData);
@@ -804,6 +927,9 @@ namespace RemoSharp.RemoCommandTypes
             return string.Format("RemoParameter Command from {0}", this.issuerID);
         }
 
+        // a function that searches trhough an xml string structure for a node with the name "Attributes" 
+        // and returns the xml string of that node
+        
         public static object GetPersistentData(object objectToInspect, out bool hasPersistentData)
         {
             string propertyName = "PersistentData";

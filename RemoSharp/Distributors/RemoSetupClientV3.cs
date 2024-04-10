@@ -53,7 +53,7 @@ namespace RemoSharp.Distributors
         public bool keepRecord = false;
         bool listen = true;
 
-        int commandRepeat = 5;
+        int commandRepeat = 6;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
         RemoCommand command = null;
 
@@ -71,6 +71,8 @@ namespace RemoSharp.Distributors
         public bool remoParamModeActive = false;
         public PointF mouseLocation = PointF.Empty;
         Guid hoverParam = Guid.Empty;
+
+        DateTime recconnectTimer = DateTime.MinValue;
 
         public List<IGH_DocumentObject> subscribedObjs = new List<IGH_DocumentObject>();
 
@@ -183,6 +185,7 @@ namespace RemoSharp.Distributors
             switch (clientEvents)
             {
                 case SubcriptionType.Subscribe:
+                    recconnectTimer = DateTime.Now;
 
                     client.OnMessage += Client_OnMessage;
                     client.OnClose += Client_OnClose;
@@ -203,6 +206,8 @@ namespace RemoSharp.Distributors
                 case SubcriptionType.Skip:
                     break;
                 case SubcriptionType.Resubscribe:
+                    recconnectTimer = DateTime.Now;
+
                     client.OnMessage -= Client_OnMessage;
                     client.OnMessage += Client_OnMessage;
                     client.OnClose -= Client_OnClose;
@@ -334,6 +339,17 @@ namespace RemoSharp.Distributors
             string connectionString = RemoCommand.SerializeToJson(nullCommand);
             client.Send(connectionString);
             if (client.IsAlive) this.Message = "Connected";
+        }
+
+        private void EstablishConnection(WebSocket client, bool checkForConnection)
+        {
+            bool connected = client.IsAlive;
+            Rhino.RhinoApp.WriteLine("Connected: " + connected);
+            if (connected) return;
+            SubcriptionType resub = SubcriptionType.Resubscribe;
+            SetUpRemoSharpEvents(resub, resub, resub, resub, resub, resub);
+            if (client.IsAlive) this.Message = "Connected";
+            this.recconnectTimer = DateTime.Now;
         }
 
         private bool CheckForHealthyGH(out GH_Document gh_document)
@@ -1038,6 +1054,13 @@ namespace RemoSharp.Distributors
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.downPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
             this.interaction = canvas.ActiveInteraction;
+
+
+            DateTime dateTime = DateTime.Now;
+            if (dateTime.Subtract(this.recconnectTimer).Minutes > 2 )
+            {
+                Task.Run(() => EstablishConnection(client,true));
+            }
         }
 
         private bool DisconnectOnImproperClose()
@@ -1069,8 +1092,29 @@ namespace RemoSharp.Distributors
             {
                 SendRemoMoveCommand();
             }
+            else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction)
+            {
+                SendRemoReWireCommand();
+            }
 
 
+        }
+
+        private void SendRemoReWireCommand()
+        {
+            Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction);
+            
+            IGH_Param source = type
+              .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
+              .GetValue(interaction) as IGH_Param;
+            IGH_Param target = type
+              .GetField("m_target", BindingFlags.NonPublic | BindingFlags.Instance)
+              .GetValue(interaction) as IGH_Param;
+
+
+            command = new RemoReWire(this.username, source, target);
+
+            SendCommands(this, command, commandRepeat, enable);
         }
 
         private void SendRemoMoveCommand()
@@ -1223,6 +1267,11 @@ namespace RemoSharp.Distributors
 
             command = new RemoDelete(username, deleteGuids);
             SendCommands(this, command, commandRepeat, enable);
+
+            //GH_Document temp = new GH_Document();
+            //this.OnPingDocument().MergeDocument(temp,true,true);
+
+        
         }
 
         private void Client_OnMessage(object sender, MessageEventArgs e)
@@ -1286,7 +1335,7 @@ namespace RemoSharp.Distributors
                     target.AddSource(newRelay);
                 }
 
-                SendCommands(this, remoPartialDoc, 3, enable);
+                SendCommands(this, remoPartialDoc, commandRepeat, enable);
                 SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
             });
 
@@ -1790,7 +1839,6 @@ namespace RemoSharp.Distributors
         {
             List<Guid> guids = new List<Guid>();
             List<string> xmls = new List<string>();
-            List<RemoPartialDoc> creationCommands = new List<RemoPartialDoc>();
 
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
@@ -1799,8 +1847,8 @@ namespace RemoSharp.Distributors
 
 
             var selection = thisDoc.SelectedObjects();
-
-            thisDoc.UnselectedObjects();
+            if (selection.Count == 0) return;
+            
 
 
             thisDoc.ScheduleSolution(1, doc =>
@@ -1811,24 +1859,25 @@ namespace RemoSharp.Distributors
                 var subscribe = SubcriptionType.Subscribe;
                 setupComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
 
-                foreach (var item in selection)
+                try
                 {
+                    thisDoc.UnselectedObjects();
 
-                    Guid itemGuid = item.InstanceGuid;
+                    GH_Document dupDoc = GH_Document.DuplicateDocument(this.OnPingDocument());
+                    var remoValGuids = selection.Select(obj => obj.InstanceGuid).ToList();
+                    var removalObjs = dupDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
+                    dupDoc.RemoveObjects(removalObjs, false);
 
-                    string componentXML = RemoCommand.SerializeToXML(item);
-                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, new List<IGH_DocumentObject> { item }, thisDoc);
+                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, selection.ToList(), dupDoc);
+                    RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
 
-                    guids.Add(itemGuid);
-                    xmls.Add(componentXML);
-                    creationCommands.Add(remoPartialDoc);
+                }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);
                 }
 
-                RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, guids, xmls, creationCommands);
-
                 setupComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
-
-                RemoSetupClientV3.SendCommands(setupComp, remoCompSync, 3, enable);
             });
             
 
@@ -1865,7 +1914,7 @@ namespace RemoSharp.Distributors
 
             try
             {
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < repeat; i++)
                 {
                     //bool clientIsConnected = setupComp.client.IsAlive;
                     setupComp.client.Send(cmdJson);
@@ -1894,7 +1943,7 @@ namespace RemoSharp.Distributors
                 + "," + screenMidPnt.Y
                 + "," + zoomLevel;
             RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, bnds4XML);
-            RemoSetupClientV3.SendCommands(setupComp, remoCanvasView, 3, enable);
+            RemoSetupClientV3.SendCommands(setupComp, remoCanvasView, commandRepeat, enable);
         }
 
         private void SelectButton_OnValueChanged(object sender, EventArgs e)
@@ -1911,7 +1960,7 @@ namespace RemoSharp.Distributors
                 slectionGuids.Add(item.InstanceGuid);
             }
             RemoSelect cmd = new RemoSelect(setupComp.username, slectionGuids, DateTime.Now.Second);
-            RemoSetupClientV3.SendCommands(setupComp, cmd, 3, enable);
+            RemoSetupClientV3.SendCommands(setupComp, cmd, commandRepeat, enable);
         }
 
 
