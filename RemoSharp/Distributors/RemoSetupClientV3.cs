@@ -53,7 +53,7 @@ namespace RemoSharp.Distributors
         public bool keepRecord = false;
         bool listen = true;
 
-        int commandRepeat = 6;
+        int commandRepeat = 1;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
         RemoCommand command = null;
 
@@ -1302,7 +1302,7 @@ namespace RemoSharp.Distributors
             if (DisconnectOnImproperClose()) return;
             GH_Document activeDoc = (GH_Document)sender;
             if (activeDoc == null) return;
-            
+
 
             activeDoc.ScheduleSolution(1, doc =>
             {
@@ -1313,29 +1313,37 @@ namespace RemoSharp.Distributors
                 var skip = SubcriptionType.Skip;
                 var unsub = SubcriptionType.Unsubscribe;
                 var sub = SubcriptionType.Subscribe;
-                SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip,skip);
-                List<IGH_DocumentObject> objs = e.Objects.ToList();
+                SetUpRemoSharpEvents(skip, unsub, unsub, skip, skip, skip);
 
-                Guid relayGuid = Guid.Empty;
-                List<IGH_Param> relayRecepients = new List<IGH_Param>();
-
-                // For relays we temporarily save the connections to connect them again later
-                if (objs.Count == 1 && objs[0] is GH_Relay)
+                try
                 {
-                    var relay = (objs[0] as GH_Relay);
-                    relayGuid = relay.InstanceGuid;                    
-                    relayRecepients.AddRange(relay.Recipients);                    
+                    List<IGH_DocumentObject> objs = e.Objects.ToList();
+
+                    Guid relayGuid = Guid.Empty;
+                    List<IGH_Param> relayRecepients = new List<IGH_Param>();
+
+                    // For relays we temporarily save the connections to connect them again later
+                    if (objs.Count == 1 && objs[0] is GH_Relay)
+                    {
+                        var relay = (objs[0] as GH_Relay);
+                        relayGuid = relay.InstanceGuid;
+                        relayRecepients.AddRange(relay.Recipients);
+                    }
+
+                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
+
+                    //IGH_Param newRelay = activeDoc.FindObject<IGH_Param>(relayGuid, false);
+                    //foreach (var target in relayRecepients)
+                    //{
+                    //    target.AddSource(newRelay);
+                    //}
+
+                    SendCommands(this, remoPartialDoc, commandRepeat, enable);
                 }
-
-                RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
-
-                IGH_Param newRelay = activeDoc.FindObject<IGH_Param>(relayGuid, false);
-                foreach (var target in relayRecepients)
+                catch (Exception error)
                 {
-                    target.AddSource(newRelay);
+                    Rhino.RhinoApp.WriteLine(error.Message);
                 }
-
-                SendCommands(this, remoPartialDoc, commandRepeat, enable);
                 SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
             });
 
@@ -1844,15 +1852,11 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
-
-
-            var selection = thisDoc.SelectedObjects();
-            if (selection.Count == 0) return;
-            
-
-
             thisDoc.ScheduleSolution(1, doc =>
             {
+
+                var selection = thisDoc.SelectedObjects();
+                if (selection.Count == 0) return;
 
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
@@ -1861,14 +1865,18 @@ namespace RemoSharp.Distributors
 
                 try
                 {
+                    //var reselections = ReSelectSingleParameters();
+                    var selectionObjs = thisDoc.SelectedObjects();
+
+
                     thisDoc.UnselectedObjects();
+                    Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
-                    GH_Document dupDoc = GH_Document.DuplicateDocument(this.OnPingDocument());
-                    var remoValGuids = selection.Select(obj => obj.InstanceGuid).ToList();
-                    var removalObjs = dupDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
-                    dupDoc.RemoveObjects(removalObjs, false);
+                    //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
-                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, selection.ToList(), dupDoc);
+                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, selectionObjs.ToList(), thisDoc);
+
+
                     RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
 
                 }
@@ -1881,6 +1889,41 @@ namespace RemoSharp.Distributors
             });
             
 
+        }
+
+        private List<IGH_DocumentObject> ReSelectSingleParameters()
+        {
+            var currSelection = new List<IGH_DocumentObject>();
+
+            var selectedObjs = this.OnPingDocument().SelectedObjects();
+
+            foreach (IGH_DocumentObject item in selectedObjs)
+            {
+                if (item is IGH_Component)
+                {
+                    IGH_Component comp = (IGH_Component)item;
+                    int sourceCount = 0;
+                    for (int i = 0; i < comp.Params.Input.Count; i++)
+                    {
+                        var input = comp.Params.Input[i];
+                        if (input.SourceCount != 0)
+                        {
+                            sourceCount++;
+                        }
+                    }
+                    if (sourceCount == 0) currSelection.Add(item);
+                }
+                else if (item is IGH_Param)
+                {
+                    IGH_Param comp = (IGH_Param)item;
+                    if (comp.SourceCount == 0)
+                    {
+                        currSelection.Add(item);
+                    }
+                }
+            }
+
+            return currSelection;
         }
 
         private static void ResetGHColorsToDefault()
@@ -1918,6 +1961,7 @@ namespace RemoSharp.Distributors
                 {
                     //bool clientIsConnected = setupComp.client.IsAlive;
                     setupComp.client.Send(cmdJson);
+                    string pause = "";
                 }
             }
             catch

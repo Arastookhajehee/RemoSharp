@@ -727,6 +727,9 @@ namespace RemoSharp
 
                 try
                 {
+                    var selection = OnPingDocument().SelectedObjects();
+                    OnPingDocument().UnselectedObjects();
+
                     this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
                     Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
@@ -770,6 +773,31 @@ namespace RemoSharp
                             item.AddSource(relayParam);
                         }
                     }
+
+                    for (int i = 0; i < remoPartialDoc.compXMLs.Count; i++)
+                    {
+                        string comXml = remoPartialDoc.compXMLs[i];
+                        Guid guid = remoPartialDoc.compGuids[i];
+
+                        this.OnPingDocument().FindObject(guid, false).Read(RemoCommand.DeserializeFromXML(comXml));
+
+                    }
+
+                    GH_Document dummyDoc = new GH_Document();
+                    this.OnPingDocument().MergeDocument(dummyDoc, true, true);
+
+                    this.OnPingDocument().UnselectedObjects();
+
+                    foreach (var item in selection)
+                    {
+                        item.Attributes.Selected = true;
+                    }
+                    foreach (var item in remoPartialDoc.compGuids)
+                    {
+                        IGH_DocumentObject newObj = this.OnPingDocument().FindObject(item, false);
+                        newObj.Attributes.Selected = false;
+                    }
+
                 }
                 catch (Exception error)
                 {
@@ -881,21 +909,117 @@ namespace RemoSharp
         }
 
 
+        private void ExecuteRemoPartialDoc(RemoPartialDoc remoPartialDoc, bool noScheduling)
+        {
+
+            GH_Document tempDoc = new GH_Document();
+            GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
+            tempDoc.Read(chunk);
+
+
+
+                RemoSetupClientV3 sourceComp = OnPingDocument().Objects
+                .Where(obj => obj is RemoSetupClientV3)
+                .FirstOrDefault() as RemoSetupClientV3;
+
+                var skip = SubcriptionType.Skip;
+                var subscribe = SubcriptionType.Subscribe;
+                var unsubscribe = SubcriptionType.Unsubscribe;
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
+
+                try
+                {
+                    var selection = OnPingDocument().SelectedObjects();
+                    OnPingDocument().UnselectedObjects();
+
+                    this.OnPingDocument().MergeDocument(tempDoc, true, true);
+
+                    Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
+                    bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
+                    List<IGH_Param> relayRecepients = new List<IGH_Param>();
+                    if (incomingSingleRelay)
+                    {
+                        Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
+                        relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
+                            .Select(obj => this.OnPingDocument().FindObject<IGH_Param>(obj, false)));
+
+                        IGH_Param sourceParam = this.OnPingDocument().FindObject<IGH_Param>(relaySourceParamGuid, false);
+                        foreach (var recepient in relayRecepients)
+                        {
+                            recepient.RemoveSource(sourceParam);
+                        }
+                    }
+
+                    foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
+                    {
+                        GhPython.Component.ZuiPythonComponent zuiPythonComponent =
+                        (GhPython.Component.ZuiPythonComponent)OnPingDocument().FindObject(item.componentGuid, false);
+
+                        var wires = item.inputGuidsDictionary;
+                        for (int i = 0; i < wires.Count; i++)
+                        {
+                            List<Guid> inputs = wires[i];
+                            foreach (var source in inputs)
+                            {
+                                zuiPythonComponent.Params.Input[i].AddSource((IGH_Param)OnPingDocument().FindObject(source, false));
+                            }
+                        }
+
+                    }
+
+                    if (incomingSingleRelay)
+                    {
+                        IGH_Param relayParam = this.OnPingDocument().FindObject<IGH_Param>(singleComponentGuid, false);
+                        foreach (var item in relayRecepients)
+                        {
+                            item.AddSource(relayParam);
+                        }
+                    }
+
+                    for (int i = 0; i < remoPartialDoc.compXMLs.Count; i++)
+                    {
+                        string comXml = remoPartialDoc.compXMLs[i];
+                        Guid guid = remoPartialDoc.compGuids[i];
+
+                        this.OnPingDocument().FindObject(guid, false).Read(RemoCommand.DeserializeFromXML(comXml));
+
+                    }
+
+                    GH_Document dummyDoc = new GH_Document();
+                    this.OnPingDocument().MergeDocument(dummyDoc, true, true);
+
+                    this.OnPingDocument().UnselectedObjects();
+
+                    foreach (var item in selection)
+                    {
+                        item.Attributes.Selected = true;
+                    }
+                    foreach (var item in remoPartialDoc.compGuids)
+                    {
+                        IGH_DocumentObject newObj = this.OnPingDocument().FindObject(item, false);
+                        newObj.Attributes.Selected = false;
+                    }
+
+                }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);
+                }
+
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+                return;
+
+
+        }
+
         private void ExecuteRemoCompSync(RemoCompSync remoCompSync)
-        {     
+        {
+            this.OnPingDocument().UnselectedObjects();
+            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
             this.OnPingDocument().ScheduleSolution(50, doc =>
             {
                 var thisDoc = this.OnPingDocument();
-
-                var removalGuids = remoCompSync.componentGuids.Where(obj => thisDoc.Objects.Select(obj1 => obj1.InstanceGuid).ToList().Contains(obj)).ToList();
-                ExecuteRemoPartialDoc(remoCompSync.partialDocCommandXML, removalGuids);
-
-
-                
-                var selection = thisDoc.SelectedObjects();
-                thisDoc.UnselectedObjects();
-
                 RemoSetupClientV3 sourceComp = thisDoc.Objects
                 .Where(obj => obj is RemoSetupClientV3)
                 .FirstOrDefault() as RemoSetupClientV3;
@@ -903,89 +1027,37 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 var subscribe = SubcriptionType.Subscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, unsubscribe, unsubscribe, unsubscribe);
                 try
                 {
-                    for (int i = 0; i < remoCompSync.componentGuids.Count; i++)
+                    GH_Document thisdoc = this.OnPingDocument();
+                    if (thisdoc == null) return;
+
+                    for (int i = 0; i < remoCompSync.guids.Count; i++)
                     {
-                        var component = thisDoc.FindObject(remoCompSync.componentGuids[i], false);
-                        string xml = remoCompSync.componentXMLs[i];
-                        Dictionary<int, List<Guid>> wireConnections = remoCompSync.outputHistory[i];
-                        if (component == null) continue;
-                        else
+                        var comp = thisdoc.FindObject(remoCompSync.guids[i], false);
+                        if (comp == null)
                         {
-                            
-
-                            GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(xml);
-                            component.Read(chunk);
+                            GH_Document tempDoc = new GH_Document();
+                            tempDoc.Read(RemoCommand.DeserializeFromXML(remoCompSync.docXMLs[i]));
+                            thisdoc.MergeDocument(tempDoc, true, true);
                         }
-                        component.ExpireSolution(true);
-                        //continue;
-
-                        //if (wireConnections.Keys.First() == -1)
-                        //{
-                        //    var outputParam = (IGH_Param)component;
-
-                        //    if (wireConnections[-1].Count == outputParam.Recipients.Count)
-                        //    {
-                        //        outputParam.ExpireSolution(true);
-                        //        continue;
-                        //    }
-                        //    foreach (var item in wireConnections[-1])
-                        //    {
-
-
-                        //        var inputParam = (IGH_Param)thisDoc.FindObject(item, false);
-                        //        if (inputParam == null) continue;
-
-                        //        bool alreadyConnected = inputParam.Sources.Contains(outputParam);
-
-                        //        if (alreadyConnected) continue;
-
-                        //        inputParam.AddSource(outputParam);
-                        //    }
-                            
-                        //}
-                        //else
-                        //{
-                        //    GH_Component gH_Component = (GH_Component)component;
-                        //    foreach (var key in wireConnections.Keys)
-                        //    {
-                                
-                        //        var outputParam = (IGH_Param)gH_Component.Params.Output[key];
-
-                        //        if (wireConnections[key].Count == outputParam.Recipients.Count) continue;
-
-                        //        foreach (var item in wireConnections[key])
-                        //        {
-                        //            var inputParam = (IGH_Param)thisDoc.FindObject(item, false);
-                        //            if (inputParam == null) continue;
-
-                        //            bool alreadyConnected = inputParam.Sources.Contains(outputParam);
-
-                        //            if (alreadyConnected) continue;
-
-                        //            inputParam.AddSource(outputParam);
-                        //        }
-
-                        //    }
-                        //    gH_Component.ExpireSolution(true);
-                        //}
-
                     }
-                    GH_Document dummyDoc = new GH_Document();
-                    this.OnPingDocument().MergeDocument(dummyDoc, true, true);
-
-                    foreach (var item in selection)
+                    for (int i = 0; i < remoCompSync.guids.Count; i++)
                     {
-                        item.Attributes.Selected = true;
+                        IGH_DocumentObject obj = thisDoc.FindObject(remoCompSync.guids[i], false);
+                        if (obj == null) continue;
+                        obj.Read(RemoCommand.DeserializeFromXML(remoCompSync.xmls[i]));
                     }
+                    GH_Document tempDoc2 = new GH_Document();
+                    thisdoc.MergeDocument(tempDoc2, true, true);
+
                 }
                 catch (Exception error)
                 {
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, subscribe, subscribe, subscribe);
 
             });
         }
@@ -1290,7 +1362,7 @@ namespace RemoSharp
 
 
                     MatchLocalInputComponentValues(incomingDoc, localCompIds);
-
+                    MatchLocalComonentPivotPoints(incomingDoc, this.OnPingDocument());
 
                     for (int i = this.OnPingDocument().ObjectCount - 1; i > -1; i--)
                     {
@@ -1333,6 +1405,17 @@ namespace RemoSharp
 
         }
 
+        private void MatchLocalComonentPivotPoints(GH_Document incomingDoc, GH_Document gH_Document)
+        {
+            foreach (var obj in gH_Document.Objects)
+            {
+                var localObj = gH_Document.FindObject(obj.InstanceGuid, false);
+                var incomingObj = incomingDoc.FindObject(obj.InstanceGuid, false);
+                if (localObj == null || incomingObj == null) continue;
+                incomingObj.Attributes.Pivot = localObj.Attributes.Pivot;
+            }
+        }
+
         private void MatchLocalInputComponentValues(GH_Document incomingDoc, List<Guid> localCompsGuids)
         {
 
@@ -1354,6 +1437,7 @@ namespace RemoSharp
                         incomingDocSlider.Slider.DecimalPlaces = thisDocSlider.Slider.DecimalPlaces;
                         incomingDocSlider.SetSliderValue(thisDocSlider.CurrentValue);
                         incomingDocSlider.ExpireSolution(false);
+                        incomingDocSlider.Attributes.Pivot = thisDocSlider.Attributes.Pivot;
 
                         //incomingDocSlider.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
 
@@ -1369,6 +1453,7 @@ namespace RemoSharp
                         incomingDocGH_Panel.Properties.DrawIndices = thisDocPanel.Properties.DrawIndices;
                         incomingDocGH_Panel.SetUserText(thisDocPanel.UserText);
                         incomingDocGH_Panel.ExpireSolution(false);
+                        incomingDocGH_Panel.Attributes.Pivot = thisDocPanel.Attributes.Pivot;
 
                         //incomingDocGH_Panel.SolutionExpired += remoSetupComp.RemoParameterizePanel;
 
@@ -1378,6 +1463,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Special.GH_ColourSwatch incomingDocClolor = (Grasshopper.Kernel.Special.GH_ColourSwatch)incomingDocParam;
 
                         incomingDocClolor.SwatchColour = thisDocColor.SwatchColour;
+                        incomingDocClolor.Attributes.Pivot = thisDocColor.Attributes.Pivot;
                         incomingDocClolor.ExpireSolution(false);
 
                         //incomingDocClolor.SolutionExpired += remoSetupComp.RemoParameterizeColor;
@@ -1391,6 +1477,7 @@ namespace RemoSharp
                         incomingMDSlider.XInterval = thisDocMDSlider.XInterval;
                         incomingMDSlider.YInterval = thisDocMDSlider.YInterval;
                         incomingMDSlider.Value = thisDocMDSlider.Value;
+                        incomingMDSlider.Attributes.Pivot = thisDocMDSlider.Attributes.Pivot;
                         incomingMDSlider.ExpireSolution(false);
 
                         //incomingMDSlider.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
@@ -1401,6 +1488,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Special.GH_BooleanToggle incomingDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)incomingDocParam;
 
                         incomingDocToggle.Value = thisDocToggle.Value;
+                        incomingDocToggle.Attributes.Pivot = thisDocToggle.Attributes.Pivot;
                         incomingDocToggle.ExpireSolution(false);
 
                         //incomingDocToggle.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
@@ -1408,7 +1496,9 @@ namespace RemoSharp
                         break;
                     case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
                         Grasshopper.Kernel.Special.GH_ButtonObject thisDocButton = (Grasshopper.Kernel.Special.GH_ButtonObject)thisDocParam;
-                        //Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject) incomingDocParam;
+                        Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject)incomingDocParam;
+
+                        incomingDocGH_ButtonObject.Attributes.Pivot = thisDocButton.Attributes.Pivot;
 
                         //incomingDocParam.SolutionExpired += remoSetupComp.RemoParameterizeButton;
 
@@ -1418,6 +1508,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Point incomingDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)incomingDocParam;
 
                         incomingDocPoint.SetPersistentData(thisDocPoint.PersistentData);
+                        incomingDocPoint.Attributes.Pivot = thisDocPoint.Attributes.Pivot;
                         incomingDocPoint.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocPoint, false);
@@ -1428,6 +1519,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Vector incomingDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)incomingDocParam;
 
                         incomingDocVector.SetPersistentData(thisDocVector.PersistentData);
+                        incomingDocVector.Attributes.Pivot = thisDocVector.Attributes.Pivot;
                         incomingDocVector.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocVector, false);
@@ -1437,6 +1529,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Plane incomingDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)incomingDocParam;
 
                         incomingDocPlane.SetPersistentData(thisDocPlane.PersistentData);
+                        incomingDocPlane.Attributes.Pivot = thisDocPlane.Attributes.Pivot;
                         incomingDocPlane.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocPlane, false);

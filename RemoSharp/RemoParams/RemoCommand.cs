@@ -147,6 +147,33 @@ namespace RemoSharp.RemoCommandTypes
             tempDoc.Write(chunk);
             return MinifyXml(chunk.Serialize_Xml());
         }
+        public static List<string> SerizlizeToSinglecomponentDocXML(GH_Document thisDoc, List<IGH_DocumentObject> component)
+        {
+
+            var keepObjs = component.Select(x => x.InstanceGuid).ToList();
+
+            var removalGuids = thisDoc.Objects.Where(o => !keepObjs.Contains(o.InstanceGuid)).Select(x => x.InstanceGuid).ToList();
+            GH_Document tempDoc = GH_Document.DuplicateDocument(thisDoc);
+            var removalObjs = tempDoc.Objects.Where(obj => !keepObjs.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, true);
+
+            List<string> xmls = new List<string>();
+            foreach (var item in component)
+            {
+                GH_Document tempDoc2 = GH_Document.DuplicateDocument(tempDoc);
+                var removalGuids2 = tempDoc2.Objects.Select(x => x.InstanceGuid).ToList();
+                foreach (var item2 in component)
+                {
+                    if (item2.InstanceGuid == item.InstanceGuid) continue;
+                    tempDoc2.RemoveObject(tempDoc2.FindObject(item2.InstanceGuid, false), true);
+                }
+
+                xmls.Add(SerializeToXML(tempDoc2));
+            }
+
+
+            return xmls;
+        }
 
         public static string MinifyXml(string xmlString)
         {
@@ -486,14 +513,16 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoPartialDoc : RemoCommand
     {
         public string xml;
+        public List<Guid> compGuids;
+        public List<string> compXMLs;
         public List<WireHistory> pythonWireHistories;
         public Dictionary<Guid, List<Guid>> relayConnections;
-        
+
         public RemoPartialDoc() { }
 
-        public static List<string> specialComponentTypes  = new List<string>()
-        {  };
-       
+        public static List<string> specialComponentTypes = new List<string>()
+        { };
+
         public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
         {
             this.issuerID = issuerID;
@@ -505,12 +534,17 @@ namespace RemoSharp.RemoCommandTypes
             this.pythonWireHistories = new List<WireHistory>();
             this.relayConnections = new Dictionary<Guid, List<Guid>>();
 
-            string xml = "";
+            currentDoc.UnselectedObjects();
+
+            this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
+            this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
 
             GH_Document tempDoc = GH_Document.DuplicateDocument(currentDoc);
+
             var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
             var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
             tempDoc.RemoveObjects(removalObjs, false);
+            tempDoc.UnselectedObjects();
 
             if (objects.Count == 1 && objects[0] is GH_Relay)
             {
@@ -520,77 +554,6 @@ namespace RemoSharp.RemoCommandTypes
 
             this.xml = SerializeToXML(tempDoc);
 
-            return;
-
-
-            List<WireHistory> hitory = new List<WireHistory>();
-
-            if (objects.Count == 1 && objects[0] is GH_Relay)
-            {
-                GH_Relay relay = (GH_Relay)objects[0];
-                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
-            }
-
-            foreach (var item in objects)
-            {
-                
-                string type = item.GetType().FullName;
-
-                if (type.Equals("GhPython.Component.ZuiPythonComponent"))
-                {
-                    string xmlHistory = SerializeToXML(item);
-                    hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
-
-                    GhPython.Component.ZuiPythonComponent zuiPythonComponent = (GhPython.Component.ZuiPythonComponent)item;
-                    pythonWireHistories.Add(new WireHistory(zuiPythonComponent));
-
-                    GH_LooseChunk chunk = new GH_LooseChunk(null);
-                    zuiPythonComponent.Write(chunk);
-                    
-                    GhPython.Component.ZuiPythonComponent pythonComponent = new GhPython.Component.ZuiPythonComponent();
-                    pythonComponent.CreateAttributes();
-                    pythonComponent.Read(chunk);
-                    pythonComponent.NewInstanceGuid(zuiPythonComponent.InstanceGuid);
-
-                    tempDoc.AddObject(pythonComponent, false);
-
-                }
-                else
-                {
-                    string xmlHistory = SerializeToXML(item);
-                    hitory.Add(new WireHistory(item.InstanceGuid, xmlHistory));
-
-                    tempDoc.AddObject(item, false);
-                }
-                tempDoc.Objects.Last().Attributes.Selected = false;
-            }
-            xml = RemoCommand.SerializeToXML(tempDoc);
-
-            currentDoc.RemoveObjects(objects, false);
-            currentDoc.MergeDocument(tempDoc, true, true);
-
-            foreach (var item in hitory)
-            {
-                var obj = currentDoc.FindObject(item.componentGuid, false);
-                var chunk = DeserializeFromXML(item.wireHistoryXml);
-                obj.Read(chunk);
-
-                if (obj is IGH_Param)
-                {
-                    IGH_Param gH_Param = (IGH_Param)obj;
-                    gH_Param.RelinkProxySources(currentDoc);
-                }
-                else if (obj is IGH_Component)
-                {
-                    IGH_Component gH_Component = (IGH_Component)obj;
-                    foreach (var input in gH_Component.Params.Input)
-                    {
-                        input.RelinkProxySources(currentDoc);
-                    }
-                }
-            }
-
-            this.xml = xml;
 
         }
     }
@@ -734,35 +697,22 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoCompSync : RemoCommand
     {
-        public List<Guid> componentGuids;
-        public List<string> componentXMLs;
-        public string partialDocCommandXML;
-        public List<Dictionary<int, List<Guid>>> outputHistory;
+        public List<Guid> guids;
+        public List<string> xmls;
+        public List<string> docXMLs;
+
 
         //constructor
         public RemoCompSync() { }
-        public RemoCompSync(string issuerID, List<IGH_DocumentObject> components, GH_Document partialDoc)
+        public RemoCompSync(string issuerID, List<IGH_DocumentObject> objects, GH_Document thisDoc)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoCompSync;
             this.objectGuid = Guid.Empty;
-
-            foreach (var item in components)
-            {
-                item.Attributes.Selected = false;
-            }
-
-            this.componentGuids = components.Select(x => x.InstanceGuid).ToList();
-            this.componentXMLs = components.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
-            this.partialDocCommandXML = SerializeToXML(partialDoc);
-
-
-            List<Dictionary<int, List<Guid>>> pairs = new List<Dictionary<int, List<Guid>>>();
-            foreach (var item in components)
-            {
-                pairs.Add(GetAllOutputConnectionGuids(item));
-            }
-            this.outputHistory = pairs;
+            
+            this.guids = objects.Select(x => x.InstanceGuid).ToList();
+            this.xmls = objects.Select(x => SerializeToXML(x)).ToList();
+            this.docXMLs = SerizlizeToSinglecomponentDocXML(thisDoc, objects);
         }
 
         private static Dictionary<int,List<Guid>> GetAllOutputConnectionGuids(IGH_DocumentObject component)
@@ -1535,4 +1485,75 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RecepientRecord
+    {
+        Guid guid;
+        Dictionary<int, List<Recepient>> recepients;
+
+        public RecepientRecord() { }
+
+        public RecepientRecord(IGH_DocumentObject obj)
+        {
+            Dictionary<int, List<Recepient>> recepients = new Dictionary<int, List<Recepient>>();
+            if (obj is IGH_Param)
+            {
+                IGH_Param param = (IGH_Param)obj;
+                this.guid = param.InstanceGuid;
+                int index = -1;
+
+                List<Recepient> recs = new List<Recepient>();
+                foreach (var item in param.Recipients)
+                {
+                    Guid recGuid = item.InstanceGuid;
+                    int recipientIndex = -1;
+                    if (item.Attributes.Parent != null)
+                    {
+                        IGH_Component parent = (IGH_Component)item.Attributes.Parent.DocObject;
+                        recipientIndex = parent.Params.Input.IndexOf(item);
+                        recGuid = parent.InstanceGuid;
+                        recs.Add(new Recepient(recGuid, recipientIndex));
+                    }
+                }
+                recepients.Add(index, recs);
+            }
+            else if (obj is IGH_Component)
+            {
+                IGH_Component comp = (IGH_Component)obj;
+                this.guid = comp.InstanceGuid;
+                for (int i = 0; i < comp.Params.Output.Count; i++)
+                {
+                    List<Recepient> recs = new List<Recepient>();
+                    foreach (var item in comp.Params.Input[i].Recipients)
+                    {
+                        Guid recGuid = item.InstanceGuid;
+                        int recipientIndex = -1;
+                        if (item.Attributes.Parent != null)
+                        {
+                            IGH_Component parent = (IGH_Component)item.Attributes.Parent.DocObject;
+                            recipientIndex = parent.Params.Input.IndexOf(item);
+                            recGuid = parent.InstanceGuid;
+                        }
+                        recs.Add(new Recepient(recGuid, recipientIndex));
+                    }
+                    recepients.Add(i, recs);
+                }
+            }
+
+            this.recepients = recepients;
+            this.guid = obj.InstanceGuid;
+        }
+
+    }
+
+
+    class Recepient
+    {
+        public Guid guid;
+        public int index;
+        public Recepient(Guid guid, int index)
+        {
+            this.guid = guid;
+            this.index = index;
+        }
+    }
 }
