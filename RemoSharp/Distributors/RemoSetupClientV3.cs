@@ -1096,6 +1096,10 @@ namespace RemoSharp.Distributors
             {
                 SendRemoReWireCommand();
             }
+            else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_SplitInteraction)
+            {
+                SendRemoMoveAllCommand();
+            }
 
 
         }
@@ -1117,29 +1121,35 @@ namespace RemoSharp.Distributors
             SendCommands(this, command, commandRepeat, enable);
         }
 
+        private void SendRemoMoveAllCommand()
+        {
+            GH_Document thisDoc = null;
+            if (!CheckForHealthyGH(out thisDoc)) return;
+
+            var selection = thisDoc.Objects;
+
+            if (selection.Count != 0)
+            {
+
+                command = new RemoMove(username, selection.ToList());
+                SendCommands(this, command, commandRepeat, enable);
+            }
+
+        }
+
         private void SendRemoMoveCommand()
         {
             GH_Document thisDoc = null;
             if (!CheckForHealthyGH(out thisDoc)) return;
 
-            float downPntX = downPnt[0];
-            float downPntY = downPnt[1];
-            float upPntX = upPnt[0];
-            float upPntY = upPnt[1];
+            var selection = thisDoc.SelectedObjects();
 
-            float distance = (float)Math.Sqrt(Math.Pow(upPntX - downPntX, 2) + Math.Pow(upPntY - downPntY, 2));
-            if (distance < 5) return;
+            if (selection.Count != 0)
+            {
 
-            if (thisDoc.SelectedCount < 1) return;
-
-            var selection = this.OnPingDocument().SelectedObjects();
-
-            List<Guid> moveGuids = selection.Select(obj => obj.InstanceGuid).ToList();
-            float xDiff = upPntX - downPntX;
-            float yDiff = upPntY - downPntY;
-
-            command = new RemoMove(username, moveGuids, new Size((int)xDiff, (int)yDiff));
-            SendCommands(this, command, commandRepeat, enable);
+                command = new RemoMove(username, selection);
+                SendCommands(this, command, commandRepeat, enable);
+            }
 
         }
 
@@ -1330,6 +1340,8 @@ namespace RemoSharp.Distributors
                         relayRecepients.AddRange(relay.Recipients);
                     }
 
+                    var selection = activeDoc.SelectedObjects();
+
                     RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
 
                     //IGH_Param newRelay = activeDoc.FindObject<IGH_Param>(relayGuid, false);
@@ -1337,6 +1349,11 @@ namespace RemoSharp.Distributors
                     //{
                     //    target.AddSource(newRelay);
                     //}
+
+                    foreach (var item in selection)
+                    {
+                        item.Attributes.Selected = true;
+                    }
 
                     SendCommands(this, remoPartialDoc, commandRepeat, enable);
                 }
@@ -1820,6 +1837,7 @@ namespace RemoSharp.Distributors
             commandExecutor.errors.Clear();
             commandExecutor.ExpireSolution(true);
             thisDoc.DeselectAll();
+            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
             GH_LooseChunk tempChunk = new GH_LooseChunk(null);
             thisDoc.Write(tempChunk);
@@ -1852,11 +1870,16 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
+            var selectionObjs = thisDoc.SelectedObjects();
+            if (selectionObjs.Count == 0) return;
+
+            thisDoc.DeselectAll();
+            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
+
             thisDoc.ScheduleSolution(1, doc =>
             {
 
-                var selection = thisDoc.SelectedObjects();
-                if (selection.Count == 0) return;
+                
 
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
@@ -1865,12 +1888,9 @@ namespace RemoSharp.Distributors
 
                 try
                 {
-                    //var reselections = ReSelectSingleParameters();
-                    var selectionObjs = thisDoc.SelectedObjects();
+                    
 
 
-                    thisDoc.UnselectedObjects();
-                    Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
                     //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
@@ -1976,17 +1996,10 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
-            var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
-            var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+            
             var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
-            string bnds4XML = bounds_for_xml.X
-                + "," + bounds_for_xml.Y
-                + "," + bounds_for_xml.Width
-                + "," + bounds_for_xml.Height
-                + "," + screenMidPnt.X
-                + "," + screenMidPnt.Y
-                + "," + zoomLevel;
-            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, bnds4XML);
+
+            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, thisDoc.SelectedObjects(), zoomLevel);
             RemoSetupClientV3.SendCommands(setupComp, remoCanvasView, commandRepeat, enable);
         }
 

@@ -534,7 +534,7 @@ namespace RemoSharp.RemoCommandTypes
             this.pythonWireHistories = new List<WireHistory>();
             this.relayConnections = new Dictionary<Guid, List<Guid>>();
 
-            currentDoc.UnselectedObjects();
+            currentDoc.DeselectAll();
 
             this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
             this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
@@ -544,7 +544,7 @@ namespace RemoSharp.RemoCommandTypes
             var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
             var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
             tempDoc.RemoveObjects(removalObjs, false);
-            tempDoc.UnselectedObjects();
+            tempDoc.DeselectAll();
 
             if (objects.Count == 1 && objects[0] is GH_Relay)
             {
@@ -1300,14 +1300,35 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoCanvasView : RemoCommand
     {
-        public string canvasViewport;
+        public System.Drawing.PointF focusPoint;
+        public List<Guid> selectedObjs;
+        public float zoomLevel;
         public RemoCanvasView() { }
-        public RemoCanvasView(string issuerID, string canvasViewport)
+        public RemoCanvasView(string issuerID, List<IGH_DocumentObject> objs, float zoomLevel )
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.CanvasViewport;
-            this.canvasViewport = canvasViewport;
             this.commandID = Guid.NewGuid();
+            this.selectedObjs = objs.Select(obj => obj.InstanceGuid).ToList();
+            this.zoomLevel = zoomLevel;
+
+            this.focusPoint = GetAverageFocusPoint(objs.Select(obj => obj.Attributes.Pivot).ToList());
+
+        }
+
+        // a static funtion that returns the average of multiple System.Drawing.PointF objects
+        public static System.Drawing.PointF GetAverageFocusPoint(List<System.Drawing.PointF> points)
+        {
+            float x = 0;
+            float y = 0;
+
+            foreach (System.Drawing.PointF point in points)
+            {
+                x += point.X;
+                y += point.Y;
+            }
+
+            return new System.Drawing.PointF(x / points.Count, y / points.Count);
         }
     }
 
@@ -1315,35 +1336,16 @@ namespace RemoSharp.RemoCommandTypes
     {
         //public float moveX;
         //public float moveY;
-        public Guid translationGuid;
-        public List<Guid> moveGuids= new List<Guid>();
-        public Size vector;
-        public string relayXMLContent = "";
-        public RemoMove(string issuerID, List<Guid> moveGuids, System.Drawing.Size vector)
+        
+        public Dictionary<Guid, System.Drawing.PointF> objectCoords;
+
+        public RemoMove(string issuerID, List<IGH_DocumentObject> objs)
         {
             this.issuerID = issuerID;
             this.objectGuid = Guid.Empty;
-            this.translationGuid = Guid.NewGuid();
             this.commandType = CommandType.MoveComponent;
-            this.moveGuids = moveGuids;
-            this.vector = vector;
-            this.commandID = Guid.NewGuid();
-
-            //this.objXs = objXs;
-            //this.objYs = objYs;
-        }
-        public RemoMove(string issuerID, List<Guid> moveGuids, System.Drawing.Size vector, string relayXMLContent)
-        {
-            this.issuerID = issuerID;
-            this.objectGuid = Guid.Empty;
-            this.translationGuid = Guid.NewGuid();
-            this.commandType = CommandType.MoveComponent;
-            this.moveGuids = moveGuids;
-            this.relayXMLContent = relayXMLContent;
-            this.commandID = Guid.NewGuid();
-
-            //this.objXs = objXs;
-            //this.objYs = objYs;
+            
+            this.objectCoords = objs.ToDictionary(x => x.InstanceGuid, x => x.Attributes.Pivot);
         }
         public RemoMove()
         {

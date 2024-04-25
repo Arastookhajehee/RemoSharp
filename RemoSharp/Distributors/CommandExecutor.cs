@@ -728,7 +728,7 @@ namespace RemoSharp
                 try
                 {
                     var selection = OnPingDocument().SelectedObjects();
-                    OnPingDocument().UnselectedObjects();
+                    OnPingDocument().DeselectAll();
 
                     this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
@@ -786,7 +786,7 @@ namespace RemoSharp
                     GH_Document dummyDoc = new GH_Document();
                     this.OnPingDocument().MergeDocument(dummyDoc, true, true);
 
-                    this.OnPingDocument().UnselectedObjects();
+                    this.OnPingDocument().DeselectAll();
 
                     foreach (var item in selection)
                     {
@@ -835,7 +835,7 @@ namespace RemoSharp
             try
             {
                 var selection = OnPingDocument().SelectedObjects();
-                this.OnPingDocument().UnselectedObjects();
+                this.OnPingDocument().DeselectAll();
 
                 var guids = tempDoc.Objects.Select(obj => obj.InstanceGuid).ToList();
 
@@ -878,34 +878,43 @@ namespace RemoSharp
 
         private void ExecuteRemoCanvasView(RemoCanvasView remoCanvasView)
         {
-            string str = remoCanvasView.canvasViewport;
 
-            if (str == null || str == "" || str == " " || str == "Hello World") return;
+            float zoom = remoCanvasView.zoomLevel;
 
-            string[] parts = str.Split(',');
-            Single x = Convert.ToSingle(parts[4]);
-            Single y = Convert.ToSingle(parts[5]);
-            float zoom = (float)Convert.ToDouble(parts[6]);
-
-            var currentMidPointX = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint.X;
-            var currentMidPointY = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint.Y;
+            var currentMidPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
             var currentZoom = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
 
-            int millisecs = 300;
-            int step = 30;
-            for (int i = 0; i < 50; i++)
-            {
-                double ratio = (i + 1) / (double) step;
-                float x1 = (float)(currentMidPointX + (x - currentMidPointX) * ratio);
-                float y1 = (float)(currentMidPointY + (y - currentMidPointY) * ratio);
-                float zoom1 = (float)(currentZoom + (zoom - currentZoom) * ratio);
 
-                Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint = new System.Drawing.PointF(x1, y1);
-                Grasshopper.Instances.ActiveCanvas.Viewport.Zoom = zoom1;
+
+            int millisecs = 250;
+            int step = 40;
+
+            var midpoints = GetMidPoints(currentMidPoint, remoCanvasView.focusPoint, step);
+            var zooms = GetMidPoints(currentZoom, remoCanvasView.zoomLevel, step);
+
+            for (int i = 0; i < midpoints.Count; i++)
+            {
+                
+
+                Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint = midpoints[i];
+                Grasshopper.Instances.ActiveCanvas.Viewport.Zoom = zooms[i];
                 Thread.Sleep(millisecs/step);
                 Grasshopper.Instances.ActiveCanvas.Refresh();
             }
 
+        }
+
+        // a funciton that returns 10 numbers between a and b (from and to)
+        private List<float> GetMidPoints(float from, float to, int steps)
+        {
+            List<float> midPoints = new List<float>();
+
+            for (int i = 0; i < steps; i++)
+            {
+                float x = from + (to - from) * i / (steps - 1);
+                midPoints.Add(x);
+            }
+            return midPoints;
         }
 
 
@@ -930,7 +939,7 @@ namespace RemoSharp
                 try
                 {
                     var selection = OnPingDocument().SelectedObjects();
-                    OnPingDocument().UnselectedObjects();
+                    OnPingDocument().DeselectAll();
 
                     this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
@@ -988,7 +997,7 @@ namespace RemoSharp
                     GH_Document dummyDoc = new GH_Document();
                     this.OnPingDocument().MergeDocument(dummyDoc, true, true);
 
-                    this.OnPingDocument().UnselectedObjects();
+                    this.OnPingDocument().DeselectAll();
 
                     foreach (var item in selection)
                     {
@@ -1012,9 +1021,24 @@ namespace RemoSharp
 
         }
 
+        // a function that returns 10 mid points between two System.Drawing.PointF points (from and to point)
+        private List<System.Drawing.PointF> GetMidPoints(System.Drawing.PointF from, System.Drawing.PointF to, int steps)
+        {
+            List<System.Drawing.PointF> midPoints = new List<System.Drawing.PointF>();
+
+            for (int i = 0; i < steps; i++)
+            {
+                float x = from.X + (to.X - from.X) * i / (steps - 1);
+                float y = from.Y + (to.Y - from.Y) * i / (steps - 1);
+                midPoints.Add(new System.Drawing.PointF(x, y));
+            }
+            return midPoints;
+        }
+        
+
         private void ExecuteRemoCompSync(RemoCompSync remoCompSync)
         {
-            this.OnPingDocument().UnselectedObjects();
+            this.OnPingDocument().DeselectAll();
             Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
             this.OnPingDocument().ScheduleSolution(50, doc =>
@@ -1048,6 +1072,11 @@ namespace RemoSharp
                         IGH_DocumentObject obj = thisDoc.FindObject(remoCompSync.guids[i], false);
                         if (obj == null) continue;
                         obj.Read(RemoCommand.DeserializeFromXML(remoCompSync.xmls[i]));
+                        if (obj is IGH_Param)
+                        {
+                            IGH_Param param = (IGH_Param)obj;
+                            obj.ExpireSolution(true);
+                        }
                     }
                     GH_Document tempDoc2 = new GH_Document();
                     thisdoc.MergeDocument(tempDoc2, true, true);
@@ -1228,14 +1257,14 @@ namespace RemoSharp
             {
 
 
-
+                
                 RemoSetupClientV3 sourceComp = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
                 if (sourceComp == null) return;
                 var paramComp = this.OnPingDocument().FindObject(remoParameter.objectGuid, false);
+                if (paramComp == null) return;
                 var ogPivot  = paramComp.Attributes.Pivot;
                 paramComp.Attributes.Selected = false;
 
-                if (paramComp == null) return;
 
                 GH_LooseChunk sourceAttributes = DeserilizeXMLAttributes(remoParameter.xml);
 
@@ -2113,33 +2142,19 @@ namespace RemoSharp
 
         private void ExcecuteMove(RemoMove moveCommand)
         {
-            if (this.MoveCommands.Contains(moveCommand.translationGuid)) return;
-            else
-            {
-                this.MoveCommands.Add(moveCommand.translationGuid);
-            }
-            while (MoveCommands.Count > 100)
-            {
-                MoveCommands.RemoveAt(0);
-            }
 
-            var currentSelection = this.OnPingDocument().SelectedObjects();
-            OnPingDocument().DeselectAll();
-
-            foreach (var item in moveCommand.moveGuids)
+            this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                var obj = this.OnPingDocument().FindObject(item, false);
-                if (obj == null) continue;
-                obj.Attributes.Selected = true;
-            }
+                foreach (var item in moveCommand.objectCoords)
+                {
+                    var obj = this.OnPingDocument().FindObject(item.Key, false);
+                    if (obj == null) continue;
+                    obj.Attributes.Pivot = item.Value;
+                    obj.Attributes.ExpireLayout();
+                }
+            });
 
-            this.OnPingDocument().TranslateObjects(moveCommand.vector, true);
-            this.OnPingDocument().DeselectAll();
-
-            foreach (var selObj in currentSelection)
-            {
-                selObj.Attributes.Selected = true;
-            }
+            
         }
 
 

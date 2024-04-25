@@ -772,7 +772,7 @@ namespace RemoSharp
 
             var selection = thisDoc.SelectedObjects();
 
-            thisDoc.UnselectedObjects();
+            thisDoc.DeselectAll();
 
             foreach (var item in selection)
             {
@@ -800,17 +800,10 @@ namespace RemoSharp
             RemoSetupClient setupComp = (RemoSetupClient)thisDoc.Objects.Where(obj => obj is RemoSetupClient).FirstOrDefault();
             if (setupComp == null) return;
 
-            var bounds_for_xml = Grasshopper.Instances.ActiveCanvas.Viewport.VisibleRegion;
-            var screenMidPnt = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+
             var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
-            string bnds4XML = bounds_for_xml.X
-                + "," + bounds_for_xml.Y
-                + "," + bounds_for_xml.Width
-                + "," + bounds_for_xml.Height
-                + "," + screenMidPnt.X
-                + "," + screenMidPnt.Y
-                + "," + zoomLevel;
-            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, bnds4XML);
+
+            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, thisDoc.SelectedObjects(), zoomLevel);
             RemoSetupClient.SendCommands(setupComp, remoCanvasView);
         }
 
@@ -1230,14 +1223,10 @@ namespace RemoSharp
 
                     var selection = this.OnPingDocument().SelectedObjects();
 
-                    if (selection != null)
+                    if (selection.Count != 0)
                     {
 
-                        List<Guid> moveGuids = selection.Select(obj => obj.InstanceGuid).ToList();
-                        float xDiff = upPntX - downPntX;
-                        float yDiff = upPntY - downPntY;
-
-                        command = new RemoMove(username, moveGuids, new Size((int)xDiff, (int)yDiff));
+                        command = new RemoMove(username, selection);
 
                         if (enable)
                         {
