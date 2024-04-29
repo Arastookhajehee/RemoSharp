@@ -1262,7 +1262,7 @@ namespace RemoSharp
                 if (sourceComp == null) return;
                 var paramComp = this.OnPingDocument().FindObject(remoParameter.objectGuid, false);
                 if (paramComp == null) return;
-                var ogPivot  = paramComp.Attributes.Pivot;
+                //var ogPivot  = paramComp.Attributes.Pivot;
                 paramComp.Attributes.Selected = false;
 
 
@@ -1290,7 +1290,7 @@ namespace RemoSharp
                     RemoParameter.InvokeReadMethod(persistentData, objects);
 
                     paramComp.Attributes.Selected = false;
-                    paramComp.Attributes.Pivot = ogPivot;
+                    //paramComp.Attributes.Pivot = ogPivot;
                     paramComp.ExpireSolution(true);
                 }
                 catch (Exception error)
@@ -1391,7 +1391,7 @@ namespace RemoSharp
 
 
                     MatchLocalInputComponentValues(incomingDoc, localCompIds);
-                    MatchLocalComonentPivotPoints(incomingDoc, this.OnPingDocument());
+                    //MatchLocalComonentPivotPoints(incomingDoc, this.OnPingDocument());
 
                     for (int i = this.OnPingDocument().ObjectCount - 1; i > -1; i--)
                     {
@@ -1434,16 +1434,16 @@ namespace RemoSharp
 
         }
 
-        private void MatchLocalComonentPivotPoints(GH_Document incomingDoc, GH_Document gH_Document)
-        {
-            foreach (var obj in gH_Document.Objects)
-            {
-                var localObj = gH_Document.FindObject(obj.InstanceGuid, false);
-                var incomingObj = incomingDoc.FindObject(obj.InstanceGuid, false);
-                if (localObj == null || incomingObj == null) continue;
-                incomingObj.Attributes.Pivot = localObj.Attributes.Pivot;
-            }
-        }
+        //private void MatchLocalComonentPivotPoints(GH_Document incomingDoc, GH_Document gH_Document)
+        //{
+        //    foreach (var obj in gH_Document.Objects)
+        //    {
+        //        var localObj = gH_Document.FindObject(obj.InstanceGuid, false);
+        //        var incomingObj = incomingDoc.FindObject(obj.InstanceGuid, false);
+        //        if (localObj == null || incomingObj == null) continue;
+        //        incomingObj.Attributes.Pivot = localObj.Attributes.Pivot;
+        //    }
+        //}
 
         private void MatchLocalInputComponentValues(GH_Document incomingDoc, List<Guid> localCompsGuids)
         {
@@ -1466,7 +1466,7 @@ namespace RemoSharp
                         incomingDocSlider.Slider.DecimalPlaces = thisDocSlider.Slider.DecimalPlaces;
                         incomingDocSlider.SetSliderValue(thisDocSlider.CurrentValue);
                         incomingDocSlider.ExpireSolution(false);
-                        incomingDocSlider.Attributes.Pivot = thisDocSlider.Attributes.Pivot;
+                        //incomingDocSlider.Attributes.Pivot = thisDocSlider.Attributes.Pivot;
 
                         //incomingDocSlider.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
 
@@ -1482,7 +1482,7 @@ namespace RemoSharp
                         incomingDocGH_Panel.Properties.DrawIndices = thisDocPanel.Properties.DrawIndices;
                         incomingDocGH_Panel.SetUserText(thisDocPanel.UserText);
                         incomingDocGH_Panel.ExpireSolution(false);
-                        incomingDocGH_Panel.Attributes.Pivot = thisDocPanel.Attributes.Pivot;
+                        //incomingDocGH_Panel.Attributes.Pivot = thisDocPanel.Attributes.Pivot;
 
                         //incomingDocGH_Panel.SolutionExpired += remoSetupComp.RemoParameterizePanel;
 
@@ -1492,7 +1492,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Special.GH_ColourSwatch incomingDocClolor = (Grasshopper.Kernel.Special.GH_ColourSwatch)incomingDocParam;
 
                         incomingDocClolor.SwatchColour = thisDocColor.SwatchColour;
-                        incomingDocClolor.Attributes.Pivot = thisDocColor.Attributes.Pivot;
+                        //incomingDocClolor.Attributes.Pivot = thisDocColor.Attributes.Pivot;
                         incomingDocClolor.ExpireSolution(false);
 
                         //incomingDocClolor.SolutionExpired += remoSetupComp.RemoParameterizeColor;
@@ -1506,7 +1506,7 @@ namespace RemoSharp
                         incomingMDSlider.XInterval = thisDocMDSlider.XInterval;
                         incomingMDSlider.YInterval = thisDocMDSlider.YInterval;
                         incomingMDSlider.Value = thisDocMDSlider.Value;
-                        incomingMDSlider.Attributes.Pivot = thisDocMDSlider.Attributes.Pivot;
+                        //incomingMDSlider.Attributes.Pivot = thisDocMDSlider.Attributes.Pivot;
                         incomingMDSlider.ExpireSolution(false);
 
                         //incomingMDSlider.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
@@ -1517,7 +1517,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Special.GH_BooleanToggle incomingDocToggle = (Grasshopper.Kernel.Special.GH_BooleanToggle)incomingDocParam;
 
                         incomingDocToggle.Value = thisDocToggle.Value;
-                        incomingDocToggle.Attributes.Pivot = thisDocToggle.Attributes.Pivot;
+                        //incomingDocToggle.Attributes.Pivot = thisDocToggle.Attributes.Pivot;
                         incomingDocToggle.ExpireSolution(false);
 
                         //incomingDocToggle.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
@@ -1527,7 +1527,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Special.GH_ButtonObject thisDocButton = (Grasshopper.Kernel.Special.GH_ButtonObject)thisDocParam;
                         Grasshopper.Kernel.Special.GH_ButtonObject incomingDocGH_ButtonObject = (Grasshopper.Kernel.Special.GH_ButtonObject)incomingDocParam;
 
-                        incomingDocGH_ButtonObject.Attributes.Pivot = thisDocButton.Attributes.Pivot;
+                        //incomingDocGH_ButtonObject.Attributes.Pivot = thisDocButton.Attributes.Pivot;
 
                         //incomingDocParam.SolutionExpired += remoSetupComp.RemoParameterizeButton;
 
@@ -1537,7 +1537,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Point incomingDocPoint = (Grasshopper.Kernel.Parameters.Param_Point)incomingDocParam;
 
                         incomingDocPoint.SetPersistentData(thisDocPoint.PersistentData);
-                        incomingDocPoint.Attributes.Pivot = thisDocPoint.Attributes.Pivot;
+                        //incomingDocPoint.Attributes.Pivot = thisDocPoint.Attributes.Pivot;
                         incomingDocPoint.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocPoint, false);
@@ -1548,7 +1548,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Vector incomingDocVector = (Grasshopper.Kernel.Parameters.Param_Vector)incomingDocParam;
 
                         incomingDocVector.SetPersistentData(thisDocVector.PersistentData);
-                        incomingDocVector.Attributes.Pivot = thisDocVector.Attributes.Pivot;
+                        //incomingDocVector.Attributes.Pivot = thisDocVector./*Attributes*/.Pivot;
                         incomingDocVector.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocVector, false);
@@ -1558,7 +1558,7 @@ namespace RemoSharp
                         Grasshopper.Kernel.Parameters.Param_Plane incomingDocPlane = (Grasshopper.Kernel.Parameters.Param_Plane)incomingDocParam;
 
                         incomingDocPlane.SetPersistentData(thisDocPlane.PersistentData);
-                        incomingDocPlane.Attributes.Pivot = thisDocPlane.Attributes.Pivot;
+                        //incomingDocPlane.Attributes.Pivot = thisDocPlane.Attributes.Pivot;
                         incomingDocPlane.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocPlane, false);

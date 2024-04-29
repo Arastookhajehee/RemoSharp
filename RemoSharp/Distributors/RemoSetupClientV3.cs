@@ -17,11 +17,14 @@ using RemoSharp.RemoParams;
 using System.Reflection;
 using GH_IO.Serialization;
 using Grasshopper.Kernel.Special;
+
 using static RemoSharp.RemoSetupClient;
 
 using System.Threading.Tasks;
 using Grasshopper;
 using System.Drawing.Drawing2D;
+using System.Timers;
+using System.Runtime.Remoting.Channels;
 
 
 
@@ -38,6 +41,9 @@ namespace RemoSharp.Distributors
     {
         public List<string> messages = new List<string>();
         public WebSocket client;
+        // periodic timber  for every 60 secs
+        System.Timers.Timer timer = new System.Timers.Timer(60000);
+        int timerCount = 0;
         string url = "";
         bool connect = false;
         bool preventUndo = true;
@@ -193,6 +199,9 @@ namespace RemoSharp.Distributors
                     this.Message = "Connecting...";
                     Task.Run(() => EstablishConnection(client));
 
+                    timer.Elapsed += Timer_Elapsed;
+                    timer.AutoReset = true; 
+                    timer.Start();
                     break;
                 case SubcriptionType.Unsubscribe:
                     client.OnMessage -= Client_OnMessage;
@@ -202,6 +211,9 @@ namespace RemoSharp.Distributors
                     {
                         this.Message = "Disconnected";
                     }
+                    timer.Elapsed -= Timer_Elapsed;
+                    timer.Stop();
+
                     break;
                 case SubcriptionType.Skip:
                     break;
@@ -216,6 +228,13 @@ namespace RemoSharp.Distributors
                     client.OnOpen += Client_OnOpen;
 
                     Task.Run(() => EstablishConnection(client));
+
+                    timer.Elapsed -= Timer_Elapsed;
+                    timer.Stop();
+                    timer.Elapsed += Timer_Elapsed;
+                    timer.Start();
+
+
 
                     break;
                 default:
@@ -332,6 +351,68 @@ namespace RemoSharp.Distributors
             }
         }
 
+        private void Timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            timerCount++;
+            if (timerCount > 100) timerCount = 0;
+
+            RemoNullCommand nullCommand = new RemoNullCommand(this.username); 
+            string connectionString = RemoCommand.SerializeToJson(nullCommand);
+            if (enable) client.Send(connectionString);
+            
+            if (timerCount % 2 == 0)
+            {
+                this.OnPingDocument().ScheduleSolution(1, doc => {
+                Dictionary<Guid, int> duplicates = FindDuplicateGuids(
+                    this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList());
+                foreach (var item in duplicates)
+                {
+                    if (item.Value > 1)
+                    {
+                        for (int i = 0; i < item.Value - 1; i++)
+                        {
+                            var obj = this.OnPingDocument().Objects.Where(o => o.InstanceGuid == item.Key).LastOrDefault();
+                            if (obj == null) continue;
+
+                            this.OnPingDocument().RemoveObject(obj, false);
+                        }
+                    }
+                }
+
+                });
+
+            }
+        }
+
+        // a function that finds duplicate guids and how many there are in a list. it returns a dictionary of guid and int
+        // if the int is greater than 1 
+        public Dictionary<Guid, int> FindDuplicateGuids(List<Guid> guids)
+        {
+            Dictionary<Guid, int> duplicateGuids = new Dictionary<Guid, int>();
+            
+            foreach (var guid in guids)
+            {
+                if (duplicateGuids.ContainsKey(guid))
+                {
+                    duplicateGuids[guid]++;
+                }
+                else
+                {
+                    duplicateGuids.Add(guid, 1);
+                }
+            }
+
+            // remove all single guids from the dictionary
+            foreach (var item in duplicateGuids.Where(obj => obj.Value == 1).ToList())
+            {
+                duplicateGuids.Remove(item.Key);
+            }
+
+            return duplicateGuids;
+        }
+
+
+
         private void EstablishConnection(WebSocket client)
         {
             client.Connect();
@@ -367,7 +448,7 @@ namespace RemoSharp.Distributors
             return true;
         }
 
-
+        
         private void ActiveCanvas_KeyUp(object sender, KeyEventArgs e)
         {
             if (DisconnectOnImproperClose()) return;
@@ -1054,13 +1135,13 @@ namespace RemoSharp.Distributors
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.downPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
             this.interaction = canvas.ActiveInteraction;
+            
 
-
-            DateTime dateTime = DateTime.Now;
-            if (dateTime.Subtract(this.recconnectTimer).Minutes > 2 )
-            {
-                Task.Run(() => EstablishConnection(client,true));
-            }
+            //DateTime dateTime = DateTime.Now;
+            //if (dateTime.Subtract(this.recconnectTimer).Minutes > 2 )
+            //{
+            //    Task.Run(() => EstablishConnection(client,true));
+            //}
         }
 
         private bool DisconnectOnImproperClose()
@@ -1099,6 +1180,20 @@ namespace RemoSharp.Distributors
             else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_SplitInteraction)
             {
                 SendRemoMoveAllCommand();
+            }
+            else if (interaction == null)
+            {
+                GH_Document doc = canvas.Document;
+
+                var lastAction = doc.UndoServer.FirstUndoName;
+
+                if (lastAction.Equals("Align"))
+                {
+                    SendRemoMoveCommand();
+                }
+
+
+
             }
 
 

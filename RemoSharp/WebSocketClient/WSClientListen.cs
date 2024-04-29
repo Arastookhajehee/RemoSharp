@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Grasshopper.Kernel;
 using RemoSharp.Distributors;
 using Rhino.Geometry;
@@ -46,7 +46,17 @@ namespace RemoSharp.WebSocketClient
             if (inputComponent is RemoSharp.WebSocketClient.WebSocketClient)
             {
                 WebSocketClient client = (WebSocketClient)inputComponent;
-                DA.SetDataList(0, client.messages);
+                if (!client.autoUpdate)
+                {
+                    string[] lastMessage = { client.messages[client.messages.Count - 1] };
+                    DA.SetDataList(0, lastMessage.ToList());
+                    client.messages.Clear();
+                    client.messages.AddRange(lastMessage);
+                }
+                else
+                {
+                    DA.SetDataList(0, client.messages);
+                }
             }
             else if (inputComponent is RemoSharp.RemoSetupClient) 
             {
