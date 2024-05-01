@@ -126,7 +126,7 @@ namespace RemoSharp
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddTextParameter("           Sever Address", "           Sever Address", "The Address of the public WebSocket Echo Server on Glitch.Com", GH_ParamAccess.item);
-            pManager.AddTextParameter("Server Template Info", "Server Template Info", "Github Repo WebSocket Echo Server template address" + "\r" + "This address can be used to make free WebSocket Echo Servers on Glitch.com", GH_ParamAccess.item);
+            //pManager.AddTextParameter("Server Template Info", "Server Template Info", "Github Repo WebSocket Echo Server template address" + "\r" + "This address can be used to make free WebSocket Echo Servers on Glitch.com", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -153,9 +153,9 @@ namespace RemoSharp
                 return;
             }
             string serverAddress = serverList[index - 1];
-            string serverTemplate = "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git";
+            //string serverTemplate = "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git";
             DA.SetData(0, serverAddress);
-            DA.SetData(1, serverTemplate);
+            //DA.SetData(1, serverTemplate);
 
         }
 

@@ -1215,40 +1215,6 @@ namespace RemoSharp
             return (IGH_Param)comp.Params.Input[remoRelay.targetIndex];
         }
 
-        private void ExecuteSelectRemoScriptCS(RemoScriptCS remoScriptCS)
-        {
-            System.Guid componentGuid = remoScriptCS.objectGuid;
-
-            var component = this.OnPingDocument().FindObject(componentGuid, false);
-
-            ScriptComponents.Component_CSNET_Script csComp = (ScriptComponents.Component_CSNET_Script)component;
-            
-            RemoSharpComponent remoSharpComp = null;
-            foreach (var item in csComp.Params.Output)
-            {
-                bool found = false;
-                if (found) break;
-                foreach (var rec in item.Recipients)
-                {
-                    if (rec.Attributes.Parent == null) continue;
-                    if (rec.Attributes.Parent.DocObject is RemoSharpComponent)
-                    {
-                        remoSharpComp = (RemoSharpComponent)rec.Attributes.Parent.DocObject;
-                        found = true;
-                    }
-                }
-            }
-
-            GH_LooseChunk sourceAttributes = DeserilizeXMLAttributes(remoScriptCS.xmlContent);
-
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                RelinkComponentWires(component, sourceAttributes);
-                remoSharpComp.prevScript = string.Format("{0}{1}{2}", csComp.ScriptSource.UsingCode, csComp.ScriptSource.ScriptCode, csComp.ScriptSource.AdditionalCode);
-                component.ExpireSolution(false);
-            });
-        }
-
         private void ExecuteRemoParameter(RemoParameter remoParameter)
         {
                     

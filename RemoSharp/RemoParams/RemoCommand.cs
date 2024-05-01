@@ -76,6 +76,7 @@ namespace RemoSharp.RemoCommandTypes
     {
         public string issuerID;
         public CommandType commandType;
+        public string sessionID;
         public Guid objectGuid;
         public int executionAttempts = 0;
         public bool executed = false;
@@ -333,12 +334,15 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoNullCommand : RemoCommand
     {
-        public RemoNullCommand(string issuerID)
+        public string password;
+        public RemoNullCommand(string issuerID, string password, string sessionID)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.NullCommand;
             this.objectGuid = Guid.Empty;
             this.commandID = Guid.NewGuid();
+            this.password = password;
+            this.sessionID = sessionID;
         }
         public RemoNullCommand()
         {
@@ -366,7 +370,7 @@ namespace RemoSharp.RemoCommandTypes
             // default constructor
         }
 
-        public RemoConnectInteraction(string issuerID, IGH_Param source, IGH_Param target,
+        public RemoConnectInteraction(string issuerID, string sessionID, IGH_Param source, IGH_Param target,
             RemoConnectType remoConnectType)
         {
             this.issuerID = issuerID;
@@ -375,6 +379,7 @@ namespace RemoSharp.RemoCommandTypes
             this.source = source;
             this.target = target;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
 
         }
 
@@ -399,7 +404,7 @@ namespace RemoSharp.RemoCommandTypes
             // default constructor
         }
 
-        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
+        public RemoConnect(string issuerID, string sessionID, Guid sourceObjectGuid, Guid targetObjectGuid,
             RemoConnectType remoConnectType,
             string sourceXML, string targetXML, string sourceType, string targetType)
         {
@@ -412,6 +417,8 @@ namespace RemoSharp.RemoCommandTypes
             this.targetXML = targetXML;
             this.sourceType = sourceType;
             this.targetType = targetType;
+            this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
         }
 
         public override string ToString()
@@ -432,6 +439,7 @@ namespace RemoSharp.RemoCommandTypes
         }
         // a constructor for general components
         public RemoCreate(string issuerID,
+            string sessionID,
             List<Guid> guids,
             List<string> associatedAttributes,
             List<string> componentTypes)
@@ -443,6 +451,7 @@ namespace RemoSharp.RemoCommandTypes
             this.attributeXMLs = associatedAttributes;
             this.componentTypes = componentTypes;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
         }
 
 
@@ -458,12 +467,13 @@ namespace RemoSharp.RemoCommandTypes
         public string xmlContent;
         public RemoScriptCS() { }
 
-        public RemoScriptCS(string issuerID, ScriptComponents.Component_CSNET_Script csComponent)
+        public RemoScriptCS(string issuerID, string sessionID, ScriptComponents.Component_CSNET_Script csComponent)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoScriptCS;
             this.objectGuid = csComponent.InstanceGuid;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
 
             GH_LooseChunk chunk = new GH_LooseChunk(null);
             csComponent.Write(chunk);
@@ -477,13 +487,14 @@ namespace RemoSharp.RemoCommandTypes
     {
         public List<Guid> objectGuids;
         public RemoDelete() { }
-        public RemoDelete(string issuerID, List<Guid> objectGuids)
+        public RemoDelete(string issuerID, string sessionID, List<Guid> objectGuids)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Delete;
             this.objectGuid = Guid.Empty;
             this.objectGuids = objectGuids;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
 
         }
 
@@ -498,7 +509,7 @@ namespace RemoSharp.RemoCommandTypes
         public Guid sourceGuid;
         public Guid targetGuid;
         public RemoReWire() { }
-        public RemoReWire(string issuerID,IGH_Param source, IGH_Param target)
+        public RemoReWire(string issuerID, string sessionID,IGH_Param source, IGH_Param target)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoReWire;
@@ -506,6 +517,7 @@ namespace RemoSharp.RemoCommandTypes
             this.sourceGuid = source.InstanceGuid;
             this.targetGuid = target.InstanceGuid;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
         }
     }
 
@@ -523,9 +535,10 @@ namespace RemoSharp.RemoCommandTypes
         public static List<string> specialComponentTypes = new List<string>()
         { };
 
-        public RemoPartialDoc(string issuerID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
+        public RemoPartialDoc(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.executed = false;
             this.objectGuid = Guid.Empty;
             this.commandID = Guid.NewGuid();
@@ -568,6 +581,7 @@ namespace RemoSharp.RemoCommandTypes
         public RemoRelay() { }
         public RemoRelay(
             string issuerID,
+            string sessionID,
             GH_Relay relayComponent,
             Guid sourceGuid,
             Guid targetGuid,
@@ -578,6 +592,7 @@ namespace RemoSharp.RemoCommandTypes
 
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoRelay;
             this.objectGuid = relayComponent.InstanceGuid;
             this.sourceGuid = sourceGuid;
@@ -611,9 +626,10 @@ namespace RemoSharp.RemoCommandTypes
         public int targetIndex = 0;
 
         public RemoUndo() { }
-        public RemoUndo(string issuerID, GH_DocUndoEventArgs e)
+        public RemoUndo(string issuerID, string sessionID, GH_DocUndoEventArgs e)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoUndo;
             this.objectGuid = Guid.Empty;
             var rec = e.Record;
@@ -704,9 +720,10 @@ namespace RemoSharp.RemoCommandTypes
 
         //constructor
         public RemoCompSync() { }
-        public RemoCompSync(string issuerID, List<IGH_DocumentObject> objects, GH_Document thisDoc)
+        public RemoCompSync(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document thisDoc)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoCompSync;
             this.objectGuid = Guid.Empty;
             
@@ -759,9 +776,10 @@ namespace RemoSharp.RemoCommandTypes
         public List<bool> states;
         public List<Guid> guids;
         public int timeSeconds;
-        public RemoLock(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
+        public RemoLock(string issuerID, string sessionID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Lock;
             this.objectGuid = Guid.Empty;
             this.states = states;
@@ -785,9 +803,10 @@ namespace RemoSharp.RemoCommandTypes
     {
         public int timeSeconds;
         public List<Guid> selectionGuids;
-        public RemoSelect(string issuerID, List<Guid> objectGuids, int timeSeconds)
+        public RemoSelect(string issuerID, string sessionID, List<Guid> objectGuids, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Select;
             this.objectGuid = Guid.Empty;
             this.timeSeconds = timeSeconds;
@@ -811,9 +830,10 @@ namespace RemoSharp.RemoCommandTypes
         public List<bool> states;
         public List<Guid> guids;
         public int timeSeconds;
-        public RemoHide(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
+        public RemoHide(string issuerID, string sessionID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Hide;
             this.objectGuid = Guid.Empty;
             this.states = states;
@@ -839,9 +859,10 @@ namespace RemoSharp.RemoCommandTypes
         public string persistentDataXML;
         public bool hasPersistentData;
         public RemoParameter() { }
-        public RemoParameter(string issuerID, IGH_DocumentObject parameter)
+        public RemoParameter(string issuerID, string sessionID, IGH_DocumentObject parameter)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoParameter;
             this.objectGuid = parameter.InstanceGuid;
             this.commandID = Guid.NewGuid();
@@ -995,10 +1016,11 @@ namespace RemoSharp.RemoCommandTypes
         public int sliderType;
 
         RemoParamSlider() { }
-        public RemoParamSlider(string issuerID,
+        public RemoParamSlider(string issuerID, string sessionID,
             GH_NumberSlider slider)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoSlider;
             this.objectGuid = slider == null ?Guid.Empty: slider.InstanceGuid;
             this.sliderValue = slider == null ? 0:slider.CurrentValue;
@@ -1023,10 +1045,11 @@ namespace RemoSharp.RemoCommandTypes
         public bool buttonValue;
 
         public RemoParamButton() { }
-        public RemoParamButton(string issuerID, GH_ButtonObject button
+        public RemoParamButton(string issuerID, string sessionID, GH_ButtonObject button
             )
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoButton;
             this.objectGuid = button == null ? Guid.Empty : button.InstanceGuid;
             this.buttonValue = button == null ? false : button.ButtonDown;
@@ -1046,9 +1069,10 @@ namespace RemoSharp.RemoCommandTypes
         // for toggle *
         public bool toggleValue;
         // for toggles
-        public RemoParamToggle(string issuerID, GH_BooleanToggle toggle)
+        public RemoParamToggle(string issuerID, string sessionID, GH_BooleanToggle toggle)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoToggle;
             this.objectGuid = toggle == null ? Guid.Empty : toggle.InstanceGuid;
             this.toggleValue = toggle == null ? false : toggle.Value;
@@ -1076,13 +1100,14 @@ namespace RemoSharp.RemoCommandTypes
         public RemoParamPanel() { }
 
         // for panels
-        public RemoParamPanel(string issuerID, GH_Panel panel)
+        public RemoParamPanel(string issuerID, string sessionID, GH_Panel panel)
         {
 
             GH_LooseChunk chunk = new GH_LooseChunk(null);
             panel.Write(chunk);
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPanel;
             this.objectGuid = panel == null ? Guid.Empty : panel.InstanceGuid;
             this.xmlContent = chunk.Serialize_Xml();
@@ -1106,9 +1131,10 @@ namespace RemoSharp.RemoCommandTypes
         public RemoParamColor() { }
 
         // color
-        public RemoParamColor(string issuerID, GH_ColourSwatch colourSwatch)
+        public RemoParamColor(string issuerID, string sessionID, GH_ColourSwatch colourSwatch)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoColor;
             this.objectGuid = colourSwatch == null ? Guid.Empty : colourSwatch.InstanceGuid;
             this.Red = colourSwatch == null ? 0 : colourSwatch.SwatchColour.R;
@@ -1136,10 +1162,11 @@ namespace RemoSharp.RemoCommandTypes
         public double maxBoundY;
         public RemoParamMDSlider() { }
 
-        public RemoParamMDSlider(string issuerID,
+        public RemoParamMDSlider(string issuerID, string sessionID,
             GH_MultiDimensionalSlider mdSlider, bool approximate)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoMDSlider;
             this.objectGuid = mdSlider == null ? Guid.Empty : mdSlider.InstanceGuid;
             this.ValueX = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
@@ -1164,7 +1191,7 @@ namespace RemoSharp.RemoCommandTypes
         public List<string> pointsAndTreePath;
         public string pointXML;
         public RemoParamPoint3d() { }
-        public RemoParamPoint3d(string issuerID, Param_Point pointComponent, GH_Structure<GH_Point> pntTree, bool approximate)
+        public RemoParamPoint3d(string issuerID, string sessionID, Param_Point pointComponent, GH_Structure<GH_Point> pntTree, bool approximate)
         {
             
             List<string> pointsAndTreePath = new List<string>();
@@ -1185,6 +1212,7 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPoint3d;
             this.objectGuid = pointComponent.InstanceGuid;
             this.pointsAndTreePath = pointsAndTreePath;
@@ -1216,7 +1244,7 @@ namespace RemoSharp.RemoCommandTypes
         // for vector3d
         public List<string> vectorsAndTreePath;
         public RemoParamVector3d() { }
-        public RemoParamVector3d(string issuerID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
+        public RemoParamVector3d(string issuerID, string sessionID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
         {
 
             List<string> vectorsAndTreePath = new List<string>();
@@ -1237,6 +1265,7 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoVector3d;
             this.objectGuid = vectorComponent.InstanceGuid;
             this.vectorsAndTreePath = vectorsAndTreePath;
@@ -1255,7 +1284,7 @@ namespace RemoSharp.RemoCommandTypes
         public List<string> planesAndTreePath;
 
         public RemoParamPlane() { }
-        public RemoParamPlane(string issuerID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
+        public RemoParamPlane(string issuerID, string sessionID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
         {
 
             List<string> planesAndTreePath = new List<string>();
@@ -1285,6 +1314,7 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPlane;
             this.objectGuid = planeComponent.InstanceGuid;
             this.planesAndTreePath = planesAndTreePath;
@@ -1304,9 +1334,10 @@ namespace RemoSharp.RemoCommandTypes
         public List<Guid> selectedObjs;
         public float zoomLevel;
         public RemoCanvasView() { }
-        public RemoCanvasView(string issuerID, List<IGH_DocumentObject> objs, float zoomLevel )
+        public RemoCanvasView(string issuerID, string sessionID, List<IGH_DocumentObject> objs, float zoomLevel )
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.CanvasViewport;
             this.commandID = Guid.NewGuid();
             this.selectedObjs = objs.Select(obj => obj.InstanceGuid).ToList();
@@ -1339,9 +1370,10 @@ namespace RemoSharp.RemoCommandTypes
         
         public Dictionary<Guid, System.Drawing.PointF> objectCoords;
 
-        public RemoMove(string issuerID, List<IGH_DocumentObject> objs)
+        public RemoMove(string issuerID, string sessionID, List<IGH_DocumentObject> objs)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.objectGuid = Guid.Empty;
             this.commandType = CommandType.MoveComponent;
             
@@ -1364,9 +1396,10 @@ namespace RemoSharp.RemoCommandTypes
 
         public RemoCanvasSync() { }
 
-        public RemoCanvasSync(string issuerID, string xmlString)
+        public RemoCanvasSync(string issuerID, string sessionID, string xmlString)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoCanvasSync;
             this.objectGuid = Guid.Empty;
             this.xmlString = xmlString;

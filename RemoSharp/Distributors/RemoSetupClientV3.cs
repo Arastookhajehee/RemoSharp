@@ -17,9 +17,6 @@ using RemoSharp.RemoParams;
 using System.Reflection;
 using GH_IO.Serialization;
 using Grasshopper.Kernel.Special;
-
-using static RemoSharp.RemoSetupClient;
-
 using System.Threading.Tasks;
 using Grasshopper;
 using System.Drawing.Drawing2D;
@@ -44,8 +41,6 @@ namespace RemoSharp.Distributors
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
         int timerCount = 0;
-        string url = "";
-        bool connect = false;
         bool preventUndo = true;
         bool controlDown = false;
         bool shiftDown = false;
@@ -67,8 +62,10 @@ namespace RemoSharp.Distributors
 
         public List<Guid> remoCommandIDs = new List<Guid>();
 
+        string url = "";
         public string username = "";
         public string password = "";
+        public string sessionID = "";
 
         float[] downPnt = { 0, 0 };
         float[] upPnt = { 0, 0 };
@@ -113,13 +110,9 @@ namespace RemoSharp.Distributors
             AddCustomControl(undoPreventionSwitch);
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
-            pManager.AddBooleanParameter("connect", "connect", "", GH_ParamAccess.item);
-            //pManager.AddBooleanParameter("KeepAlive", "keepAlive", "", GH_ParamAccess.item);
-
-            pManager.AddTextParameter("Username", "user", "This Computer's Username", GH_ParamAccess.item, "");
-            pManager.AddTextParameter("Password", "pass", "Password to this session", GH_ParamAccess.item, "password");
-            pManager.AddBooleanParameter("syncSend", "syncSend", "Syncs this grasshopper script for all other connected clients", GH_ParamAccess.item, false);
-
+            pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
+            pManager.AddTextParameter("username", "user", "This Computer's Username", GH_ParamAccess.item, "");
+            pManager.AddTextParameter("password", "pass", "Password to this session", GH_ParamAccess.item, "password");
         }
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -356,7 +349,7 @@ namespace RemoSharp.Distributors
             timerCount++;
             if (timerCount > 100) timerCount = 0;
 
-            RemoNullCommand nullCommand = new RemoNullCommand(this.username); 
+            RemoNullCommand nullCommand = new RemoNullCommand(this.username,this.password, this.sessionID); 
             string connectionString = RemoCommand.SerializeToJson(nullCommand);
             if (enable) client.Send(connectionString);
             
@@ -416,7 +409,7 @@ namespace RemoSharp.Distributors
         private void EstablishConnection(WebSocket client)
         {
             client.Connect();
-            RemoNullCommand nullCommand = new RemoNullCommand(this.username);
+            RemoNullCommand nullCommand = new RemoNullCommand(this.username, this.password, this.sessionID);
             string connectionString = RemoCommand.SerializeToJson(nullCommand);
             client.Send(connectionString);
             if (client.IsAlive) this.Message = "Connected";
@@ -811,7 +804,7 @@ namespace RemoSharp.Distributors
 
             if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
             {
-                RemoParamMDSlider remoParam = new RemoParamMDSlider(this.username, param, false);
+                RemoParamMDSlider remoParam = new RemoParamMDSlider(this.username, this.sessionID, param, false);
                 string json = RemoCommand.SerializeToJson(remoParam);
                 if (this.enable) this.client.Send(json);
             }
@@ -826,7 +819,7 @@ namespace RemoSharp.Distributors
 
             if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
             {
-                RemoParamToggle remoParam = new RemoParamToggle(this.username, param);
+                RemoParamToggle remoParam = new RemoParamToggle(this.username, this.sessionID, param);
                 string json = RemoCommand.SerializeToJson(remoParam);
                 if (this.enable) this.client.Send(json);
             }
@@ -841,7 +834,7 @@ namespace RemoSharp.Distributors
 
             if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected)
             {
-                RemoParamColor remoParam = new RemoParamColor(this.username, param);
+                RemoParamColor remoParam = new RemoParamColor(this.username, this.sessionID, param);
                 string json = RemoCommand.SerializeToJson(remoParam);
                 if (this.enable) this.client.Send(json);
             }
@@ -856,7 +849,7 @@ namespace RemoSharp.Distributors
 
             if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
             {
-                RemoParamPanel remoParam = new RemoParamPanel(this.username, param);
+                RemoParamPanel remoParam = new RemoParamPanel(this.username, this.sessionID, param);
                 string json = RemoCommand.SerializeToJson(remoParam);
                 if (this.enable) this.client.Send(json);
             }
@@ -872,7 +865,7 @@ namespace RemoSharp.Distributors
             if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
             {
 
-                RemoParamButton remoParam = new RemoParamButton(this.username, param);
+                RemoParamButton remoParam = new RemoParamButton(this.username, this.sessionID, param);
                 string json = RemoCommand.SerializeToJson(remoParam);
                 if (this.enable) this.client.Send(json);
             }
@@ -918,7 +911,7 @@ namespace RemoSharp.Distributors
                 if (status.tabKeyIsDown && status.isRemoParamGrouped)
                 {
 
-                    RemoParamSlider remoParamSlider = new RemoParamSlider(this.username, param);
+                    RemoParamSlider remoParamSlider = new RemoParamSlider(this.username, this.sessionID, param);
                     string json = RemoCommand.SerializeToJson(remoParamSlider);
                     if (this.enable) this.client.Send(json);
                 }
@@ -1033,6 +1026,29 @@ namespace RemoSharp.Distributors
 
         }
 
+        public class IGH_ParamConditionStatus
+        {
+            public bool isSelected;
+            public bool noInput;
+            public bool tabKeyIsDown;
+            public bool mouseHoverOnExpiredParam;
+            public bool paramIsNotPointComp;
+            public bool isRemoParamGrouped;
+
+            public IGH_ParamConditionStatus
+                (bool isSelected, bool noInput, bool tabKeyIsDown, bool isRemoParamGrouped,
+             bool mouseHoverOnExpiredParam, bool paramIsNotPointComp)
+            {
+                this.isSelected = isSelected;
+                this.noInput = noInput;
+                this.tabKeyIsDown = tabKeyIsDown;
+                this.isRemoParamGrouped = isRemoParamGrouped;
+                this.mouseHoverOnExpiredParam = mouseHoverOnExpiredParam;
+                this.paramIsNotPointComp = paramIsNotPointComp;
+            }
+
+        }
+
         IGH_ParamConditionStatus FindIGH_ParamStatus(IGH_Param param)
         {
             bool isSelected = param.Attributes.Selected;
@@ -1083,7 +1099,7 @@ namespace RemoSharp.Distributors
 
         private void Client_OnOpen(object sender, EventArgs e)
         {
-            RemoNullCommand nullCommand = new RemoNullCommand(username);
+            RemoNullCommand nullCommand = new RemoNullCommand(this.username, this.password, this.sessionID);
             string connectionString = RemoCommand.SerializeToJson(nullCommand);
             client.Send(connectionString);
         }
@@ -1211,7 +1227,7 @@ namespace RemoSharp.Distributors
               .GetValue(interaction) as IGH_Param;
 
 
-            command = new RemoReWire(this.username, source, target);
+            command = new RemoReWire(this.username, this.sessionID, source, target);
 
             SendCommands(this, command, commandRepeat, enable);
         }
@@ -1226,7 +1242,7 @@ namespace RemoSharp.Distributors
             if (selection.Count != 0)
             {
 
-                command = new RemoMove(username, selection.ToList());
+                command = new RemoMove(this.username, this.sessionID, selection.ToList());
                 SendCommands(this, command, commandRepeat, enable);
             }
 
@@ -1242,7 +1258,7 @@ namespace RemoSharp.Distributors
             if (selection.Count != 0)
             {
 
-                command = new RemoMove(username, selection);
+                command = new RemoMove(this.username, this.sessionID, selection);
                 SendCommands(this, command, commandRepeat, enable);
             }
 
@@ -1298,7 +1314,7 @@ namespace RemoSharp.Distributors
             string sourceType = souceComp.GetType().FullName;
             string targetType = targetComp.GetType().FullName;
 
-            command = new RemoConnect(this.username, souceComp.InstanceGuid, targetComp.InstanceGuid, remoConnectType,
+            command = new RemoConnect(this.username, this.sessionID, souceComp.InstanceGuid, targetComp.InstanceGuid, remoConnectType,
                 outCompXML, inCompXML, sourceType, targetType);
             SendCommands(this, command, commandRepeat, enable);
         }
@@ -1370,7 +1386,7 @@ namespace RemoSharp.Distributors
                 deleteGuids.Add(obj.InstanceGuid);
             }
 
-            command = new RemoDelete(username, deleteGuids);
+            command = new RemoDelete(this.username, this.sessionID, deleteGuids);
             SendCommands(this, command, commandRepeat, enable);
 
             //GH_Document temp = new GH_Document();
@@ -1381,7 +1397,7 @@ namespace RemoSharp.Distributors
 
         private void Client_OnMessage(object sender, MessageEventArgs e)
         {
-            if (e.Data.Equals(RemoSetupClient.DISCONNECTION_KEYWORD))
+            if (e.Data.Equals(RemoSetupClientV3.DISCONNECTION_KEYWORD))
             {
                 client.OnMessage -= Client_OnMessage;
                 client.OnOpen -= Client_OnOpen;
@@ -1437,7 +1453,7 @@ namespace RemoSharp.Distributors
 
                     var selection = activeDoc.SelectedObjects();
 
-                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, objs, activeDoc);
+                    RemoPartialDoc remoPartialDoc = new RemoPartialDoc(this.username, this.sessionID, objs, activeDoc);
 
                     //IGH_Param newRelay = activeDoc.FindObject<IGH_Param>(relayGuid, false);
                     //foreach (var target in relayRecepients)
@@ -1490,8 +1506,8 @@ namespace RemoSharp.Distributors
                 int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
                 //PointF wscButtonPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
-                PointF wscTogglePivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
                 PointF triggerPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 415 + yShift);
+                PointF sessionPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift - 45);
                 PointF panelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift);
                 PointF passPanelPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 170 + yShift + 45);
                 //PointF wscPivot = new PointF(pivot.X + xShift + 150, pivot.Y - 336 + yShift);
@@ -1508,14 +1524,6 @@ namespace RemoSharp.Distributors
                 //wscButton.Attributes.Pivot = wscButtonPivot;
                 //wscButton.NickName = "RemoSetup";
 
-                // toggle
-                Grasshopper.Kernel.Special.GH_BooleanToggle wscToggle = new Grasshopper.Kernel.Special.GH_BooleanToggle();
-                wscToggle.CreateAttributes();
-                wscToggle.Attributes.Pivot = wscTogglePivot;
-                wscToggle.NickName = "RemoSetup";
-                wscToggle.Value = true;
-                wscToggle.ExpireSolution(false);
-
                 // RemoSharp trigger
                 var trigger = new Grasshopper.Kernel.Special.GH_Timer();
                 trigger.CreateAttributes();
@@ -1531,13 +1539,24 @@ namespace RemoSharp.Distributors
                 targetComp.Params.RepairParamAssociations();
                 targetComp.NickName = "RemoSetup";
 
+                // session
+                var sessionPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                sessionPanel.CreateAttributes();
+                sessionPanel.Attributes.Pivot = sessionPivot;
+                sessionPanel.Attributes.Bounds = new Rectangle((int)sessionPivot.X, (int)sessionPivot.Y, 100, 45);
+                // generate a 6 character random password with upper and lower case letters and numbers
+                // do not use GUID to generate the password
+                string sessionName = Guid.NewGuid().ToString().Substring(0, 6);
+                sessionPanel.SetUserText(sessionName);
+                sessionPanel.NickName = "RemoSetup";
+
                 // componentName
-                var panel = new Grasshopper.Kernel.Special.GH_Panel();
-                panel.CreateAttributes();
-                panel.Attributes.Pivot = panelPivot;
-                panel.Attributes.Bounds = new Rectangle((int)panelPivot.X, (int)panelPivot.Y, 100, 45);
-                panel.SetUserText("username");
-                panel.NickName = "RemoSetup";
+                var usernamePanel = new Grasshopper.Kernel.Special.GH_Panel();
+                usernamePanel.CreateAttributes();
+                usernamePanel.Attributes.Pivot = panelPivot;
+                usernamePanel.Attributes.Bounds = new Rectangle((int)panelPivot.X, (int)panelPivot.Y, 100, 45);
+                usernamePanel.SetUserText("username");
+                usernamePanel.NickName = "RemoSetup";
 
                 // componentName
                 var passPanel = new Grasshopper.Kernel.Special.GH_Panel();
@@ -1581,50 +1600,31 @@ namespace RemoSharp.Distributors
 
                 #endregion
 
-                var addressOutPuts = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -119, -318 + yShift, true);
+                var addressOutPut = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, -119, -318 + yShift, true);
 
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
 
-
-                    //this.OnPingDocument().AddObject(wscButton, true);
-                    this.OnPingDocument().AddObject(wscToggle, true);
-                    //this.OnPingDocument().AddObject(bffComp, true);
-                    //this.OnPingDocument().AddObject(bffTrigger, true);
                     this.OnPingDocument().AddObject(trigger, true);
                     this.OnPingDocument().AddObject(targetComp, true);
-                    this.OnPingDocument().AddObject(panel, true);
+                    this.OnPingDocument().AddObject(sessionPanel, true);
+                    this.OnPingDocument().AddObject(usernamePanel, true);
                     this.OnPingDocument().AddObject(passPanel, true);
-                    //this.OnPingDocument().AddObject(wscComp, true);
                     this.OnPingDocument().AddObject(listenComp, true);
-                    //this.OnPingDocument().AddObject(commandCompButton, true);
                     this.OnPingDocument().AddObject(commandComp, true);
 
-                    /*
-                    wscButton wscToggle bffComp
-                    bffTrigger trigger targetComp
-                    panel wscComp idToggle
-                    listenComp sendIDComp sendComp
-                    listendIDComp commandComp
-                    */
-
-                    //bffComp.Params.Input[0].AddSource(wscButton);
-                    //bffComp.Params.Input[1].AddSource(wscToggle);
-                    targetComp.Params.Input[0].AddSource(panel);
+                    targetComp.Params.Input[0].AddSource(usernamePanel);
                     targetComp.Params.Input[1].AddSource(this.Params.Output[0]);
-                    this.Params.Input[2].AddSource(panel);
-                    //this.Params.Input[1].AddSource(wscComp.Params.Output[0]);
+                    this.Params.Input[1].AddSource(sessionPanel);
+                    this.Params.Input[2].AddSource(usernamePanel);
                     this.Params.Input[3].AddSource(passPanel);
-                    //this.Params.Input[4].AddSource(commandCompButton);
-                    this.Params.Input[0].AddSource(addressOutPuts[0]);
-                    //this.Params.Input[1].AddSource(wscButton);
-                    this.Params.Input[1].AddSource(wscToggle);
+                    this.Params.Input[0].AddSource(addressOutPut);
 
                     listenComp.Params.Input[0].AddSource(this.Params.Output[0]);
 
                     commandComp.Params.Input[0].AddSource(listenComp.Params.Output[0]);
-                    commandComp.Params.Input[1].AddSource(panel);
+                    commandComp.Params.Input[1].AddSource(usernamePanel);
                     //commandComp.Params.Input[2].AddSource(commandCompButton);
 
                     //bffTrigger.AddTarget(bffTriggerTarget);
@@ -1888,12 +1888,12 @@ namespace RemoSharp.Distributors
 
             if (sender is GH_ButtonObject)
             {
-                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, (GH_ButtonObject) sender);
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject) sender);
                 SendCommands(remoSetupComp, remoParamButton, 1, enable);
                 return;
             }
 
-            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, sender);
+            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
 
             SendCommands(remoSetupComp, remoParameter, 1, enable);
 
@@ -1946,7 +1946,7 @@ namespace RemoSharp.Distributors
             saveDoc.Write(toSendChunk);
             string xml = toSendChunk.Serialize_Xml();
 
-            RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, xml);
+            RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, this.sessionID, xml);
             string syncCommand = RemoCommand.SerializeToJson(remoCanvasSync);
 
             if (remoclientv3.enable)
@@ -1989,7 +1989,7 @@ namespace RemoSharp.Distributors
 
                     //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
-                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, selectionObjs.ToList(), thisDoc);
+                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, this.sessionID, selectionObjs.ToList(), thisDoc);
 
 
                     RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
@@ -2094,7 +2094,7 @@ namespace RemoSharp.Distributors
             
             var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
 
-            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, thisDoc.SelectedObjects(), zoomLevel);
+            RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, this.sessionID, thisDoc.SelectedObjects(), zoomLevel);
             RemoSetupClientV3.SendCommands(setupComp, remoCanvasView, commandRepeat, enable);
         }
 
@@ -2111,7 +2111,7 @@ namespace RemoSharp.Distributors
             {
                 slectionGuids.Add(item.InstanceGuid);
             }
-            RemoSelect cmd = new RemoSelect(setupComp.username, slectionGuids, DateTime.Now.Second);
+            RemoSelect cmd = new RemoSelect(setupComp.username, setupComp.sessionID, slectionGuids, DateTime.Now.Second);
             RemoSetupClientV3.SendCommands(setupComp, cmd, commandRepeat, enable);
         }
 
@@ -2132,16 +2132,9 @@ namespace RemoSharp.Distributors
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             DA.GetData(0, ref url);
-            DA.GetData(1, ref connect);
-            //DA.GetData(2, ref keepAlive);
-
-            bool syncThisCanvas = false;
-
-            // getting the username information
+            DA.GetData(1, ref sessionID);
             DA.GetData(2, ref username);
-            //DA.GetData(1, ref client);
             DA.GetData(3, ref password);
-            DA.GetData(4, ref syncThisCanvas);
         }
 
         /// <summary>

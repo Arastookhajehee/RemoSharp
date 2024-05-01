@@ -58,11 +58,6 @@ namespace RemoSharp.WebSocketClient
                     DA.SetDataList(0, client.messages);
                 }
             }
-            else if (inputComponent is RemoSharp.RemoSetupClient) 
-            {
-                RemoSetupClient client = (RemoSetupClient)inputComponent;
-                DA.SetDataList(0, client.messages);
-            }
             else if (inputComponent is RemoSetupClientV3)
             {
                 RemoSetupClientV3 client = (RemoSetupClientV3)inputComponent;

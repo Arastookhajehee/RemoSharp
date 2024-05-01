@@ -89,7 +89,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Distributors\RemoSetupClient.cs" />
     <Compile Include="Distributors\RemoSetupClientV3.cs" />
     <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
     <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
@@ -119,7 +118,6 @@
     </Compile>
     <Compile Include="RemoCSharp\ServerAddress.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
-    <Compile Include="RemoCSharp\RemoSharpComponent.cs" />
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
     <Compile Include="RemoGeom\RemoGeomParser.cs" />
     <Compile Include="RemoGeom\RemoGeomStreamer.cs" />

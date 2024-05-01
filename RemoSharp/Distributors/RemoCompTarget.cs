@@ -161,7 +161,7 @@ namespace RemoSharp
 
                 if (!notFound)
                 {
-                    RemoHide cmd = new RemoHide(this.username, guids, states, DateTime.Now.Second);
+                    RemoHide cmd = new RemoHide(this.username, "", guids, states, DateTime.Now.Second);
                     string cmdJson = RemoCommand.SerializeToJson(cmd);
 
                     for (int i = 0; i < commandRepeat; i++)
@@ -202,7 +202,7 @@ namespace RemoSharp
 
                     }
 
-                    RemoLock cmd = new RemoLock(this.username, guids, states, DateTime.Now.Second);
+                    RemoLock cmd = new RemoLock(this.username, "", guids, states, DateTime.Now.Second);
                     string cmdJson = RemoCommand.SerializeToJson(cmd);
                     
                     for (int i = 0; i < commandRepeat; i++)

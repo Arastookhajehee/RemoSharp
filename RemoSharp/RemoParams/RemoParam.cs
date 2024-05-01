@@ -23,6 +23,7 @@ using System.Reflection.Emit;
 using GH_IO.Serialization;
 using Grasshopper.Documentation;
 using Grasshopper;
+using RemoSharp.Distributors;
 
 namespace RemoSharp.RemoParams
 {
@@ -40,7 +41,7 @@ namespace RemoSharp.RemoParams
 
         string username = "";
         string password = "";
-        RemoSetupClient remoSetupClient = null;
+        RemoSetupClientV3 remoSetupClient = null;
         public string message = "";
 
 
@@ -168,7 +169,7 @@ namespace RemoSharp.RemoParams
         private void FindRemoSetupComponent()
         {
 
-            var remoSetupComps = this.OnPingDocument().Objects.Where(obj => obj is RemoSharp.RemoSetupClient).FirstOrDefault();
+            var remoSetupComps = this.OnPingDocument().Objects.Where(obj => obj is RemoSharp.Distributors.RemoSetupClientV3).FirstOrDefault();
             if (remoSetupComps == null)
             {
                 string errorString = "A single RemoSetupClient Component is required for RemoParam" +
@@ -177,7 +178,7 @@ namespace RemoSharp.RemoParams
                 return;
             }
 
-            RemoSetupClient remoSetupClient = (RemoSetupClient)remoSetupComps;
+            RemoSetupClientV3 remoSetupClient = (RemoSetupClientV3)remoSetupComps;
 
             this.username = remoSetupClient.username;
             this.password = remoSetupClient.password;
