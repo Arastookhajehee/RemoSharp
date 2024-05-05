@@ -39,6 +39,7 @@ namespace RemoSharp
     public class CommandExecutor : GHCustomComponent
     {
         public bool enable = false;
+        public string username = "";
         
         List<WireHistory> wireHistories = new List<WireHistory>();
 
@@ -107,7 +108,6 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Commands", "Cmds", "Selection, Deletion, Push/Pull Commands.", GH_ParamAccess.list, "");
-            pManager.AddTextParameter("Username", "User", "This PC's Username", GH_ParamAccess.item, "");
         }
 
         /// <summary>
@@ -125,8 +125,7 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            string username = "";
-            if (!DA.GetData(1, ref username)) return;
+            if (string.IsNullOrEmpty(this.username) || this.username.ToUpper().Equals("USERNAME")) GetUsernameFromRemoSetupClientV3();
 
             int maxErrorCount = 30;
             int errorCount = this.errors.Count;
@@ -277,7 +276,7 @@ namespace RemoSharp
                             break;
                         case (CommandType.RemoReWire):
                             RemoReWire reWireCommand = (RemoReWire)remoCommand;
-                            
+
                             ExecuteRemoReWire(reWireCommand);
 
                             break;
@@ -492,9 +491,9 @@ namespace RemoSharp
                             #endregion
                             #region componentCreation
                             case (CommandType.Create):
-                                //RemoCreate createCommand = (RemoCreate)remoCommand;
-                                //ExecuteCreate(createCommand);
-                                //break;
+                            //RemoCreate createCommand = (RemoCreate)remoCommand;
+                            //ExecuteCreate(createCommand);
+                            //break;
                             #endregion
                             #region relayCreation
                             case (CommandType.RemoRelay):
@@ -652,6 +651,19 @@ namespace RemoSharp
 
         }
 
+        private void GetUsernameFromRemoSetupClientV3()
+        {
+            var remoSetupComponent = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
+            if (remoSetupComponent == null)
+            {
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "RemoSetupClientV3 Component Not Found!");
+                return;
+            }
+            if (string.IsNullOrEmpty(remoSetupComponent.username) || remoSetupComponent.username.ToUpper().Equals("USERNAME")) return;
+
+            this.username = remoSetupComponent.username;
+        }
+
         private void ExecuteRemoReWire(RemoReWire reWireCommand)
         {
             System.Guid sourceId = reWireCommand.sourceGuid;
@@ -805,6 +817,100 @@ namespace RemoSharp
                 }
 
                 sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+                return;
+
+            });
+
+        }
+
+        public static void ExecuteRemoPartialDoc(GH_Document thisDoc, RemoPartialDoc remoPartialDoc, bool ignoreSubscriptions)
+        {
+
+            GH_Document tempDoc = new GH_Document();
+            GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
+            tempDoc.Read(chunk);
+
+            thisDoc.ScheduleSolution(1, doc =>
+            {
+                try
+                {
+                    var selection = thisDoc.SelectedObjects();
+                    thisDoc.DeselectAll();
+
+                    thisDoc.MergeDocument(tempDoc, true, true);
+
+                    Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
+                    bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
+                    List<IGH_Param> relayRecepients = new List<IGH_Param>();
+                    if (incomingSingleRelay)
+                    {
+                        Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
+                        relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
+                            .Select(obj => thisDoc.FindObject<IGH_Param>(obj, false)));
+
+                        IGH_Param sourceParam = thisDoc.FindObject<IGH_Param>(relaySourceParamGuid, false);
+                        foreach (var recepient in relayRecepients)
+                        {
+                            recepient.RemoveSource(sourceParam);
+                        }
+                    }
+
+                    foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
+                    {
+                        GhPython.Component.ZuiPythonComponent zuiPythonComponent =
+                        (GhPython.Component.ZuiPythonComponent)thisDoc.FindObject(item.componentGuid, false);
+
+                        var wires = item.inputGuidsDictionary;
+                        for (int i = 0; i < wires.Count; i++)
+                        {
+                            List<Guid> inputs = wires[i];
+                            foreach (var source in inputs)
+                            {
+                                zuiPythonComponent.Params.Input[i].AddSource((IGH_Param)thisDoc.FindObject(source, false));
+                            }
+                        }
+
+                    }
+
+                    if (incomingSingleRelay)
+                    {
+                        IGH_Param relayParam = thisDoc.FindObject<IGH_Param>(singleComponentGuid, false);
+                        foreach (var item in relayRecepients)
+                        {
+                            item.AddSource(relayParam);
+                        }
+                    }
+
+                    for (int i = 0; i < remoPartialDoc.compXMLs.Count; i++)
+                    {
+                        string comXml = remoPartialDoc.compXMLs[i];
+                        Guid guid = remoPartialDoc.compGuids[i];
+
+                        thisDoc.FindObject(guid, false).Read(RemoCommand.DeserializeFromXML(comXml));
+
+                    }
+
+                    GH_Document dummyDoc = new GH_Document();
+                    thisDoc.MergeDocument(dummyDoc, true, true);
+
+                    thisDoc.DeselectAll();
+
+                    foreach (var item in selection)
+                    {
+                        item.Attributes.Selected = true;
+                    }
+                    foreach (var item in remoPartialDoc.compGuids)
+                    {
+                        IGH_DocumentObject newObj = thisDoc.FindObject(item, false);
+                        newObj.Attributes.Selected = false;
+                    }
+
+                }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);
+                }
+
                 return;
 
             });

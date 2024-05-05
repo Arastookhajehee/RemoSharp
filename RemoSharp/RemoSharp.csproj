@@ -96,6 +96,19 @@
     <Compile Include="RemoGeom\WriteToFile.cs" />
     <Compile Include="RemoParams\RemoParamData.cs" />
     <Compile Include="RemoParams\RemoParamUtilities.cs" />
+    <Compile Include="Utilities\LoginDialouge.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utilities\LoginDialouge.Designer.cs">
+      <DependentUpon>LoginDialouge.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Utilities\SaveToFileDialouge.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utilities\SaveToFileDialouge.Designer.cs">
+      <DependentUpon>SaveToFileDialouge.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Utilities\SerializeToFile.cs" />
     <Compile Include="Utilities\GetObjByTag.cs" />
     <Compile Include="Utilities\UniqueValues.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
@@ -144,6 +157,9 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utilities\LoginDialouge.resx">
+      <DependentUpon>LoginDialouge.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

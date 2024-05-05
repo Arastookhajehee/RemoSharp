@@ -31,6 +31,7 @@ namespace RemoSharp.RemoCommandTypes
 
     public enum CommandType
     {
+        ServerKeepAlive = -2,
         ServerDisconnect = -1,
         NullCommand = 0, // done
         MoveComponent = 1,
@@ -330,6 +331,14 @@ namespace RemoSharp.RemoCommandTypes
             return remoCommand;
         }
 
+    }
+
+    public class RemoKeepAlive : RemoCommand
+    {
+        public RemoKeepAlive()
+        {
+            this.commandType = CommandType.ServerKeepAlive;
+        }
     }
 
     public class RemoNullCommand : RemoCommand
