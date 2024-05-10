@@ -830,6 +830,8 @@ namespace RemoSharp
             GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
             tempDoc.Read(chunk);
 
+            
+
             thisDoc.ScheduleSolution(1, doc =>
             {
                 try
@@ -839,56 +841,11 @@ namespace RemoSharp
 
                     thisDoc.MergeDocument(tempDoc, true, true);
 
-                    Guid singleComponentGuid = tempDoc.Objects[0].InstanceGuid;
-                    bool incomingSingleRelay = tempDoc.Objects.Count == 1 && tempDoc.Objects[0] is GH_Relay;
-                    List<IGH_Param> relayRecepients = new List<IGH_Param>();
-                    if (incomingSingleRelay)
-                    {
-                        Guid relaySourceParamGuid = remoPartialDoc.relayConnections.Keys.FirstOrDefault();
-                        relayRecepients.AddRange(remoPartialDoc.relayConnections[relaySourceParamGuid]
-                            .Select(obj => thisDoc.FindObject<IGH_Param>(obj, false)));
+                    GH_DocumentIO docIO = new GH_DocumentIO(thisDoc);
+                    docIO.Copy(GH_ClipboardType.Local, remoPartialDoc.compGuids);
 
-                        IGH_Param sourceParam = thisDoc.FindObject<IGH_Param>(relaySourceParamGuid, false);
-                        foreach (var recepient in relayRecepients)
-                        {
-                            recepient.RemoveSource(sourceParam);
-                        }
-                    }
+                    docIO.Paste(GH_ClipboardType.Local);
 
-                    foreach (WireHistory item in remoPartialDoc.pythonWireHistories)
-                    {
-                        GhPython.Component.ZuiPythonComponent zuiPythonComponent =
-                        (GhPython.Component.ZuiPythonComponent)thisDoc.FindObject(item.componentGuid, false);
-
-                        var wires = item.inputGuidsDictionary;
-                        for (int i = 0; i < wires.Count; i++)
-                        {
-                            List<Guid> inputs = wires[i];
-                            foreach (var source in inputs)
-                            {
-                                zuiPythonComponent.Params.Input[i].AddSource((IGH_Param)thisDoc.FindObject(source, false));
-                            }
-                        }
-
-                    }
-
-                    if (incomingSingleRelay)
-                    {
-                        IGH_Param relayParam = thisDoc.FindObject<IGH_Param>(singleComponentGuid, false);
-                        foreach (var item in relayRecepients)
-                        {
-                            item.AddSource(relayParam);
-                        }
-                    }
-
-                    for (int i = 0; i < remoPartialDoc.compXMLs.Count; i++)
-                    {
-                        string comXml = remoPartialDoc.compXMLs[i];
-                        Guid guid = remoPartialDoc.compGuids[i];
-
-                        thisDoc.FindObject(guid, false).Read(RemoCommand.DeserializeFromXML(comXml));
-
-                    }
 
                     GH_Document dummyDoc = new GH_Document();
                     thisDoc.MergeDocument(dummyDoc, true, true);
@@ -902,6 +859,10 @@ namespace RemoSharp
                     foreach (var item in remoPartialDoc.compGuids)
                     {
                         IGH_DocumentObject newObj = thisDoc.FindObject(item, false);
+                        if ( newObj == null)
+                        {
+                            continue;
+                        }
                         newObj.Attributes.Selected = false;
                     }
 
@@ -2309,13 +2270,19 @@ namespace RemoSharp
 
                     if (sourceComp != null)
                     {
+                        bool isSelected = sourceComp.Attributes.Selected;
                         RelinkComponentWires(sourceComp, sourceAttributes);
                         if (sourceComp is ScriptComponents.Component_CSNET_Script) sourceComp.ExpireSolution(true);
+                        if (isSelected) sourceComp.Attributes.Selected = true;
+                        else sourceComp.Attributes.Selected = false;
                     }
                     if (targetComp != null)
                     {
+                        bool isSelected = targetComp.Attributes.Selected;
                         RelinkComponentWires(targetComp, targetAttributes);
                         if (targetComp is ScriptComponents.Component_CSNET_Script) targetComp.ExpireSolution(true);
+                        if (isSelected) targetComp.Attributes.Selected = true;
+                        else targetComp.Attributes.Selected = false;
                     }
                     GH_Document dummydoc = new GH_Document();
                     this.OnPingDocument().MergeDocument(dummydoc, true, true);
@@ -2458,6 +2425,8 @@ namespace RemoSharp
             RemoParameter.InvokeReadMethod(myObject, new object[1] { chunk });
 
             thisDoc.AddObject(myObject, false);
+
+            myObject.Attributes.Selected = false;
 
             return myObject;
 

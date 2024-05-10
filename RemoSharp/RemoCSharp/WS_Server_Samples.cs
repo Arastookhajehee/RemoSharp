@@ -29,9 +29,7 @@ namespace RemoSharp
 
         public WS_Server_Samples()
           : base("WS_Server_Samples", "WS_S_Samples",
-              "10 different public Websocket Servers live on Glitch.Com" +
-                "You can create your own Glitch.com WS Echo Servers by using this template:" + "/r" +
-                "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git",
+              "3 different public Servers",
               "RemoSharp", "Com_Tools")
         {
         }
@@ -44,7 +42,8 @@ namespace RemoSharp
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             //pManager.AddIntegerParameter("Select Server", "Srv_Sel", "The index of the public server to use. (1 - 10)", GH_ParamAccess.item, 1);
-            slider = new HorizontalSliderInteger("Internet-Based Public Server", "Please select the internet-based public server that you would like to use.", 1, 1, 16);
+            slider = new HorizontalSliderInteger("Internet-Based Public Server", "Please select the " +
+                "internet-based public server that you would like to use.", 1, 1, 4);
 
             slider.OnValueChanged += Slider_OnValueChanged;
 
@@ -140,18 +139,19 @@ namespace RemoSharp
 
             // server list
             var serverList = new List<string>();
-            serverList.Add("ws://133.247.128.84:18580");
-            for (int i = 1; i < 17; i++)
+
+            for (int i = 1; i < 4; i++)
             {
                 string addressIndex = i.ToString("00");
                 serverList.Add("wss://remosharp-public-server" + addressIndex + ".glitch.me/");
             }
+            serverList.Add("ws://133.247.128.84:18580");
 
-            if (index < 1 || index > 16)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please input a number form 1 to 10");
-                return;
-            }
+            //if (index < 1 || index > 16)
+            //{
+            //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please input a number form 1 to 10");
+            //    return;
+            //}
             string serverAddress = serverList[index - 1];
             //string serverTemplate = "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git";
             DA.SetData(0, serverAddress);

@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿using GHCustomControls;
 using Grasshopper.Kernel;
-using Rhino.Geometry;
-using GHCustomControls;
-using WPFNumericUpDown;
 using RemoSharp.RemoCommandTypes;
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace RemoSharp.Utilities
@@ -37,7 +34,7 @@ namespace RemoSharp.Utilities
             tabPanel = new TabPanel("tabPanel", "tabPanel Description",0,true);
             tabPanel.OnValueChanged += TabPanel_OnValueChanged;
             pushButton = new PushButton("save", "save Description");
-            pushButton.OnValueChanged += PushButton_OnValueChanged;
+            pushButton.OnValueChanged += saveButton_OnValueChanged;
 
             loadButton = new PushButton("load", "load Description");
             loadButton.OnValueChanged += LoadButton_OnValueChanged;
@@ -84,15 +81,9 @@ namespace RemoSharp.Utilities
 
             List<string> tags = complexGeometeySerilizations.Select(o => o.tags[0]).ToList();
 
-            
-            
-
-
-
             // create a rhino pop up window to select the partial doc to load
             var selectionObj = Rhino.UI.Dialogs.ShowListBox("Select the partial doc to load", "Select the partial doc to load", tags, 0);
-            
-
+           
 
             // get the coorespnoding json string from the selectoinObj
             string jsonString = tags.Contains(selectionObj) ? complexGeometeySerilizations[tags.IndexOf((string)selectionObj)].geoms[0] : "";
@@ -103,8 +94,6 @@ namespace RemoSharp.Utilities
             RemoPartialDoc remoPartialDoc = (RemoPartialDoc) RemoCommand.DeserializeFromJson(jsonString);
 
             RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, true);
-
-
         }
 
         // a function that opens a window to get the 9 keywords from the user using the windows built-in dialog
@@ -115,7 +104,7 @@ namespace RemoSharp.Utilities
         }
 
 
-        private void PushButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        private void saveButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             var val = Convert.ToBoolean(e.Value);
             if (!val) return;   
@@ -162,7 +151,7 @@ namespace RemoSharp.Utilities
 
                 var selection = this.OnPingDocument().SelectedObjects();
                 if (selection.Count == 0) return;   
-                RemoPartialDoc partialDoc = new RemoPartialDoc(remoSetupComp.username, "", selection, thisDoc);
+                RemoPartialDoc partialDoc = new RemoPartialDoc(remoSetupComp.username, "", selection, thisDoc, true);
 
                 string serialized = RemoCommand.SerializeToJson(partialDoc);
 

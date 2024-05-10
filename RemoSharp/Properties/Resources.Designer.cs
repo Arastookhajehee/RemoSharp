@@ -153,6 +153,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        public static System.Drawing.Icon FixCanvas {
+            get {
+                object obj = ResourceManager.GetObject("FixCanvas", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         public static System.Drawing.Icon GHL {
             get {
                 object obj = ResourceManager.GetObject("GHL", resourceCulture);

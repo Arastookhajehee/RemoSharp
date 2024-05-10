@@ -63,7 +63,6 @@ namespace RemoSharp.Distributors
         };
 
         PushButton setupButton;
-        GHCustomControls.Label usernameLabel;
         ToggleSwitch undoPreventionSwitch;
         ToggleSwitch enableSwitch;
 
@@ -116,10 +115,6 @@ namespace RemoSharp.Distributors
                    "Creates The Required RemoSharp Components to Connect to a Session.", "SetUp");
             setupButton.OnValueChanged += SetupButton_OnValueChanged;
             AddCustomControl(setupButton);
-
-            usernameLabel = new GHCustomControls.Label("username", "", "username");
-            usernameLabel.Border = true;
-            AddCustomControl(usernameLabel);
 
             enableSwitch = new ToggleSwitch("Connect", "It has to be turned on if we want interactions with the server", false);
             enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
@@ -1586,9 +1581,9 @@ namespace RemoSharp.Distributors
                 this.password = loginDialouge.password;
                 this.sessionID = loginDialouge.sessionID;
 
-                this.usernameLabel.CurrentValue = this.username;
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark,this.username);
 
-                
+
 
 
                 int xShift = 2;
@@ -1767,26 +1762,42 @@ namespace RemoSharp.Distributors
                     }
 
                     if (!items.ContainsKey("SyncCanvas"))
-            {
-                items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
-                {
-                    AutoSize = true,
-                    DisplayStyle = ToolStripItemDisplayStyle.Image,
-                    ImageAlign = ContentAlignment.MiddleCenter,
-                    ImageScaling = ToolStripItemImageScaling.SizeToFit,
-                    Margin = new Padding(0, 0, 0, 0),
-                    Name = "SyncCanvas",
-                    Size = new Size(28, 28),
-                    ToolTipText = "Syncronize all the components from this canvas to the other canvases.",
-                });
-            }
+                    {
+                        items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncCanvas",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize all the components from this canvas to the other canvases.",
+                        });
+                    }
+
+                    if (!items.ContainsKey("FixCanvas"))
+                    {
+                        items.Add(new ToolStripButton("FixCanvas", (Image)Properties.Resources.FixCanvas.ToBitmap(), onClick: (s, e) => FixCanvas_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "FixCanvas",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Fixes the Canvas Duplicate Components.",
+                        });
+                    }
                     break;
                 case SubcriptionType.Unsubscribe:
-                    if(items.ContainsKey("Look")) items.RemoveByKey("Look");
+                    if (items.ContainsKey("Look")) items.RemoveByKey("Look");
                     if (items.ContainsKey("Select")) items.RemoveByKey("Select");
                     if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
-                    if(items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
-                    if(items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
+                    if (items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
+                    if (items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
+                    if (items.ContainsKey("FixCanvas")) items.RemoveByKey("FixCanvas");
                     break;
                 case SubcriptionType.Skip:
                     break;
@@ -1796,6 +1807,7 @@ namespace RemoSharp.Distributors
                     if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
                     if (items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
                     if (items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
+                    if (items.ContainsKey("FixCanvas")) items.RemoveByKey("FixCanvas");
                     if (!items.ContainsKey("Look"))
                     {
                         items.Add(new ToolStripButton("Look", (Image)Properties.Resources.Sync_Camera.ToBitmap(), onClick: (s, e) => LookButton_OnValueChanged(s, e))
@@ -1866,7 +1878,20 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize all the components from this canvas to the other canvases.",
                         });
                     }
-
+                    if (!items.ContainsKey("FixCanvas"))
+                    {
+                        items.Add(new ToolStripButton("FixCanvas", (Image)Properties.Resources.FixCanvas.ToBitmap(), onClick: (s, e) => FixCanvas_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "FixCanvas",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Fixes the Canvas Duplicate Components.",
+                        });
+                    }
                     break;
                 default:
                     break;
@@ -1977,6 +2002,37 @@ namespace RemoSharp.Distributors
             path.CloseFigure(); // This connects the end of the last arc with the start of the first arc
 
             return path;
+        }
+
+
+        private void FixCanvas_OnValueChanged(object s, EventArgs e)
+        {
+            var thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+
+            var remoclientv3 = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            var commandExecutor = (CommandExecutor)thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault();
+
+            // come back to this
+
+            thisDoc.ScheduleSolution(1, doc => {
+                Dictionary<Guid, int> duplicates = FindDuplicateGuids(
+                    thisDoc.Objects.Select(obj => obj.InstanceGuid).ToList());
+                foreach (var item in duplicates)
+                {
+                    if (item.Value > 1)
+                    {
+                        for (int i = 0; i < item.Value - 1; i++)
+                        {
+                            var obj = thisDoc.Objects.Where(o => o.InstanceGuid == item.Key).LastOrDefault();
+                            if (obj == null) continue;
+
+                            thisDoc.RemoveObject(obj, false);
+                        }
+                    }
+                }
+
+            });
+
         }
 
         private void SyncCanvas_OnValueChanged(object s, EventArgs e)

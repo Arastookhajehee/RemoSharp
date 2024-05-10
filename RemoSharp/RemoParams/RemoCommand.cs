@@ -578,6 +578,66 @@ namespace RemoSharp.RemoCommandTypes
 
 
         }
+
+        public RemoPartialDoc(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document currentDoc, bool newGuids)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.executed = false;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.commandType = CommandType.RemoPartialDocument;
+            this.executionAttempts = 0;
+            this.pythonWireHistories = new List<WireHistory>();
+            this.relayConnections = new Dictionary<Guid, List<Guid>>();
+
+            currentDoc.DeselectAll();
+
+            GH_Document tempDoc = GH_Document.DuplicateDocument(currentDoc);
+
+            var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
+            var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, false);
+            tempDoc.DeselectAll();
+
+            if (objects.Count == 1 && objects[0] is GH_Relay)
+            {
+                GH_Relay relay = (GH_Relay)objects[0];
+                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
+            }
+
+            foreach (var item in tempDoc.Objects)
+            {
+                if (item is IGH_Param)
+                {
+                    IGH_Param param = (IGH_Param)item;
+                    param.NewInstanceGuid();
+                }
+                else if (item is IGH_Component)
+                {
+                    IGH_Component comp = (IGH_Component)item;
+                    comp.NewInstanceGuid();
+                    foreach (var param in comp.Params.Input)
+                    {
+                        param.NewInstanceGuid();
+                    }
+                    foreach (var param in comp.Params.Output)
+                    {
+                        param.NewInstanceGuid();
+                    }
+                }
+                else if (item is GH_Group)
+                {
+                    GH_Group group = (GH_Group)item;
+                    group.NewInstanceGuid();
+                }
+                else item.NewInstanceGuid();
+            }
+
+            this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
+            this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
+            this.xml = SerializeToXML(tempDoc);
+        }
     }
 
     public class RemoRelay : RemoCommand
