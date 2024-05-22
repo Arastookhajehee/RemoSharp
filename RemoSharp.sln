@@ -5,8 +5,6 @@ VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoSharp", "RemoSharp\RemoSharp.csproj", "{A9783857-E235-4DD1-AF5C-E646AB137AF0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Machina", "..\..\Machina.NET\src\Machina\Machina.csproj", "{15951838-F9D6-4988-A103-B7C72BFE81A2}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,14 +21,6 @@ Global
 		{A9783857-E235-4DD1-AF5C-E646AB137AF0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A9783857-E235-4DD1-AF5C-E646AB137AF0}.Release|x64.ActiveCfg = Release|Any CPU
 		{A9783857-E235-4DD1-AF5C-E646AB137AF0}.Release|x64.Build.0 = Release|Any CPU
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Debug|x64.ActiveCfg = Debug|x64
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Debug|x64.Build.0 = Debug|x64
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Release|x64.ActiveCfg = Release|x64
-		{15951838-F9D6-4988-A103-B7C72BFE81A2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

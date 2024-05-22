@@ -606,33 +606,33 @@ namespace RemoSharp.RemoCommandTypes
                 this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
             }
 
-            foreach (var item in tempDoc.Objects)
-            {
-                if (item is IGH_Param)
-                {
-                    IGH_Param param = (IGH_Param)item;
-                    param.NewInstanceGuid();
-                }
-                else if (item is IGH_Component)
-                {
-                    IGH_Component comp = (IGH_Component)item;
-                    comp.NewInstanceGuid();
-                    foreach (var param in comp.Params.Input)
-                    {
-                        param.NewInstanceGuid();
-                    }
-                    foreach (var param in comp.Params.Output)
-                    {
-                        param.NewInstanceGuid();
-                    }
-                }
-                else if (item is GH_Group)
-                {
-                    GH_Group group = (GH_Group)item;
-                    group.NewInstanceGuid();
-                }
-                else item.NewInstanceGuid();
-            }
+            //foreach (var item in tempDoc.Objects)
+            //{
+            //    if (item is IGH_Param)
+            //    {
+            //        IGH_Param param = (IGH_Param)item;
+            //        param.NewInstanceGuid();
+            //    }
+            //    else if (item is IGH_Component)
+            //    {
+            //        IGH_Component comp = (IGH_Component)item;
+            //        comp.NewInstanceGuid();
+            //        foreach (var param in comp.Params.Input)
+            //        {
+            //            param.NewInstanceGuid();
+            //        }
+            //        foreach (var param in comp.Params.Output)
+            //        {
+            //            param.NewInstanceGuid();
+            //        }
+            //    }
+            //    else if (item is GH_Group)
+            //    {
+            //        GH_Group group = (GH_Group)item;
+            //        group.NewInstanceGuid();
+            //    }
+            //    else item.NewInstanceGuid();
+            //}
 
             this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
             this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();

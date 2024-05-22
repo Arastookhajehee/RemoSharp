@@ -1,38 +1,24 @@
-﻿using Grasshopper.Kernel;
-using Grasshopper.Kernel.Special;
+﻿using GH_IO.Serialization;
+using GHCustomControls;
 using Grasshopper.GUI.Base;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Special;
+using Grasshopper.Kernel.Types;
+using RemoSharp.Distributors;
+using RemoSharp.RemoCommandTypes;
+using RemoSharp.RemoParams;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
-
 using System.Drawing;
-using WindowsInput.Native;
-using WindowsInput;
-using System.Windows.Forms;
-using System.Threading;
-using GHCustomControls;
-using WPFNumericUpDown;
-
-using RemoSharp.RemoCommandTypes;
-using WebSocketSharp;
-using System.Linq;
-using Microsoft.Win32;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
-using Rhino.Commands;
-
-using System.Threading.Tasks;
 using System.IO;
+using System.Linq;
 using System.Text;
-using RemoSharp.WebSocketClient;
-using RemoSharp.RemoParams;
-using GH_IO.Serialization;
+using System.Threading;
 using System.Xml;
-using Grasshopper.Kernel.Undo;
-using Grasshopper.Kernel.Undo.Actions;
-using Grasshopper;
-using RemoSharp.Distributors;
+using WebSocketSharp;
 
 namespace RemoSharp
 {
@@ -830,8 +816,6 @@ namespace RemoSharp
             GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
             tempDoc.Read(chunk);
 
-            
-
             thisDoc.ScheduleSolution(1, doc =>
             {
                 try
@@ -839,7 +823,104 @@ namespace RemoSharp
                     var selection = thisDoc.SelectedObjects();
                     thisDoc.DeselectAll();
 
+                    // canvas view center point
+                    var currentMidPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+
+                    // average of the tempDoc objects pivot points
+                    PointF tempDocMidPoint = new PointF(0,0);
+                    foreach (var item in tempDoc.Objects)
+                    {
+                        tempDocMidPoint.X += item.Attributes.Pivot.X;
+                        tempDocMidPoint.Y += item.Attributes.Pivot.Y;
+                    }
+                    tempDocMidPoint.X /= tempDoc.Objects.Count;
+                    tempDocMidPoint.Y /= tempDoc.Objects.Count;
+
+                    Dictionary<Guid, Guid> groupGuidPairs = new Dictionary<Guid, Guid>();
+                    Dictionary<Guid, Guid> prevCurrentGuidPairs = new Dictionary<Guid, Guid>();
+                    // move the tempDoc to the center of the canvas
+                    foreach (var item in tempDoc.Objects)
+                    {
+                        item.Attributes.Pivot = new PointF(item.Attributes.Pivot.X - tempDocMidPoint.X + currentMidPoint.X,
+                                                       item.Attributes.Pivot.Y - tempDocMidPoint.Y + currentMidPoint.Y);
+                        if (item is GH_Group) 
+                        {
+                            Guid prevGuid = item.InstanceGuid;
+                            GH_Group group = (GH_Group)item;
+                            Guid currentGuid = group.InstanceGuid;
+
+                            groupGuidPairs.Add(prevGuid, currentGuid);
+                        }
+                        else if (item is IGH_Component)
+                        {
+                            Guid prevGuid = item.InstanceGuid;
+                            IGH_Component component = (IGH_Component)item;
+                            component.NewInstanceGuid();
+                            Guid currentGuid = component.InstanceGuid;
+
+                            prevCurrentGuidPairs.Add(prevGuid, currentGuid);
+
+                            foreach (var param in component.Params.Input)
+                            {
+                                param.NewInstanceGuid();
+                            }
+                            foreach (var param in component.Params.Output)
+                            {
+                                param.NewInstanceGuid();
+                            }
+                        }
+                        else if (item is IGH_Param)
+                        {
+                            Guid prevGuid = item.InstanceGuid;
+                            IGH_Param param = (IGH_Param)item;
+                            param.NewInstanceGuid();
+                            Guid currentGuid = param.InstanceGuid;
+
+                            prevCurrentGuidPairs.Add(prevGuid, currentGuid);
+                        }
+                    }
+
+                    string pause = "";
+
+                    // get a dictionary of all groups ids and their objects ids
+                    Dictionary<Guid, GroupAttributes> groupObjects = new Dictionary<Guid, GroupAttributes>();
+                    foreach (var item in tempDoc.Objects)
+                    {
+                        if (item is GH_Group)
+                        {
+                            GH_Group group = (GH_Group)item;
+                            groupObjects.Add(group.InstanceGuid, new GroupAttributes(group));
+                        }
+                    }
+
+                    // get all GH_group objects in tempDoc
+                    tempDoc.RemoveObjects(tempDoc.Objects.OfType<GH_Group>().ToList(), true);
+
                     thisDoc.MergeDocument(tempDoc, true, true);
+
+                    foreach (var groupID in groupObjects.Keys)
+                    {
+
+                        GH_Group newGroup = new GH_Group();
+                        newGroup.CreateAttributes();
+                        newGroup.NickName = groupObjects[groupID].NickName;
+                        newGroup.Colour = groupObjects[groupID].Color;
+                        newGroup.Border = groupObjects[groupID].style;
+
+
+                        //newGroup.Colour = Color.FromArgb(150,171,135,255);
+
+                        foreach (var objID in groupObjects[groupID].ObjectIDs)
+                        {
+                            Guid prevId = objID;
+                            Guid newID = prevCurrentGuidPairs[objID];
+
+                            newGroup.AddObject(prevCurrentGuidPairs[objID]);
+                        }
+
+                        thisDoc.AddObject(newGroup, false);
+                        newGroup.Attributes.ExpireLayout();
+                    }
 
                     GH_DocumentIO docIO = new GH_DocumentIO(thisDoc);
                     docIO.Copy(GH_ClipboardType.Local, remoPartialDoc.compGuids);
@@ -872,10 +953,32 @@ namespace RemoSharp
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
 
+
+                foreach (var obj in thisDoc.Objects) obj.Attributes.ExpireLayout();
+
                 return;
 
             });
 
+        }
+
+        private class GroupAttributes
+        {
+            internal Color Color { get; set; }
+            internal List<Guid> ObjectIDs { get; set; }
+            internal string NickName { get; set; }
+            internal GH_GroupBorder style { get; set; }
+
+            internal Guid instanceGuid { get; set; }
+             
+            public GroupAttributes( GH_Group group)
+            {
+                this.Color = group.Colour;
+                this.ObjectIDs = group.ObjectIDs;
+                this.NickName = group.NickName;
+                this.style = group.Border;
+                this.instanceGuid = group.InstanceGuid;
+            }
         }
 
         private void ExecuteRemoPartialDoc(string remoPartialDoc, List<Guid> removal)

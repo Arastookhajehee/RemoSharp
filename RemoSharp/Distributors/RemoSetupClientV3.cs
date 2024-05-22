@@ -1,30 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-
-using Grasshopper.Kernel;
-using Rhino.Geometry;
-
+﻿using GH_IO.Serialization;
 using GHCustomControls;
-using WPFNumericUpDown;
-using RemoSharp.RemoCommandTypes;
-using System.Drawing;
-using WebSocketSharp;
-using System.Windows.Forms;
-using System.Linq;
-using Grasshopper.GUI.Canvas;
-using Grasshopper.GUI;
-using RemoSharp.RemoParams;
-using System.Reflection;
-using GH_IO.Serialization;
-using Grasshopper.Kernel.Special;
-using System.Threading.Tasks;
 using Grasshopper;
-using System.Drawing.Drawing2D;
-using System.Timers;
-using System.Runtime.Remoting.Channels;
+using Grasshopper.GUI;
+using Grasshopper.GUI.Canvas;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Special;
+using RemoSharp.RemoCommandTypes;
+using RemoSharp.RemoParams;
 using RemoSharp.Utilities;
-using System.Reflection.Emit;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using System.Timers;
+using System.Windows.Forms;
+using WebSocketSharp;
 
 
 
@@ -65,6 +58,7 @@ namespace RemoSharp.Distributors
         PushButton setupButton;
         ToggleSwitch undoPreventionSwitch;
         ToggleSwitch enableSwitch;
+        public GHCustomControls.Label usernameLabel;
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
@@ -116,6 +110,10 @@ namespace RemoSharp.Distributors
             setupButton.OnValueChanged += SetupButton_OnValueChanged;
             AddCustomControl(setupButton);
 
+            usernameLabel = new GHCustomControls.Label("username","username", "username");
+            usernameLabel.Border = true;
+            AddCustomControl(usernameLabel);
+
             enableSwitch = new ToggleSwitch("Connect", "It has to be turned on if we want interactions with the server", false);
             enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
             AddCustomControl(enableSwitch);
@@ -127,7 +125,7 @@ namespace RemoSharp.Distributors
             
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
-            pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
+            //pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
         }
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -171,11 +169,16 @@ namespace RemoSharp.Distributors
                 AddInteractionButtonsToTopBar(SubcriptionType.Unsubscribe);
 
                 SubcriptionType unsubType = SubcriptionType.Unsubscribe;
-                SetUpRemoSharpEvents(unsubType, unsubType, unsubType, unsubType, unsubType, unsubType);
-                client.Close();
+
+                if (client != null)
+                {
+                    SetUpRemoSharpEvents(unsubType, unsubType, unsubType, unsubType, unsubType, unsubType);
+                    client.Close();
+                }
+                
 
                 CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
-                executor.enable = enable;
+                if (executor != null) executor.enable = enable;
             }
 
 
@@ -192,6 +195,7 @@ namespace RemoSharp.Distributors
         {
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var client = this.client;
+            if (thisDoc == null) return;
             //bool isAlive = client.IsAlive;
 
             RemoNullCommand nullCommand;
@@ -212,15 +216,21 @@ namespace RemoSharp.Distributors
                     timer.Start();
                     break;
                 case SubcriptionType.Unsubscribe:
-                    client.OnMessage -= Client_OnMessage;
-                    client.OnClose -= Client_OnClose;
-                    client.OnOpen -= Client_OnOpen;
+                    string pause = "";
+                    if (client != null)
+                    {
+                        client.OnMessage -= Client_OnMessage;
+                        client.OnClose -= Client_OnClose;
+                        client.OnOpen -= Client_OnOpen;
+                    }
+                    
 
                     // get all values from the connection keyword dictionary
                     var allValues = ConnectionMessagePairs.Values.ToList();
                     if (!allValues.Contains(this.Message) || this.Message.Equals("Connected"))
                     {
-                        this.Message = "Disconnected";
+                        if (string.IsNullOrEmpty(this.username)) this.Message = ConnectionMessagePairs[RemoSetupClientV3.DISCONNECTION_KEYWORD];
+                        else this.Message = "Disconnected";
                     }
                     timer.Elapsed -= Timer_Elapsed;
                     timer.Stop();
@@ -254,6 +264,7 @@ namespace RemoSharp.Distributors
 
             switch (objectsAdded)
             {
+                
                 case SubcriptionType.Subscribe:
                     thisDoc.ObjectsAdded += ThisDoc_ObjectsAdded;
                     break;
@@ -373,7 +384,17 @@ namespace RemoSharp.Distributors
             
             if (timerCount % 2 == 0)
             {
-                this.OnPingDocument().ScheduleSolution(1, doc => {
+                var thisDoc = this.OnPingDocument();
+                if (thisDoc == null)
+                {
+                    var timer = sender as System.Timers.Timer;
+                    timer.Stop();
+                    // unsubscribe the timer
+                    timer.Elapsed -= Timer_Elapsed;
+                    timer.Dispose();
+                    return;
+                }
+                thisDoc.ScheduleSolution(1, doc => {
                 Dictionary<Guid, int> duplicates = FindDuplicateGuids(
                     this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList());
                 foreach (var item in duplicates)
@@ -1109,7 +1130,13 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (DisconnectOnImproperClose()) return;
+            if (DisconnectOnImproperClose())
+            {
+                GH_Canvas canvas = (GH_Canvas)sender;
+                canvas.MouseMove -= ActiveCanvas_MouseMove;
+                System.Windows.Forms.MessageBox.Show("Connection closed due to improper disconnection!", "RemoSharp Connection Error!");
+                return;
+            }
             var vp = Grasshopper.Instances.ActiveCanvas.Viewport;
             Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
             this.mouseLocation = mouseEvent.CanvasLocation;
@@ -1157,15 +1184,23 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_DragOver(object sender, DragEventArgs e)
         {
-            //Rhino.RhinoApp.WriteLine("DragOver");
-            if (DisconnectOnImproperClose()) return;
+            GH_Canvas canvas = sender as GH_Canvas;
+            if (DisconnectOnImproperClose())
+            {
+                canvas.DragOver -= ActiveCanvas_DragOver;
+                return;
+            }
         }
 
         private void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if(DisconnectOnImproperClose()) return;
-
             GH_Canvas canvas = sender as GH_Canvas;
+            if (DisconnectOnImproperClose())
+            {
+                canvas.MouseDown -= ActiveCanvas_MouseDown;
+                return;
+            }
+
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.downPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
             this.interaction = canvas.ActiveInteraction;
@@ -1186,7 +1221,6 @@ namespace RemoSharp.Distributors
             {
                 SubcriptionType unsub = SubcriptionType.Unsubscribe;
                 this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub, unsub);
-                System.Windows.Forms.MessageBox.Show("Connection closed due to improper disconnection!", "RemoSharp Connection Error!");
                 return true;
             }
             return false;
@@ -1194,8 +1228,13 @@ namespace RemoSharp.Distributors
 
         private void ActiveCanvas_MouseUp(object sender, MouseEventArgs e)
         {
-            if (DisconnectOnImproperClose()) return;
             GH_Canvas canvas = sender as GH_Canvas;
+
+            if (DisconnectOnImproperClose())
+            {
+                canvas.MouseUp -= ActiveCanvas_MouseUp;
+                return;
+            }
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.upPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
 
@@ -1277,6 +1316,12 @@ namespace RemoSharp.Distributors
             if (selection.Count != 0)
             {
 
+                // get the distance of the mouse down and up points
+                float x = this.upPnt[0] - this.downPnt[0];
+                float y = this.upPnt[1] - this.downPnt[1];
+                // distance formula
+                float distance = (float)Math.Sqrt(x * x + y * y);
+                if (distance < 2) return;
                 command = new RemoMove(this.username, this.sessionID, selection);
                 SendCommands(this, command, commandRepeat, enable);
             }
@@ -1559,39 +1604,33 @@ namespace RemoSharp.Distributors
 
             if (currentValue)
             {
-                
-                if (this.Params.Input[0].Sources.Count > 0) return;
 
-                // lunch login window
-                LoginDialouge loginDialouge = new LoginDialouge();
-                loginDialouge.ShowDialog();
-
-                // if username is not null or empty or username
-                bool badUsernme = string.IsNullOrEmpty(loginDialouge.username) ||
-                    loginDialouge.username.Equals("username");
-                bool badPassword = string.IsNullOrEmpty(loginDialouge.password);
-
-                if (badUsernme || badPassword)
+                if (this.Params.Input[0].Sources.Count > 0)
                 {
-                    this.Message = ConnectionMessagePairs[DISCONNECTION_KEYWORD];
+                    if (string.IsNullOrEmpty(this.username) || this.username.Equals("username"))
+                    {
+                        System.Timers.Timer usernameSetupTimer = new System.Timers.Timer(5);
+                        usernameSetupTimer.Elapsed += (s, args) =>
+                        {
+                            usernameSetupTimer.Stop();
+                            usernameSetupTimer.Dispose();
+
+                            // lunch login window
+                            LoginDialouge loginDialouge = new LoginDialouge();
+                            loginDialouge.ShowDialog();
+                        };
+
+                        usernameSetupTimer.Start();
+                    }
                     return;
                 }
-
-                this.username = loginDialouge.username;
-                this.password = loginDialouge.password;
-                this.sessionID = loginDialouge.sessionID;
-
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark,this.username);
-
-
-
 
                 int xShift = 2;
                 int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
                 //PointF wscButtonPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
                 PointF triggerPivot = new PointF(pivot.X + xShift - 63, pivot.Y - 77);
-                PointF sessionPivot = new PointF(pivot.X + xShift - 275 + 8, pivot.Y - 12);
+                //PointF sessionPivot = new PointF(pivot.X + xShift - 275 + 8, pivot.Y - 12);
                 //PointF wscPivot = new PointF(pivot.X + xShift + 150, pivot.Y - 336 + yShift);
                 PointF listenPivot = new PointF(pivot.X + xShift + 150, pivot.Y);
 
@@ -1615,16 +1654,15 @@ namespace RemoSharp.Distributors
 
                 
 
-                // session
-                var sessionPanel = new Grasshopper.Kernel.Special.GH_Panel();
-                sessionPanel.CreateAttributes();
-                sessionPanel.Attributes.Pivot = sessionPivot;
-                sessionPanel.Attributes.Bounds = new Rectangle((int)sessionPivot.X, (int)sessionPivot.Y, 152, 45);
-                // generate a 6 character random password with upper and lower case letters and numbers
-                // do not use GUID to generate the password
-                
-                sessionPanel.SetUserText(this.sessionID);
-                sessionPanel.NickName = "RemoSetup";
+                //// session
+                //var sessionPanel = new Grasshopper.Kernel.Special.GH_Panel();
+                //sessionPanel.CreateAttributes();
+                //sessionPanel.Attributes.Pivot = sessionPivot;
+                //sessionPanel.Attributes.Bounds = new Rectangle((int)sessionPivot.X, (int)sessionPivot.Y, 152, 45);
+                //// generate a 6 character random password with upper and lower case letters and numbers
+                //// do not use GUID to generate the password               
+                //sessionPanel.SetUserText(this.sessionID);
+                //sessionPanel.NickName = "RemoSetup";
 
             
 
@@ -1668,11 +1706,11 @@ namespace RemoSharp.Distributors
                 {
 
                     this.OnPingDocument().AddObject(trigger, true);
-                    this.OnPingDocument().AddObject(sessionPanel, true);
+                    //this.OnPingDocument().AddObject(sessionPanel, true);
                     this.OnPingDocument().AddObject(listenComp, true);
                     this.OnPingDocument().AddObject(commandComp, true);
 
-                    this.Params.Input[1].AddSource(sessionPanel);
+                    //this.Params.Input[1].AddSource(sessionPanel);
                     this.Params.Input[0].AddSource(addressOutPut);
 
                     listenComp.Params.Input[0].AddSource(this.Params.Output[0]);
@@ -1686,6 +1724,20 @@ namespace RemoSharp.Distributors
                     this.setupButton.CurrentValue = false;
                 });
                 this.setupButton.CurrentValue = false;
+
+                System.Timers.Timer setupTimer = new System.Timers.Timer(5);
+                setupTimer.Elapsed += (s, args) =>
+                {
+                    setupTimer.Stop();
+                    setupTimer.Dispose();
+
+                    // lunch login window
+                    LoginDialouge loginDialouge = new LoginDialouge();
+                    loginDialouge.ShowDialog();
+                };
+
+                setupTimer.Start();
+
             }
             
             this.ExpireSolution(true);
@@ -2248,7 +2300,13 @@ namespace RemoSharp.Distributors
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             DA.GetData(0, ref url);
-            DA.GetData(1, ref sessionID);
+            //DA.GetData(1, ref sessionID);
+
+            if (string.IsNullOrEmpty(this.username) || this.username == "username")
+            {
+                this.enableSwitch.CurrentValue = false;
+            }
+
         }
 
         /// <summary>
