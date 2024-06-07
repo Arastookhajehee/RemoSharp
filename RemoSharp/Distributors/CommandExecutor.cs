@@ -39,7 +39,8 @@ namespace RemoSharp
             "Grasshopper.Kernel.Special.GH_ButtonObject",
             "Grasshopper.Kernel.Parameters.Param_Point",
             "Grasshopper.Kernel.Parameters.Param_Vector",
-            "Grasshopper.Kernel.Parameters.Param_Plane"
+            "Grasshopper.Kernel.Parameters.Param_Plane",
+            "Grasshopper.Kernel.Special.GH_ValueList"
         };
         public int deletionIndex = -1;
         public Guid compGuid = Guid.Empty;
@@ -1698,6 +1699,30 @@ namespace RemoSharp
                         incomingDocPlane.ExpireSolution(false);
 
                         //this.OnPingDocument().RemoveObject(thisDocPlane, false);
+
+                        break;
+                    case ("Grasshopper.Kernel.Special.GH_ValueList"):
+                        Grasshopper.Kernel.Special.GH_ValueList thisDocVList = (Grasshopper.Kernel.Special.GH_ValueList)thisDocParam;
+                        Grasshopper.Kernel.Special.GH_ValueList incomingDocVList = (Grasshopper.Kernel.Special.GH_ValueList)incomingDocParam;
+
+                        incomingDocVList.ListItems.Clear();
+                        incomingDocVList.ListItems.AddRange(thisDocVList.ListItems);
+                        incomingDocVList.SelectedItems.Clear();
+
+                        incomingDocVList.ListMode = thisDocVList.ListMode;
+                        incomingDocVList.DataMapping = thisDocVList.DataMapping;
+                        incomingDocVList.Phase = thisDocVList.Phase;
+                        incomingDocVList.Optional = thisDocVList.Optional;
+
+                        for (int i = 0; i < thisDocVList.ListItems.Count; i++)
+                        {
+                            var item = thisDocVList.ListItems[i];
+                            if (item.Selected)
+                            {
+                                incomingDocVList.SelectItem(i);
+                            }
+                        }
+
 
                         break;
                     default:

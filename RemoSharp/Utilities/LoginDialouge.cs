@@ -14,7 +14,7 @@ namespace RemoSharp.Utilities
 {
     public partial class LoginDialouge : Form
     {
-        public Credentials credentials { get; private set; }
+        internal Credentials credentials { get; private set; }
 
         public LoginDialouge()
         {
@@ -51,8 +51,8 @@ namespace RemoSharp.Utilities
             var ghDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var setupComp = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Distributors.RemoSetupClientV3)
                 as RemoSharp.Distributors.RemoSetupClientV3;
-            var serializeToFile = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Utilities.SerializeToFile)
-                as RemoSharp.Utilities.SerializeToFile;
+            var serializeToFile = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Utilities.RemoLibrary)
+                as RemoSharp.Utilities.RemoLibrary;
 
             Credentials credentials = new Credentials(usernameBox.Text, passwordBox.Text, sessionIDBox.Text, "dbPath");
 

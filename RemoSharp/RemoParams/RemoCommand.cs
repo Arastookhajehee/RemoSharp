@@ -25,6 +25,7 @@ using System.Xml.Linq;
 using System.Security.Cryptography;
 using GhPython;
 using System.Data.SqlTypes;
+using RemoSharp.Utilities;
 
 namespace RemoSharp.RemoCommandTypes
 {

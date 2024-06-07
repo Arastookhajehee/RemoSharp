@@ -2,15 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using Grasshopper.Kernel;
+using Newtonsoft.Json;
 using Rhino.Geometry;
 
 namespace RemoSharp.RemoGeom
 {
     public class WriteToFile : GH_Component
     {
-
-        int counter = 0;
-
         /// <summary>
         /// Initializes a new instance of the WriteToFile class.
         /// </summary>
@@ -55,26 +53,32 @@ namespace RemoSharp.RemoGeom
 
             if (!writeToFile)
             {
-                counter = 0;
                 return;
             }
 
-            if (counter == 0)
+            if (!File.Exists(filePath))
             {
-
-
-                if (!File.Exists(filePath))
-                {
-                    File.CreateText(filePath);
-                }
-
-                // Use a StreamWriter to write the content to the file
-                using (StreamWriter writer = new StreamWriter(filePath))
-                {
-                    writer.Write(content);
-                }
-                counter++;
+                File.CreateText(filePath);
             }
+
+
+            //write the content into the file with UTF-8 formatting
+           using (StreamWriter sw = new StreamWriter(filePath, false, System.Text.Encoding.UTF8))
+            {
+                sw.Write(content);
+                sw.Close();
+            }
+
+
+
+            //// Use a StreamWriter to write the content to the file
+            //using (StreamWriter writer = new StreamWriter(filePath))
+            //{
+            //    // write content to file with UTF8 formatting
+            //    writer.Write(content,)
+                 
+            //}
+            
         }
 
         /// <summary>

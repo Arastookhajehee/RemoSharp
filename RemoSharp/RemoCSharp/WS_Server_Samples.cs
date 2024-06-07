@@ -43,7 +43,7 @@ namespace RemoSharp
         {
             //pManager.AddIntegerParameter("Select Server", "Srv_Sel", "The index of the public server to use. (1 - 10)", GH_ParamAccess.item, 1);
             slider = new HorizontalSliderInteger("Internet-Based Public Server", "Please select the " +
-                "internet-based public server that you would like to use.", 1, 1, 4);
+                "internet-based public server that you would like to use.", 1, 1, 6);
 
             slider.OnValueChanged += Slider_OnValueChanged;
 
@@ -63,62 +63,6 @@ namespace RemoSharp
 
         }
 
-        //private void seupButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        //{
-        //    bool currentVal = Convert.ToBoolean(e.Value);
-        //    if (currentVal)
-        //    {
-        //        this.OnPingDocument().ScheduleSolution(0, CreatePanel);
-
-        //    }
-        //}
-
-        //private void HideButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        //{
-        //    bool currentVal = Convert.ToBoolean(e.Value);
-        //    if (currentVal)
-        //    {
-        //        var pivot = this.Attributes.Pivot;
-        //        int pivotX = Convert.ToInt32(pivot.X) + 50;
-        //        int pivotY = Convert.ToInt32(pivot.Y) + 40;
-
-        //        RecognizeAndMake("Grasshopper.Kernel.Special.GH_ButtonObject", pivotX - 50, pivotY + 150);
-        //        RecognizeAndMake("Bengesht.WsClientCat.WsClientStart", pivotX + 150, pivotY + 142);
-        //        RecognizeAndMake("Bengesht.WsClientCat.WsClientSend", pivotX + 295, pivotY + 155);
-        //        RecognizeAndMake("Bengesht.WsClientCat.WsClientRecv", pivotX + 295, pivotY + 100);
-        //    }
-        //}
-
-        //void CreatePanel(GH_Document doc)
-        //{
-        //    string ipAddress = "127.0.0.1";
-
-        //    foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
-        //    {
-        //        if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 || ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
-        //        {
-        //            string wifi_name = ni.Name;
-
-        //            foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
-        //            {
-        //                if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-        //                {
-        //                    ipAddress = ip.Address.ToString();
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    var pivot = this.Attributes.Pivot;
-        //    var newPivot = new System.Drawing.PointF(pivot.X - 20, pivot.Y + 85);
-
-        //    var panel = new Grasshopper.Kernel.Special.GH_Panel();
-        //    panel.CreateAttributes();
-        //    panel.Attributes.Pivot = newPivot;
-        //    panel.SetUserText("ws://" + ipAddress + ":PORT/RemoSharp");
-        //    this.OnPingDocument().AddObject((IGH_DocumentObject)panel, true);
-        //}
-
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
@@ -134,7 +78,7 @@ namespace RemoSharp
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            
+
             int index = serverIndex;
 
             // server list
@@ -145,17 +89,12 @@ namespace RemoSharp
                 string addressIndex = i.ToString("00");
                 serverList.Add("wss://remosharp-public-server" + addressIndex + ".glitch.me/");
             }
+            serverList.Add("wss://remosharp-public-server10.glitch.me/");
             serverList.Add("ws://133.247.128.84:18580");
+            serverList.Add("ws://52.192.245.31:18580");
 
-            //if (index < 1 || index > 16)
-            //{
-            //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Please input a number form 1 to 10");
-            //    return;
-            //}
             string serverAddress = serverList[index - 1];
-            //string serverTemplate = "https://github.com/Arastookhajehee/RemoSharp_Public_WS_Glitch_Server_Template.git";
             DA.SetData(0, serverAddress);
-            //DA.SetData(1, serverTemplate);
 
         }
 

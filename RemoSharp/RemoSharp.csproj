@@ -39,6 +39,9 @@
     <Reference Include="AdvancedStringBuilder, Version=0.1.0.0, Culture=neutral, PublicKeyToken=e818a2fc08933ddb, processorArchitecture=MSIL">
       <HintPath>..\packages\AdvancedStringBuilder.0.1.0\lib\net45\AdvancedStringBuilder.dll</HintPath>
     </Reference>
+    <Reference Include="FuzzySharp, Version=1.0.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FuzzySharp.2.0.2\lib\net461\FuzzySharp.dll</HintPath>
+    </Reference>
     <Reference Include="GHCustomControls">
       <HintPath>..\..\dlls\GHCustomControls.dll</HintPath>
     </Reference>
@@ -255,14 +258,19 @@
     <Compile Include="Utilities\LoginDialouge.Designer.cs">
       <DependentUpon>LoginDialouge.cs</DependentUpon>
     </Compile>
+    <Compile Include="Utilities\RemoLibraryInterface.cs" />
+    <Compile Include="Utilities\RemoLibraryInterface.Designer.cs">
+      <DependentUpon>RemoLibraryInterface.cs</DependentUpon>
+    </Compile>
     <Compile Include="Utilities\SaveToFileDialouge.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Utilities\SaveToFileDialouge.Designer.cs">
       <DependentUpon>SaveToFileDialouge.cs</DependentUpon>
     </Compile>
-    <Compile Include="Utilities\SerializeToFile.cs" />
+    <Compile Include="Utilities\RemoLibrary.cs" />
     <Compile Include="Utilities\GetObjByTag.cs" />
+    <Compile Include="Utilities\SingleTrueFilter.cs" />
     <Compile Include="Utilities\UniqueValues.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
     <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
@@ -311,6 +319,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Utilities\LoginDialouge.resx">
       <DependentUpon>LoginDialouge.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utilities\RemoLibraryInterface.resx">
+      <DependentUpon>RemoLibraryInterface.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -461,6 +472,9 @@
   <ItemGroup>
     <None Include="images\FixCanvas.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="images\RemoLibrary.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -472,7 +486,7 @@
   <PropertyGroup>
     <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
 Copy "$(TargetDir)" "C:\Users\akhaj\Dropbox\RemoSharp"
-Erase "$(TargetPath)"</PostBuildEvent>
+</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <FallbackCulture>en-US</FallbackCulture>

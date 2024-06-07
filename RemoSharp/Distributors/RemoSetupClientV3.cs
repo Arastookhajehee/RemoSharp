@@ -1604,23 +1604,26 @@ namespace RemoSharp.Distributors
 
             if (currentValue)
             {
-
+                LoginDialouge loginDialouge = new LoginDialouge();
                 if (this.Params.Input[0].Sources.Count > 0)
                 {
                     if (string.IsNullOrEmpty(this.username) || this.username.Equals("username"))
                     {
-                        System.Timers.Timer usernameSetupTimer = new System.Timers.Timer(5);
-                        usernameSetupTimer.Elapsed += (s, args) =>
-                        {
-                            usernameSetupTimer.Stop();
-                            usernameSetupTimer.Dispose();
+                        
+                        loginDialouge.Show();
 
-                            // lunch login window
-                            LoginDialouge loginDialouge = new LoginDialouge();
-                            loginDialouge.ShowDialog();
-                        };
 
-                        usernameSetupTimer.Start();
+                        //System.Timers.Timer usernameSetupTimer = new System.Timers.Timer(5);
+                        //usernameSetupTimer.Elapsed += (s, args) =>
+                        //{
+                        //    usernameSetupTimer.Stop();
+                        //    usernameSetupTimer.Dispose();
+
+                        //    // lunch login window
+                            
+                        //};
+
+                        //usernameSetupTimer.Start();
                     }
                     return;
                 }
@@ -1723,20 +1726,22 @@ namespace RemoSharp.Distributors
                     //trigger.AddTarget(targetComp.InstanceGuid);
                     this.setupButton.CurrentValue = false;
                 });
+
+                loginDialouge = new LoginDialouge();
+                loginDialouge.Show();
+
                 this.setupButton.CurrentValue = false;
+                //System.Timers.Timer setupTimer = new System.Timers.Timer(5);
+                //setupTimer.Elapsed += (s, args) =>
+                //{
+                //    setupTimer.Stop();
+                //    setupTimer.Dispose();
 
-                System.Timers.Timer setupTimer = new System.Timers.Timer(5);
-                setupTimer.Elapsed += (s, args) =>
-                {
-                    setupTimer.Stop();
-                    setupTimer.Dispose();
+                //    // lunch login window
 
-                    // lunch login window
-                    LoginDialouge loginDialouge = new LoginDialouge();
-                    loginDialouge.ShowDialog();
-                };
+                //};
 
-                setupTimer.Start();
+                //setupTimer.Start();
 
             }
             

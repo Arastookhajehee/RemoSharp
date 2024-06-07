@@ -178,6 +178,9 @@
   <data name="RemoGeomStream" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoGeomStream.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="RemoLibrary" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\RemoLibrary.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RemoPanel" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\RemoPanel.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
