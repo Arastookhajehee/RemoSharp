@@ -19,25 +19,33 @@ using static System.Windows.Forms.AxHost;
 using Grasshopper.GUI.Canvas.Interaction;
 using WebSocketSharp;
 using RemoSharp.WebSocketClient;
+using System.Reflection.Emit;
+using GH_IO.Serialization;
+using Grasshopper.Documentation;
+using Grasshopper;
+using RemoSharp.Distributors;
 
 namespace RemoSharp.RemoParams
 {
     public class RemoParam : GHCustomComponent
     {
-        ToggleSwitch enableSwitch;
         //WebSocket client;
-        PushButton shareButton;
-        bool approximateCoords = false;
-        int setupIndex = 0;
-        Guid hoverComponentGuid = Guid.Empty;
-        bool mouseLeftDown = false;
+        //PushButton shareButton;
         public bool enableRemoParam = true;
-        bool localEnable = false;
 
         Guid associatedRpmData = Guid.Empty;
-        
 
-        public Guid syncCompGuid = Guid.Empty;
+        public static string RemoParamKeyword = "Hold Tab or F12 to Sync";
+        public static string RemoParamSelectionKeyword = "\nSelection Required";
+
+
+        string username = "";
+        string password = "";
+        RemoSetupClientV3 remoSetupClient = null;
+        public string message = "";
+
+
+        public Guid groupGuid = Guid.Empty;
 
         /// <summary>
         /// Initializes a new instance of the RemoParam class.
@@ -47,7 +55,6 @@ namespace RemoSharp.RemoParams
               "Syncs parameter accross connected computers.",
               "RemoSharp", "RemoParams")
         {
-            this.syncCompGuid = Guid.NewGuid();
         }
 
         
@@ -57,44 +64,43 @@ namespace RemoSharp.RemoParams
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("param", "param", "parameter to be shared across computers", GH_ParamAccess.tree);
-            pManager.AddBooleanParameter("resend", "resend", "resend the current parameter", GH_ParamAccess.item, false);
             //pManager.AddGenericParameter("Websocket Objects", "WSC", "websocket objects", GH_ParamAccess.item);
             //pManager.AddTextParameter("username","user","The username of the current GH document",GH_ParamAccess.item,"");
 
-            shareButton = new PushButton("Set Up",
-                        "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
-            shareButton.OnValueChanged += shareButton_OnValueChanged;
-            AddCustomControl(shareButton);
+            //shareButton = new PushButton("Set Up",
+            //            "Creates The Required WS Client Components To Broadcast Canvas Screen.", "Set Up");
+            //shareButton.OnValueChanged += shareButton_OnValueChanged;
+            //AddCustomControl(shareButton);
 
-            enableSwitch = new ToggleSwitch("Enable", "It has to be turned on if we want interactions with the server", false);
-            enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
+            //enableSwitch = new ToggleSwitch("Enable", "It has to be turned on if we want interactions with the server", false);
+            //enableSwitch.OnValueChanged += EnableSwitch_OnValueChanged;
 
-            AddCustomControl(enableSwitch);
-
-        }
-
+            
+            //AddCustomControl(enableSwitch);
 
 
-        private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            localEnable = Convert.ToBoolean(e.Value);
-            this.ExpireSolution(true);
-        }
-
-
-        private void shareButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (!currentValue) return;
-
-            var selection = this.OnPingDocument().SelectedObjects();
-            foreach (var item in selection)
-            {
-
-            }
 
         }
-        
+
+        //private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+
+        //private void shareButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        //{
+        //    bool currentValue = Convert.ToBoolean(e.Value);
+        //    if (!currentValue) return;
+
+        //    var selection = this.OnPingDocument().SelectedObjects();
+        //    foreach (var item in selection)
+        //    {
+
+        //    }
+
+        //}
+
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
@@ -102,77 +108,69 @@ namespace RemoSharp.RemoParams
         {
         }
 
-        // http://james-ramsden.com/append-menu-items-to-grasshopper-components-with-c/
-        protected override void AppendAdditionalComponentMenuItems(System.Windows.Forms.ToolStripDropDown menu)
-        {
-            base.AppendAdditionalComponentMenuItems(menu);
-            Menu_AppendItem(menu, "Approximate", Approximate_Menu);
-            Menu_AppendItem(menu, "Absolute", Absolute_Menu);
-        }
-
-        private void Approximate_Menu(object sender, EventArgs e)
-        {
-            approximateCoords = true;
-            this.ExpireSolution(true);
-        }
-        private void Absolute_Menu(object sender, EventArgs e)
-        {
-            approximateCoords = false;
-            this.ExpireSolution(true);
-        }
-
-
         /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            if (setupIndex == 0)
+            if (remoSetupClient == null) FindRemoSetupComponent();
+            try
             {
-                Grasshopper.Instances.ActiveCanvas.MouseDown += ActiveCanvas_MouseDown;
-                Grasshopper.Instances.ActiveCanvas.MouseUp += ActiveCanvas_MouseUp;
-                setupIndex++;
+                var inputCompSources = this.Params.Input[0].Sources;
+
+                var inputComp = inputCompSources[0];
+
+                GH_Structure<IGH_Goo> dataTree = new GH_Structure<IGH_Goo>();
+                DA.GetDataTree(0, out dataTree);
+
+                //RemoParameter remoParameter = new RemoParameter(username, this.InstanceGuid, dataTree);
+
+                //Guid thisGroupGuid = this.groupGuid;
+                //if (thisGroupGuid == null)
+                //{
+                //    Guid grpGuid = this.OnPingDocument().Objects.Where(obj => obj is GH_Group).Select(obj => obj as GH_Group)
+                //        .Where(obj => obj.ObjectIDs.Contains(thisGroupGuid)).Select(obj => obj.InstanceGuid).FirstOrDefault();
+                //    this.groupGuid = grpGuid;
+                //}
+
+                //string remoCommandJson = RemoCommand.SerializeToJson(remoParameter);
+
+                //if (remoSetupClient != null) remoSetupClient.client.Send(remoCommandJson);
+
+                
+
+                //var remoGroup = this.OnPingDocument().FindObject(this.groupGuid, false) as GH_Group;
+
+                //foreach (var item in remoGroup.ObjectIDs)
+                //{
+                //    var obj = this.OnPingDocument().FindObject(item, false);
+                //    if (obj is RemoSharp.RemoParams.RemoParamData) 
+                //    {
+                //        RemoParamData dataComp = (RemoParamData)obj;
+                //        dataComp.currentValue = dataTree;
+
+                //        this.OnPingDocument().ScheduleSolution(0, doc => {
+                //            dataComp.currentValue = dataTree;
+                //            dataComp.ExpireSolution(true);
+                //        });
+                //    }
+                //}
+                
             }
-
-            if (!enableRemoParam || !localEnable) return;
-
-            //WsObject wscObj = new WsObject();
-            string remoCommandJson = "Hello World";
-
-            //if (!DA.GetData(2, ref wscObj)) return;
-
-            //if (this.Params.Input[2].Sources[0].Attributes.Parent == null ||
-            //    !this.Params.Input[2].Sources[0].Attributes.Parent.DocObject.GetType()
-            //    .ToString().Equals("RemoSharp.RemoSetupClient"))
-            //{
-            //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
-            //}
-
-            //if (!this.Params.Input[3].Sources[0].GetType().ToString().Equals("Grasshopper.Kernel.Special.GH_Panel"))
-            //{
-            //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Wrong Wiring Detected!");
-            //}
-
-
-            //string username = "";
-            //DA.GetData(3, ref username);
-
-            var inputCompSources = this.Params.Input[0].Sources;
-            if (inputCompSources.Count == 0)
+            catch
             {
-                this.Message = "";
-                return;
+                FindRemoSetupComponent();
             }
-            else if (inputCompSources.Count > 1)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Please connect only one data source");
-                return;
-            }
+            
 
+        }
 
-            var remoSetupComps = this.OnPingDocument().Objects.Where(obj => obj.GetType().ToString().Equals("RemoSharp.RemoSetupClient")).ToList();
-            if (remoSetupComps.Count != 1)
+        private void FindRemoSetupComponent()
+        {
+
+            var remoSetupComps = this.OnPingDocument().Objects.Where(obj => obj is RemoSharp.Distributors.RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComps == null)
             {
                 string errorString = "A single RemoSetupClient Component is required for RemoParam" +
                     "\nPLease make sure there is a single RemoSetupClient in this Grasshopper Canvas";
@@ -180,191 +178,11 @@ namespace RemoSharp.RemoParams
                 return;
             }
 
-            RemoSetupClient remoSetupClient = (RemoSetupClient)remoSetupComps[0];
+            RemoSetupClientV3 remoSetupClient = (RemoSetupClientV3)remoSetupComps;
 
-            string username = remoSetupClient.username;
-            string password = remoSetupClient.password;
-            WebSocket client = remoSetupClient.client;
-
-            if (!remoSetupClient.enable)
-            {
-                string errorString = "RemoSharp Interactions is desabled!";
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, errorString);
-                return;
-            }
-
-            var inputComp = inputCompSources[0];
-            inputComp.NickName = "RemoParam";
-
-            string paramType = inputComp.GetType().ToString();
-
-            switch (paramType)
-            {
-                case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
-                    GH_NumberSlider slider = (GH_NumberSlider)inputComp;
-                    RemoParamSlider remoSlider = new RemoParamSlider(username, slider);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoSlider);
-
-                    bool interactingWithSlider = hoverComponentGuid == slider.InstanceGuid && mouseLeftDown;
-                    if (!interactingWithSlider) remoCommandJson = "";
-                    //this.Message = "";
-
-                    break;
-                case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
-                    GH_ButtonObject button = (GH_ButtonObject)inputComp;
-                    RemoParamButton remoButton = new RemoParamButton(username, button);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoButton);
-
-                    if (hoverComponentGuid != button.InstanceGuid) remoCommandJson = "";
-
-                    //this.Message = "";
-                    break;
-                case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
-                    GH_BooleanToggle toggle = (GH_BooleanToggle)inputComp;
-                    RemoParamToggle remoToggle = new RemoParamToggle(username, toggle);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoToggle);
-
-                    if (hoverComponentGuid != toggle.InstanceGuid) remoCommandJson = "";
-
-                    //this.Message = "";
-                    break;
-                case ("Grasshopper.Kernel.Special.GH_Panel"):
-                    GH_Panel panel = (GH_Panel)inputComp;
-                    RemoParamPanel remoPanel = new RemoParamPanel(username, panel);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoPanel);
-                    //this.Message = "";
-                    break;
-                case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
-                    GH_ColourSwatch colourSwatch = (GH_ColourSwatch)inputComp;
-                    RemoParamColor remoColor = new RemoParamColor(username, colourSwatch);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoColor);
-
-                    //if (!colourSwatch.Attributes.Selected)
-                    //{
-                    //    remoCommandJson = "";
-                    //    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Color Component does not send data!");
-                    //}
-
-                    //this.Message = "";
-                    break;
-                case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
-                    GH_MultiDimensionalSlider mdSlider = (GH_MultiDimensionalSlider)inputComp;
-                    RemoParamMDSlider remoMDSlider = new RemoParamMDSlider(username, mdSlider, this.approximateCoords);
-                    remoCommandJson = RemoCommand.SerializeToJson(remoMDSlider);
-
-                    bool interactingWithMDSlider = hoverComponentGuid == mdSlider.InstanceGuid && mouseLeftDown;
-                    if (!interactingWithMDSlider) remoCommandJson = "";
-
-                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
-                    break;
-                case ("Grasshopper.Kernel.Parameters.Param_Point"):
-                    IGH_Param paramComp = (IGH_Param)inputComp;
-                    Param_Point pointComponent = (Param_Point)inputComp;
-                    GH_Structure<IGH_Goo> pntTree = new GH_Structure<IGH_Goo>();
-                    DA.GetDataTree<IGH_Goo>(0, out pntTree);
-
-                    RemoParamPoint3d points = new RemoParamPoint3d(username, pointComponent, pntTree, this.approximateCoords);
-                    remoCommandJson = RemoCommand.SerializeToJson(points);
-
-                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
-
-                    //if (!inputComp.Attributes.Selected) remoCommandJson = "";
-                    //if (!paramComp.Attributes.Selected) this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Unselected Point Component does not send data!");
-
-                    break;
-                case ("Grasshopper.Kernel.Parameters.Param_Vector"):
-                    Param_Vector vectorComponent = (Param_Vector)inputComp;
-                    GH_Structure<IGH_Goo> vecTree = new GH_Structure<IGH_Goo>();
-                    DA.GetDataTree<IGH_Goo>(0, out vecTree);
-
-                    RemoParamVector3d vectors = new RemoParamVector3d(username, vectorComponent, vecTree, this.approximateCoords);
-                    remoCommandJson = RemoCommand.SerializeToJson(vectors);
-
-
-                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
-                    break;
-                case ("Grasshopper.Kernel.Parameters.Param_Plane"):
-                    Param_Plane planeComponent = (Param_Plane)inputComp;
-                    GH_Structure<IGH_Goo> planeTree = new GH_Structure<IGH_Goo>();
-                    DA.GetDataTree<IGH_Goo>(0, out planeTree);
-
-                    RemoParamPlane planes = new RemoParamPlane(username, planeComponent, planeTree, this.approximateCoords);
-                    remoCommandJson = RemoCommand.SerializeToJson(planes);
-
-                    //this.Message = this.approximateCoords ? "Round to 3 decimals" : "Absolute";
-                    break;
-
-                default:
-                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unsupported Data Type Input!\n" +
-                        " Supported components:\n" +
-                        "number slider, button, toggle\n" +
-                        "panel, colourswatch, MDslider\n" +
-                        "point, vector, plane");
-                    return;
-            }
-            if (string.IsNullOrEmpty(remoCommandJson)) return;
-
-            try
-            {
-                client.Send(remoCommandJson);
-            }
-            catch
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Connection Problem! Please check the RemoSetupClient Component!");
-                return;
-
-
-            }
-
-
-        }
-
-        public void ActiveCanvas_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (this == null || this.OnPingDocument() == null)
-            {
-                Grasshopper.Instances.ActiveCanvas.MouseDown -= ActiveCanvas_MouseDown;
-                Grasshopper.Instances.ActiveCanvas.MouseUp -= ActiveCanvas_MouseUp;
-            }
-
-            if (e.Button == MouseButtons.Left)
-            {
-                mouseLeftDown = false;
-            }
-        }
-        public void ActiveCanvas_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (this == null || this.OnPingDocument() == null)
-            {
-                Grasshopper.Instances.ActiveCanvas.MouseDown -= ActiveCanvas_MouseDown;
-                Grasshopper.Instances.ActiveCanvas.MouseUp -= ActiveCanvas_MouseUp;
-            }
-            if (e.Button == MouseButtons.Left)
-            {
-                float[] mouseCoords = PointFromCanvasMouseInteraction(Grasshopper.Instances.ActiveCanvas.Viewport, e);
-                var hoverObject = this.OnPingDocument().FindObject(new System.Drawing.PointF(mouseCoords[0], mouseCoords[1]), 1);
-                if (hoverObject == null) hoverComponentGuid = Guid.Empty;
-                else
-                {
-                    hoverComponentGuid = hoverObject.InstanceGuid;
-                    mouseLeftDown = true;
-                }
-            }
-            else
-            {
-                hoverComponentGuid = Guid.Empty;
-            }
-        }   
-            
-        
-
-        float[] PointFromCanvasMouseInteraction(Grasshopper.GUI.Canvas.GH_Viewport vp, MouseEventArgs e)
-        {
-            Grasshopper.GUI.GH_CanvasMouseEvent mouseEvent = new Grasshopper.GUI.GH_CanvasMouseEvent(vp, e);
-            float x = mouseEvent.CanvasX;
-            float y = mouseEvent.CanvasY;
-            float[] coords = { x, y };
-            return coords;
+            this.username = remoSetupClient.username;
+            this.password = remoSetupClient.password;
+            this.remoSetupClient = remoSetupClient;
         }
 
         /// <summary>

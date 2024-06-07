@@ -16,12 +16,24 @@ using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Parameters;
 using System.Windows.Forms;
+using GH_IO.Serialization;
+using Grasshopper.Kernel.Undo;
+using Grasshopper.Kernel.Undo.Actions;
+using System.Reflection;
+using System.Collections.ObjectModel;
+using System.Xml.Linq;
+using System.Security.Cryptography;
+using GhPython;
+using System.Data.SqlTypes;
+using RemoSharp.Utilities;
 
 namespace RemoSharp.RemoCommandTypes
 {
 
     public enum CommandType
     {
+        ServerKeepAlive = -2,
+        ServerDisconnect = -1,
         NullCommand = 0, // done
         MoveComponent = 1,
         Create = 2, // done
@@ -43,9 +55,18 @@ namespace RemoSharp.RemoCommandTypes
         RemoPlane = 18,
         RemoCanvasSync = 19,
         WireHistory = 20,
-        ItemAddition = 21
+        ItemAddition = 21,
+        RemoText = 22,
+        RemoScriptCS = 23,
+        RemoRelay = 24,
+        RemoUndo = 25,
+        RemoCompSync = 26,
+        CanvasViewport = 27,
+        RemoPartialDocument = 28,
+        RemoParameter = 29,
+            RemoReWire = 30
     }
-    
+
     public enum RemoConnectType
     {
         None = 0,
@@ -57,18 +78,142 @@ namespace RemoSharp.RemoCommandTypes
     {
         public string issuerID;
         public CommandType commandType;
+        public string sessionID;
         public Guid objectGuid;
         public int executionAttempts = 0;
         public bool executed = false;
         public Guid commandID;
         public static string SerializeToJson(List<RemoCommand> commands)
         {
-            return JsonConvert.SerializeObject(commands, Formatting.Indented);
+            return JsonConvert.SerializeObject(commands, Formatting.None);
         }
         public static string SerializeToJson(RemoCommand commands)
         {
             return JsonConvert.SerializeObject(commands, Formatting.None);
         }
+
+        public static string SerializeToXML(object obj)
+        {
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            if (obj is GH_Document)
+            {
+                GH_Document doc = (GH_Document)obj;
+                doc.Write(chunk);
+            }
+            else if (obj is IGH_DocumentObject)
+            {
+                IGH_DocumentObject docObj = (IGH_DocumentObject)obj;
+                docObj.Write(chunk);
+            }
+            else return "";
+            return MinifyXml(chunk.Serialize_Xml());
+        }
+
+        public static string SerializeToXML(Guid componentGuid)
+        {
+            var component = Grasshopper.Instances.ActiveCanvas.Document.FindObject(componentGuid, false);
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            component.Write(chunk);
+            return MinifyXml(chunk.Serialize_Xml());
+        }
+
+        public static GH_LooseChunk DeserializeFromXML(string xml)
+        {
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            chunk.Deserialize_Xml(xml);
+            return chunk;
+        }
+
+        public static GH_Document DeserializeGH_DocumentFromXML(string xml)
+        {
+            GH_Document tempDoc = new GH_Document();
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            chunk.Deserialize_Xml(xml);
+            tempDoc.Read(chunk);
+            return tempDoc;
+        }
+        public static string SerizlizeToSinglecomponentDocXML(Guid guid)
+        {
+            var component = Grasshopper.Instances.ActiveCanvas.Document.FindObject(guid, false);
+            GH_Document tempDoc = new GH_Document();
+            tempDoc.AddObject(component, true);
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            tempDoc.Write(chunk);
+            return MinifyXml(chunk.Serialize_Xml());
+        }
+
+        public static string SerizlizeToSinglecomponentDocXML(IGH_DocumentObject component)
+        {
+            GH_Document tempDoc = new GH_Document();
+            tempDoc.AddObject(component, true);
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            tempDoc.Write(chunk);
+            return MinifyXml(chunk.Serialize_Xml());
+        }
+        public static List<string> SerizlizeToSinglecomponentDocXML(GH_Document thisDoc, List<IGH_DocumentObject> component)
+        {
+
+            var keepObjs = component.Select(x => x.InstanceGuid).ToList();
+
+            var removalGuids = thisDoc.Objects.Where(o => !keepObjs.Contains(o.InstanceGuid)).Select(x => x.InstanceGuid).ToList();
+            GH_Document tempDoc = GH_Document.DuplicateDocument(thisDoc);
+            var removalObjs = tempDoc.Objects.Where(obj => !keepObjs.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, true);
+
+            List<string> xmls = new List<string>();
+            foreach (var item in component)
+            {
+                GH_Document tempDoc2 = GH_Document.DuplicateDocument(tempDoc);
+                var removalGuids2 = tempDoc2.Objects.Select(x => x.InstanceGuid).ToList();
+                foreach (var item2 in component)
+                {
+                    if (item2.InstanceGuid == item.InstanceGuid) continue;
+                    tempDoc2.RemoveObject(tempDoc2.FindObject(item2.InstanceGuid, false), true);
+                }
+
+                xmls.Add(SerializeToXML(tempDoc2));
+            }
+
+
+            return xmls;
+        }
+
+        public static string MinifyXml(string xmlString)
+        {
+            // Load the XML string into an XDocument
+            XDocument xDocument = XDocument.Parse(xmlString);
+
+            // Save the XDocument to a string with no indentation
+            return xDocument.ToString(SaveOptions.DisableFormatting);
+        }
+
+        public static string GetSelectXMLAttributesToFalse(string xml)
+        {
+            // Load the XML string into an XDocument
+            XDocument xDocument = XDocument.Parse(xml);
+
+            // Get the first node with the name "Attributes"
+
+
+            XDocument doc = XDocument.Parse(xml);
+            XElement selectedElement = doc.Descendants("item")
+                                          .FirstOrDefault(x => (string)x.Attribute("name") == "Selected");
+
+
+
+
+            if (selectedElement != null)
+            {
+                selectedElement.SetValue("false");
+            }
+
+
+            string newXML = doc.ToString();
+
+            // Save the XDocument to a string with no indentation
+            return newXML;
+        }
+
         public static RemoCommand DeserializeFromJson(string commandJson)
         {
 
@@ -85,42 +230,45 @@ namespace RemoSharp.RemoCommandTypes
             switch (commandType)
             {
 
-                case (int) CommandType.WireConnection:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoConnect>(commandJson);
+                case (int)CommandType.WireConnection:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoConnect>(commandJson);
 
                     break;
-            case (int) CommandType.Delete:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoDelete>(commandJson);
-                
-                    break;
-            case (int) CommandType.Hide:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoHide>(commandJson);
-                
-                    break;
-            case (int) CommandType.Select:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoSelect>(commandJson);
-                
-                    break;
-                case (int) CommandType.MoveComponent:
+                case (int)CommandType.Delete:
 
-                remoCommand = JsonConvert.DeserializeObject<RemoMove>(commandJson);
+                    remoCommand = JsonConvert.DeserializeObject<RemoDelete>(commandJson);
+
                     break;
-            case (int) CommandType.Create:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoCreate>(commandJson);
-                
+                case (int)CommandType.Hide:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoHide>(commandJson);
+
                     break;
-            case (int) CommandType.Lock:
-            
-                remoCommand = JsonConvert.DeserializeObject<RemoLock>(commandJson);
-                
+                case (int)CommandType.Select:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoSelect>(commandJson);
+
                     break;
-                case (int) CommandType.RemoSlider:
-                remoCommand = JsonConvert.DeserializeObject<RemoParamSlider>(commandJson);
+                case (int)CommandType.MoveComponent:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoMove>(commandJson);
+                    break;
+                case (int)CommandType.Create:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoCreate>(commandJson);
+
+                    break;
+                case (int)CommandType.Lock:
+
+                    remoCommand = JsonConvert.DeserializeObject<RemoLock>(commandJson);
+
+                    break;
+                case (int)CommandType.RemoParameter:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParameter>(commandJson);
+                    break;
+                case (int)CommandType.RemoSlider:
+                    remoCommand = JsonConvert.DeserializeObject<RemoParamSlider>(commandJson);
                     break;
                 case (int)CommandType.RemoButton:
                     remoCommand = JsonConvert.DeserializeObject<RemoParamButton>(commandJson);
@@ -149,31 +297,62 @@ namespace RemoSharp.RemoCommandTypes
                 case (int)CommandType.RemoCanvasSync:
                     remoCommand = JsonConvert.DeserializeObject<RemoCanvasSync>(commandJson);
                     break;
-                case (int) CommandType.StreamGeom:
-            
-                return null;
-                    //break;
-            case (int) CommandType.NullCommand:
-            
-                return null;
-                    //break;
-            default:
+                case (int)CommandType.RemoScriptCS:
+                    remoCommand = JsonConvert.DeserializeObject<RemoScriptCS>(commandJson);
                     break;
-        }
-                
+                case (int)CommandType.RemoRelay:
+                    remoCommand = JsonConvert.DeserializeObject<RemoRelay>(commandJson);
+                    break;
+                case (int)CommandType.RemoUndo:
+                    remoCommand = JsonConvert.DeserializeObject<RemoUndo>(commandJson);
+                    break;
+                case (int)CommandType.RemoCompSync:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCompSync>(commandJson);
+                    break;
+                case (int)CommandType.CanvasViewport:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCanvasView>(commandJson);
+                    break;
+                case (int)CommandType.StreamGeom:
+                    return null;
+                //break;
+                case (int)CommandType.NullCommand:
+                    remoCommand = JsonConvert.DeserializeObject<RemoNullCommand>(commandJson);
+                    break;
+                case (int)CommandType.RemoPartialDocument:
+                    remoCommand = JsonConvert.DeserializeObject<RemoPartialDoc>(commandJson);
+                    break;
+                case (int)CommandType.RemoReWire:
+                    remoCommand = JsonConvert.DeserializeObject<RemoReWire>(commandJson);
+                    break;
+                //break;
+                default:
+                    break;
+            }
+
             return remoCommand;
         }
 
     }
 
-    public class RemoNullCommand : RemoCommand 
+    public class RemoKeepAlive : RemoCommand
     {
-        public RemoNullCommand(string issuerID)
+        public RemoKeepAlive()
+        {
+            this.commandType = CommandType.ServerKeepAlive;
+        }
+    }
+
+    public class RemoNullCommand : RemoCommand
+    {
+        public string password;
+        public RemoNullCommand(string issuerID, string password, string sessionID)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.NullCommand;
             this.objectGuid = Guid.Empty;
             this.commandID = Guid.NewGuid();
+            this.password = password;
+            this.sessionID = sessionID;
         }
         public RemoNullCommand()
         {
@@ -195,13 +374,13 @@ namespace RemoSharp.RemoCommandTypes
         public bool isSourceSpecial = false;
         public bool isTargetSpecial = false;
         public RemoConnectType RemoConnectType = RemoConnectType.None;
-      
+
         public RemoConnectInteraction()
         {
             // default constructor
         }
 
-        public RemoConnectInteraction(string issuerID, IGH_Param source, IGH_Param target,
+        public RemoConnectInteraction(string issuerID, string sessionID, IGH_Param source, IGH_Param target,
             RemoConnectType remoConnectType)
         {
             this.issuerID = issuerID;
@@ -210,6 +389,7 @@ namespace RemoSharp.RemoCommandTypes
             this.source = source;
             this.target = target;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
 
         }
 
@@ -221,72 +401,34 @@ namespace RemoSharp.RemoCommandTypes
 
     public class RemoConnect : RemoCommand
     {
-        public int sourceOutput = -1;
-        public int targetInput = -1;
-        public bool isSourceSpecial = false;
-        public bool isTargetSpecial = false;
         public Guid sourceObjectGuid = Guid.Empty;
         public Guid targetObjectGuid = Guid.Empty;
         public RemoConnectType RemoConnectType = RemoConnectType.None;
-        public float sourceX;
-        public float sourceY;
-        public float targetX;
-        public float targetY;
-        public string sourceNickname;
-        public string targetNickname;
-        public string listItemParamNickName;
+        public string sourceXML;
+        public string targetXML;
+        public string sourceType;
+        public string targetType;
 
         public RemoConnect()
         {
             // default constructor
         }
 
-        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
-            int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY, string sourceNickname, string targetNickname)
+        public RemoConnect(string issuerID, string sessionID, Guid sourceObjectGuid, Guid targetObjectGuid,
+            RemoConnectType remoConnectType,
+            string sourceXML, string targetXML, string sourceType, string targetType)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.WireConnection;
             this.RemoConnectType = remoConnectType;
             this.sourceObjectGuid = sourceObjectGuid;
             this.targetObjectGuid = targetObjectGuid;
-            this.sourceOutput = sourceOutput;
-            this.targetInput = targetInput;
-            this.isSourceSpecial = isSourceSpecial;
-            this.isTargetSpecial = isTargetSpecial;
-            this.sourceX = sourceX;
-            this.sourceY = sourceY;
-            this.targetX = targetX;
-            this.targetY = targetY;
-            this.sourceNickname = sourceNickname;
-            this.targetNickname = targetNickname;
+            this.sourceXML = sourceXML;
+            this.targetXML = targetXML;
+            this.sourceType = sourceType;
+            this.targetType = targetType;
             this.commandID = Guid.NewGuid();
-
-        }
-
-        public RemoConnect(string issuerID, Guid sourceObjectGuid, Guid targetObjectGuid,
-            int sourceOutput, int targetInput, bool isSourceSpecial, bool isTargetSpecial,
-            RemoConnectType remoConnectType, float sourceX, float sourceY, float targetX, float targetY,
-            string sourceNickname, string targetNickname, string listItemParamNickName)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.WireConnection;
-            this.RemoConnectType = remoConnectType;
-            this.sourceObjectGuid = sourceObjectGuid;
-            this.targetObjectGuid = targetObjectGuid;
-            this.sourceOutput = sourceOutput;
-            this.targetInput = targetInput;
-            this.isSourceSpecial = isSourceSpecial;
-            this.isTargetSpecial = isTargetSpecial;
-            this.sourceX = sourceX;
-            this.sourceY = sourceY;
-            this.targetX = targetX;
-            this.targetY = targetY;
-            this.sourceNickname = sourceNickname;
-            this.targetNickname = targetNickname;
-            this.listItemParamNickName= listItemParamNickName;
-            this.commandID = Guid.NewGuid();
-
+            this.sessionID = sessionID;
         }
 
         public override string ToString()
@@ -298,68 +440,30 @@ namespace RemoSharp.RemoCommandTypes
     public class RemoCreate : RemoCommand
     {
         public List<Guid> guids;
+        public List<string> attributeXMLs;
         public List<string> componentTypes;
-        public List<string> nickNames;
-        public List<int> Xs;
-        public List<int> Ys;
-        public List<bool> isSpecials;
-        public List<string> specialParameters_s;
-        public List<WireHistory> wireHistorys;
-        public List<Guid> associatedObjectGuids;
-
 
         public RemoCreate()
         {
             // default constructor
         }
         // a constructor for general components
-        public RemoCreate(string issuerID, List<Guid> guids,
-            List<string> componentTypes,
-            List<string> nickNames,
-            List<int> Xs,
-            List<int> Ys,
-            List<bool> isSpecials,
-            List<string> specialParameters_s,
-            List<WireHistory> wireHistorys)
+        public RemoCreate(string issuerID,
+            string sessionID,
+            List<Guid> guids,
+            List<string> associatedAttributes,
+            List<string> componentTypes)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.Create;
             this.objectGuid = Guid.Empty;
             this.guids = guids;
+            this.attributeXMLs = associatedAttributes;
             this.componentTypes = componentTypes;
-            this.nickNames = nickNames;
-            this.Xs = Xs;
-            this.Ys = Ys;
-            this.isSpecials = isSpecials;
-            this.specialParameters_s = specialParameters_s;
-            this.wireHistorys = wireHistorys;
             this.commandID = Guid.NewGuid();
-
+            this.sessionID = sessionID;
         }
-        public RemoCreate(string issuerID, List<Guid> guids, List<Guid> associatedObjectGuids,
-            List<string> componentTypes,
-            List<string> nickNames,
-            List<int> Xs,
-            List<int> Ys,
-            List<bool> isSpecials,
-            List<string> specialParameters_s,
-            List<WireHistory> wireHistorys)
-        {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.Create;
-            this.objectGuid = Guid.Empty;
-            this.guids = guids;
-            this.componentTypes = componentTypes;
-            this.nickNames = nickNames;
-            this.Xs = Xs;
-            this.Ys = Ys;
-            this.isSpecials = isSpecials;
-            this.specialParameters_s = specialParameters_s;
-            this.wireHistorys = wireHistorys;
-            this.commandID = Guid.NewGuid();
-            this.associatedObjectGuids = associatedObjectGuids;
 
-        }
 
         public override string ToString()
         {
@@ -368,17 +472,39 @@ namespace RemoSharp.RemoCommandTypes
 
     }
 
+    public class RemoScriptCS : RemoCommand
+    {
+        public string xmlContent;
+        public RemoScriptCS() { }
+
+        public RemoScriptCS(string issuerID, string sessionID, ScriptComponents.Component_CSNET_Script csComponent)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoScriptCS;
+            this.objectGuid = csComponent.InstanceGuid;
+            this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            csComponent.Write(chunk);
+
+            this.xmlContent = chunk.Serialize_Xml();
+
+        }
+    }
+
     public class RemoDelete : RemoCommand
     {
         public List<Guid> objectGuids;
         public RemoDelete() { }
-        public RemoDelete(string issuerID, List<Guid> objectGuids)
+        public RemoDelete(string issuerID, string sessionID, List<Guid> objectGuids)
         {
-            this.issuerID= issuerID;
-            this.commandType= CommandType.Delete;
-            this.objectGuid= Guid.Empty;
+            this.issuerID = issuerID;
+            this.commandType = CommandType.Delete;
+            this.objectGuid = Guid.Empty;
             this.objectGuids = objectGuids;
             this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
 
         }
 
@@ -388,14 +514,342 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoReWire : RemoCommand
+    {
+        public Guid sourceGuid;
+        public Guid targetGuid;
+        public RemoReWire() { }
+        public RemoReWire(string issuerID, string sessionID,IGH_Param source, IGH_Param target)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoReWire;
+            this.objectGuid = Guid.Empty;
+            this.sourceGuid = source.InstanceGuid;
+            this.targetGuid = target.InstanceGuid;
+            this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
+        }
+    }
+
+
+    public class RemoPartialDoc : RemoCommand
+    {
+        public string xml;
+        public List<Guid> compGuids;
+        public List<string> compXMLs;
+        public List<WireHistory> pythonWireHistories;
+        public Dictionary<Guid, List<Guid>> relayConnections;
+
+        public RemoPartialDoc() { }
+
+        public static List<string> specialComponentTypes = new List<string>()
+        { };
+
+        public RemoPartialDoc(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document currentDoc)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.executed = false;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.commandType = CommandType.RemoPartialDocument;
+            this.executionAttempts = 0;
+            this.pythonWireHistories = new List<WireHistory>();
+            this.relayConnections = new Dictionary<Guid, List<Guid>>();
+
+            currentDoc.DeselectAll();
+
+            this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
+            this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
+
+            GH_Document tempDoc = GH_Document.DuplicateDocument(currentDoc);
+
+            var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
+            var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, false);
+            tempDoc.DeselectAll();
+
+            if (objects.Count == 1 && objects[0] is GH_Relay)
+            {
+                GH_Relay relay = (GH_Relay)objects[0];
+                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
+            }
+
+            this.xml = SerializeToXML(tempDoc);
+
+
+        }
+
+        public RemoPartialDoc(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document currentDoc, bool newGuids)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.executed = false;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.commandType = CommandType.RemoPartialDocument;
+            this.executionAttempts = 0;
+            this.pythonWireHistories = new List<WireHistory>();
+            this.relayConnections = new Dictionary<Guid, List<Guid>>();
+
+            currentDoc.DeselectAll();
+
+            GH_Document tempDoc = GH_Document.DuplicateDocument(currentDoc);
+
+            var remoValGuids = objects.Select(o => o.InstanceGuid).ToList();
+            var removalObjs = tempDoc.Objects.Where(obj => !remoValGuids.Contains(obj.InstanceGuid)).ToList();
+            tempDoc.RemoveObjects(removalObjs, false);
+            tempDoc.DeselectAll();
+
+            if (objects.Count == 1 && objects[0] is GH_Relay)
+            {
+                GH_Relay relay = (GH_Relay)objects[0];
+                this.relayConnections.Add(relay.Sources[0].InstanceGuid, relay.Recipients.Select(obj => obj.InstanceGuid).ToList());
+            }
+
+            //foreach (var item in tempDoc.Objects)
+            //{
+            //    if (item is IGH_Param)
+            //    {
+            //        IGH_Param param = (IGH_Param)item;
+            //        param.NewInstanceGuid();
+            //    }
+            //    else if (item is IGH_Component)
+            //    {
+            //        IGH_Component comp = (IGH_Component)item;
+            //        comp.NewInstanceGuid();
+            //        foreach (var param in comp.Params.Input)
+            //        {
+            //            param.NewInstanceGuid();
+            //        }
+            //        foreach (var param in comp.Params.Output)
+            //        {
+            //            param.NewInstanceGuid();
+            //        }
+            //    }
+            //    else if (item is GH_Group)
+            //    {
+            //        GH_Group group = (GH_Group)item;
+            //        group.NewInstanceGuid();
+            //    }
+            //    else item.NewInstanceGuid();
+            //}
+
+            this.compGuids = objects.Select(x => x.InstanceGuid).ToList();
+            this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
+            this.xml = SerializeToXML(tempDoc);
+        }
+    }
+
+    public class RemoRelay : RemoCommand
+    {
+        public Guid sourceGuid;
+        public Guid targetGuid;
+        public int sourceIndex;
+        public int targetIndex;
+        public string relayXML;
+        public RemoRelay() { }
+        public RemoRelay(
+            string issuerID,
+            string sessionID,
+            GH_Relay relayComponent,
+            Guid sourceGuid,
+            Guid targetGuid,
+            int sourceIndex,
+            int targetIndex
+            )
+        {
+
+
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.RemoRelay;
+            this.objectGuid = relayComponent.InstanceGuid;
+            this.sourceGuid = sourceGuid;
+            this.targetGuid = targetGuid;
+            this.sourceIndex = sourceIndex;
+            this.targetIndex = targetIndex;
+            this.commandID = Guid.NewGuid();
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            relayComponent.Write(chunk);
+            this.relayXML = chunk.Serialize_Xml();
+        }
+
+
+
+        public override string ToString()
+        {
+            return string.Format("RemoRelay Command from {0}", this.issuerID);
+        }
+    }
+
+    public class RemoUndo : RemoCommand 
+     {
+
+        public string name;
+        public int actionCount;
+
+        public Guid sourceCompGuid = Guid.Empty;
+        public Guid targetCompGuid = Guid.Empty;
+        public int sourceIndex = 0;
+        public int targetIndex = 0;
+
+        public RemoUndo() { }
+        public RemoUndo(string issuerID, string sessionID, GH_DocUndoEventArgs e)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.RemoUndo;
+            this.objectGuid = Guid.Empty;
+            var rec = e.Record;
+            //this.expiresDisplay = rec.ExpiresDisplay;
+            //this.expiresSolution = rec.ExpiresSolution;
+            //this.state = (int)rec.State;
+            this.name = rec.Name;
+            this.actionCount = rec.ActionCount;
+
+            int actCount = rec.ActionCount;
+
+            if (rec.Name.Contains("New wire"))
+            {
+                GH_WireAction wireAction = (GH_WireAction)rec.Actions[0];
+
+                var wState = wireAction.State;
+
+                Type type = typeof(GH_WireAction);
+                Grasshopper.Kernel.GH_WireTopologyDiagram mode = type
+                  .GetField("m_wires", BindingFlags.NonPublic | BindingFlags.Instance)
+                  .GetValue(wireAction) as Grasshopper.Kernel.GH_WireTopologyDiagram;
+
+                IGH_Param sourceOutput = e.Document.FindParameter(mode[0].SourceParameterID);
+                IGH_Param targetInput = e.Document.FindParameter(mode[0].TargetParameterID);
+
+                Guid sourceGuid = sourceOutput.InstanceGuid;
+                Guid targetguid = targetInput.InstanceGuid;
+                int sourceOutputIndex = sourceOutput.Attributes.Parent == null ? -1 : FindOutputIndexFromGH_Param(sourceOutput, out sourceGuid);
+                int targetInputIndex = targetInput.Attributes.Parent == null ? -1 : FindInputIndexFromGH_Param(targetInput, out targetguid);
+
+                this.sourceCompGuid = sourceGuid;
+                this.targetCompGuid = targetguid;
+                this.sourceIndex = sourceOutputIndex;
+                this.targetIndex = targetInputIndex;
+            }
+            //else if (rec.Name.Contains("Remove wire"))
+            //    return;
+            //{
+            //    GH_WireAction wireAction = (GH_WireAction)rec.Actions[0];
+
+            //    var wState = wireAction.State;
+
+            //    var latestNewWire = e.Document.UndoServer.UndoGuids[0];
+
+                
+
+            //    Type type = typeof(GH_WireAction);
+            //    Grasshopper.Kernel.GH_WireTopologyDiagram mode = type
+            //      .GetField("m_wires", BindingFlags.NonPublic | BindingFlags.Instance)
+            //      .GetValue(wireAction) as Grasshopper.Kernel.GH_WireTopologyDiagram;
+
+            //    IGH_Param sourceOutput = e.Document.FindParameter(mode[0].SourceParameterID);
+            //    IGH_Param targetInput = e.Document.FindParameter(mode[0].TargetParameterID);
+
+            //    Guid sourceGuid = sourceOutput.InstanceGuid;
+            //    Guid targetguid = targetInput.InstanceGuid;
+            //    int sourceOutputIndex = sourceOutput.Attributes.Parent == null ? -1 : FindOutputIndexFromGH_Param(sourceOutput, out sourceGuid);
+            //    int targetInputIndex = targetInput.Attributes.Parent == null ? -1 : FindInputIndexFromGH_Param(targetInput, out targetguid);
+
+            //    this.sourceCompGuid = sourceGuid;
+            //    this.targetCompGuid = targetguid;
+            //    this.sourceIndex = sourceOutputIndex;
+            //    this.targetIndex = targetInputIndex;
+            //}
+        }
+
+        private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)sourceOutput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Output.IndexOf(sourceOutput);
+        }
+
+        private int FindInputIndexFromGH_Param(IGH_Param targetInput, out Guid parentGuid)
+        {
+            IGH_Component comp = (IGH_Component)targetInput.Attributes.Parent.DocObject;
+            parentGuid = comp.InstanceGuid;
+            return comp.Params.Input.IndexOf(targetInput);
+        }
+    }
+
+    public class RemoCompSync : RemoCommand
+    {
+        public List<Guid> guids;
+        public List<string> xmls;
+        public List<string> docXMLs;
+
+
+        //constructor
+        public RemoCompSync() { }
+        public RemoCompSync(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document thisDoc)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.RemoCompSync;
+            this.objectGuid = Guid.Empty;
+            
+            this.guids = objects.Select(x => x.InstanceGuid).ToList();
+            this.xmls = objects.Select(x => SerializeToXML(x)).ToList();
+            this.docXMLs = SerizlizeToSinglecomponentDocXML(thisDoc, objects);
+        }
+
+        private static Dictionary<int,List<Guid>> GetAllOutputConnectionGuids(IGH_DocumentObject component)
+        {
+            Dictionary<int, List<Guid>> outputConnections = new Dictionary<int, List<Guid>>();
+            if (component is IGH_Component)
+            {
+                IGH_Component gH_Component = (IGH_Component)component;
+                
+                for (int i = 0; i < gH_Component.Params.Output.Count; i++)
+                {
+                    IGH_Param output = gH_Component.Params.Output[i];
+                    List<Guid> outputGuids = new List<Guid>();
+                    foreach (var item in output.Recipients)
+                    {
+                        outputGuids.Add(item.InstanceGuid);
+                    }
+                    outputConnections.Add(i, outputGuids);
+                }
+            }
+            else if (component is IGH_Param)
+            {
+                IGH_Param gH_Param = (IGH_Param)component;
+                List<Guid> outputGuids = new List<Guid>();
+                foreach (var item in gH_Param.Recipients)
+                {
+                    outputGuids.Add(item.InstanceGuid);
+                }
+                outputConnections.Add(-1, outputGuids);
+            }
+            else
+            {
+                return null;
+            }
+            return outputConnections;
+        }
+
+    }
+
+     
+
     public class RemoLock : RemoCommand
     {
         public List<bool> states;
         public List<Guid> guids;
         public int timeSeconds;
-        public RemoLock(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
+        public RemoLock(string issuerID, string sessionID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Lock;
             this.objectGuid = Guid.Empty;
             this.states = states;
@@ -419,9 +873,10 @@ namespace RemoSharp.RemoCommandTypes
     {
         public int timeSeconds;
         public List<Guid> selectionGuids;
-        public RemoSelect(string issuerID, List<Guid> objectGuids, int timeSeconds)
+        public RemoSelect(string issuerID, string sessionID, List<Guid> objectGuids, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Select;
             this.objectGuid = Guid.Empty;
             this.timeSeconds = timeSeconds;
@@ -445,9 +900,10 @@ namespace RemoSharp.RemoCommandTypes
         public List<bool> states;
         public List<Guid> guids;
         public int timeSeconds;
-        public RemoHide(string issuerID, List<Guid> guids, List<bool> states, int timeSeconds)
+        public RemoHide(string issuerID, string sessionID, List<Guid> guids, List<bool> states, int timeSeconds)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.Hide;
             this.objectGuid = Guid.Empty;
             this.states = states;
@@ -467,6 +923,159 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoParameter : RemoCommand
+    {
+        public string xml;
+        public string persistentDataXML;
+        public bool hasPersistentData;
+        public RemoParameter() { }
+        public RemoParameter(string issuerID, string sessionID, IGH_DocumentObject parameter)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.RemoParameter;
+            this.objectGuid = parameter.InstanceGuid;
+            this.commandID = Guid.NewGuid();
+            
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            parameter.Write(chunk);
+
+            string xml = chunk.Serialize_Xml();
+            //parse the xml string
+            string attributesXML = GetSelectXMLAttributesToFalse(xml);
+
+            this.xml = attributesXML;
+
+            bool hasPersData = false;
+            object persistentData = GetPersistentData(parameter, out hasPersData);
+
+            string persDataXML = "";
+            if (hasPersData)
+            {
+                GH_LooseChunk persDataChunk = new GH_LooseChunk(null);
+                object[] arguments = new object[] { persDataChunk };
+                InvokeWriteMethod(persistentData, arguments);
+
+                persDataXML = persDataChunk.Serialize_Xml();
+            }
+            this.persistentDataXML = persDataXML;
+            this.hasPersistentData = hasPersData;
+
+        }
+
+        public override string ToString()
+        {
+            return string.Format("RemoParameter Command from {0}", this.issuerID);
+        }
+
+        // a function that searches trhough an xml string structure for a node with the name "Attributes" 
+        // and returns the xml string of that node
+        
+        public static object GetPersistentData(object objectToInspect, out bool hasPersistentData)
+        {
+            string propertyName = "PersistentData";
+            // Use reflection to get the Type of the object
+            Type type = objectToInspect.GetType();
+
+            // Get the PropertyInfo object for the specified property
+            PropertyInfo propertyInfo = type.GetProperty(propertyName);
+
+            if (propertyInfo != null)
+            {
+                // Use the PropertyInfo object to get the value of the property
+                hasPersistentData = true;
+                return propertyInfo.GetValue(objectToInspect);
+            }
+            else
+            {
+                // The property was not found on the object
+                hasPersistentData = false;
+                return null;
+            }
+        }
+
+        public static bool InvokeWriteMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Write";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeReadMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Read";
+            if (objectToInvoke == null) return false;
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeWritePersistentDataMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "Write";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                methodInfo.Invoke(objectToInvoke, parameters);
+                return true;
+            }
+            return false;
+        }
+
+        public static bool InvokeReadPersistentDataMethod(object objectToInvoke, object[] parameters = null)
+        {
+            string methodName = "SetPersistentData";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+
+
+            var param_gh = (Param_Brep)objectToInvoke;
+
+            GH_Structure<GH_Brep> persistentData = new GH_Structure<GH_Brep>();
+
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = type.GetMethod(methodName);
+
+            if (methodInfo != null)
+            {
+                // Use the MethodInfo object to invoke the method on the object
+                object[] auguments = new object[] { persistentData };
+                methodInfo.Invoke(objectToInvoke, auguments);
+                return true;
+            }
+            return false;
+        }
+
+    }
+
     public class RemoParamSlider : RemoCommand
     {
         // for slider *
@@ -477,10 +1086,11 @@ namespace RemoSharp.RemoCommandTypes
         public int sliderType;
 
         RemoParamSlider() { }
-        public RemoParamSlider(string issuerID,
+        public RemoParamSlider(string issuerID, string sessionID,
             GH_NumberSlider slider)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoSlider;
             this.objectGuid = slider == null ?Guid.Empty: slider.InstanceGuid;
             this.sliderValue = slider == null ? 0:slider.CurrentValue;
@@ -505,10 +1115,11 @@ namespace RemoSharp.RemoCommandTypes
         public bool buttonValue;
 
         public RemoParamButton() { }
-        public RemoParamButton(string issuerID, GH_ButtonObject button
+        public RemoParamButton(string issuerID, string sessionID, GH_ButtonObject button
             )
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoButton;
             this.objectGuid = button == null ? Guid.Empty : button.InstanceGuid;
             this.buttonValue = button == null ? false : button.ButtonDown;
@@ -528,9 +1139,10 @@ namespace RemoSharp.RemoCommandTypes
         // for toggle *
         public bool toggleValue;
         // for toggles
-        public RemoParamToggle(string issuerID, GH_BooleanToggle toggle)
+        public RemoParamToggle(string issuerID, string sessionID, GH_BooleanToggle toggle)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoToggle;
             this.objectGuid = toggle == null ? Guid.Empty : toggle.InstanceGuid;
             this.toggleValue = toggle == null ? false : toggle.Value;
@@ -553,21 +1165,22 @@ namespace RemoSharp.RemoCommandTypes
         public bool Wrap;
         public int Alignment;
         public string panelContent;
+        public string xmlContent;
 
         public RemoParamPanel() { }
 
         // for panels
-        public RemoParamPanel(string issuerID, GH_Panel panel)
+        public RemoParamPanel(string issuerID, string sessionID, GH_Panel panel)
         {
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            panel.Write(chunk);
+
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPanel;
             this.objectGuid = panel == null ? Guid.Empty : panel.InstanceGuid;
-            this.MultiLine = panel == null ? false : panel.Properties.Multiline;
-            this.DrawIndecies = panel == null ? false : panel.Properties.DrawIndices;
-            this.DrawPaths = panel == null ? false : panel.Properties.DrawPaths;
-            this.Wrap = panel == null ? false : panel.Properties.Wrap;
-            this.Alignment = panel == null ? 0 : (int) panel.Properties.Alignment;
-            this.panelContent = panel == null ? "" : panel.UserText;
+            this.xmlContent = chunk.Serialize_Xml();
             this.commandID = Guid.NewGuid();
 
         }
@@ -588,9 +1201,10 @@ namespace RemoSharp.RemoCommandTypes
         public RemoParamColor() { }
 
         // color
-        public RemoParamColor(string issuerID, GH_ColourSwatch colourSwatch)
+        public RemoParamColor(string issuerID, string sessionID, GH_ColourSwatch colourSwatch)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoColor;
             this.objectGuid = colourSwatch == null ? Guid.Empty : colourSwatch.InstanceGuid;
             this.Red = colourSwatch == null ? 0 : colourSwatch.SwatchColour.R;
@@ -618,10 +1232,11 @@ namespace RemoSharp.RemoCommandTypes
         public double maxBoundY;
         public RemoParamMDSlider() { }
 
-        public RemoParamMDSlider(string issuerID,
+        public RemoParamMDSlider(string issuerID, string sessionID,
             GH_MultiDimensionalSlider mdSlider, bool approximate)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoMDSlider;
             this.objectGuid = mdSlider == null ? Guid.Empty : mdSlider.InstanceGuid;
             this.ValueX = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
@@ -644,8 +1259,9 @@ namespace RemoSharp.RemoCommandTypes
     {
         // for point3d
         public List<string> pointsAndTreePath;
+        public string pointXML;
         public RemoParamPoint3d() { }
-        public RemoParamPoint3d(string issuerID, Param_Point pointComponent, GH_Structure<IGH_Goo> pntTree, bool approximate)
+        public RemoParamPoint3d(string issuerID, string sessionID, Param_Point pointComponent, GH_Structure<GH_Point> pntTree, bool approximate)
         {
             
             List<string> pointsAndTreePath = new List<string>();
@@ -666,9 +1282,24 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPoint3d;
             this.objectGuid = pointComponent.InstanceGuid;
             this.pointsAndTreePath = pointsAndTreePath;
+            this.commandID = Guid.NewGuid();
+
+        }
+
+        public RemoParamPoint3d(string issuerID, Param_Point pointComponent)
+        {
+
+            GH_LooseChunk chunk = new GH_LooseChunk(null);
+            pointComponent.PersistentData.Write(chunk);
+
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RemoPoint3d;
+            this.objectGuid = pointComponent.InstanceGuid;
+            this.pointXML = chunk.Serialize_Xml();
             this.commandID = Guid.NewGuid();
 
         }
@@ -683,7 +1314,7 @@ namespace RemoSharp.RemoCommandTypes
         // for vector3d
         public List<string> vectorsAndTreePath;
         public RemoParamVector3d() { }
-        public RemoParamVector3d(string issuerID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
+        public RemoParamVector3d(string issuerID, string sessionID, Param_Vector vectorComponent, GH_Structure<IGH_Goo> vecTree, bool approximate)
         {
 
             List<string> vectorsAndTreePath = new List<string>();
@@ -704,6 +1335,7 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoVector3d;
             this.objectGuid = vectorComponent.InstanceGuid;
             this.vectorsAndTreePath = vectorsAndTreePath;
@@ -722,7 +1354,7 @@ namespace RemoSharp.RemoCommandTypes
         public List<string> planesAndTreePath;
 
         public RemoParamPlane() { }
-        public RemoParamPlane(string issuerID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
+        public RemoParamPlane(string issuerID, string sessionID, Param_Plane planeComponent, GH_Structure<IGH_Goo> planeTree, bool approximate)
         {
 
             List<string> planesAndTreePath = new List<string>();
@@ -752,6 +1384,7 @@ namespace RemoSharp.RemoCommandTypes
             }
 
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoPlane;
             this.objectGuid = planeComponent.InstanceGuid;
             this.planesAndTreePath = planesAndTreePath;
@@ -765,25 +1398,56 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
+    public class RemoCanvasView : RemoCommand
+    {
+        public System.Drawing.PointF focusPoint;
+        public List<Guid> selectedObjs;
+        public float zoomLevel;
+        public RemoCanvasView() { }
+        public RemoCanvasView(string issuerID, string sessionID, List<IGH_DocumentObject> objs, float zoomLevel )
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.CanvasViewport;
+            this.commandID = Guid.NewGuid();
+            this.selectedObjs = objs.Select(obj => obj.InstanceGuid).ToList();
+            this.zoomLevel = zoomLevel;
+
+            this.focusPoint = GetAverageFocusPoint(objs.Select(obj => obj.Attributes.Pivot).ToList());
+
+        }
+
+        // a static funtion that returns the average of multiple System.Drawing.PointF objects
+        public static System.Drawing.PointF GetAverageFocusPoint(List<System.Drawing.PointF> points)
+        {
+            float x = 0;
+            float y = 0;
+
+            foreach (System.Drawing.PointF point in points)
+            {
+                x += point.X;
+                y += point.Y;
+            }
+
+            return new System.Drawing.PointF(x / points.Count, y / points.Count);
+        }
+    }
+
     public class RemoMove : RemoCommand
     {
         //public float moveX;
         //public float moveY;
-        public Guid translationGuid;
-        public List<Guid> moveGuids= new List<Guid>();
-        public Size vector;
-        public RemoMove(string issuerID, List<Guid> moveGuids, System.Drawing.Size vector)
+        
+        public Dictionary<Guid, System.Drawing.PointF> objectCoords;
+
+        public RemoMove(string issuerID, string sessionID, List<IGH_DocumentObject> objs)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.objectGuid = Guid.Empty;
-            this.translationGuid = Guid.NewGuid();
             this.commandType = CommandType.MoveComponent;
-            this.moveGuids = moveGuids;
-            this.vector = vector;
-            this.commandID = Guid.NewGuid();
-
-            //this.objXs = objXs;
-            //this.objYs = objYs;
+            
+            this.objectCoords = objs.ToDictionary(x => x.InstanceGuid, x => x.Attributes.Pivot);
         }
         public RemoMove()
         {
@@ -802,9 +1466,10 @@ namespace RemoSharp.RemoCommandTypes
 
         public RemoCanvasSync() { }
 
-        public RemoCanvasSync(string issuerID, string xmlString)
+        public RemoCanvasSync(string issuerID, string sessionID, string xmlString)
         {
             this.issuerID = issuerID;
+            this.sessionID = sessionID;
             this.commandType = CommandType.RemoCanvasSync;
             this.objectGuid = Guid.Empty;
             this.xmlString = xmlString;
@@ -814,84 +1479,186 @@ namespace RemoSharp.RemoCommandTypes
 
     }
 
+    //public class WireHistory : RemoCommand
+    //{
+    //    public List<WireConnection> wireHistory;
+
+    //    public WireHistory() { }
+    //    public WireHistory(string issuerID, IGH_DocumentObject component)
+    //    {
+    //        this.issuerID = issuerID;
+    //        this.commandType = CommandType.WireHistory;
+    //        this.objectGuid = Guid.Empty;
+    //        this.commandID = Guid.NewGuid();
+
+
+    //        List<WireConnection> wireHistory = new List<WireConnection>();
+
+    //        if (component is IGH_Param)
+    //        {
+    //            wireHistory.Add(new WireConnection((IGH_Param)component));
+    //            this.wireHistory = wireHistory;
+    //        }
+    //        else
+    //        {
+    //            IGH_Component gh_component = (IGH_Component)component;
+    //            foreach (IGH_Param item in gh_component.Params.Input)
+    //            {
+    //                wireHistory.Add(new WireConnection(item));
+    //            }
+    //            this.wireHistory = wireHistory;
+    //        }
+
+    //    }
+    //}
+    
+    //public class WireConnection
+    //{
+    //    public int inputIndex;
+    //    public List<Guid> sourceGuids;
+    //    public List<int> sourceIndecies;
+
+    //    public WireConnection() { }
+    //    public WireConnection(IGH_Param input) 
+    //    {
+            
+            
+    //        List<Guid> sourceGuids = new List<Guid>();
+    //        List<int> sourceIndecies = new List<int>();
+
+    //        var inputs = input.Sources;
+    //        for (int i = 0; i < inputs.Count; i++)
+    //        {
+    //            IGH_Param output= inputs[i];
+
+    //            if (output.Attributes.Parent == null)
+    //            {
+    //                sourceGuids.Add(output.InstanceGuid);
+    //                sourceIndecies.Add(-1);
+    //            }
+    //            else
+    //            {
+    //                sourceGuids.Add(output.Attributes.Parent.DocObject.InstanceGuid);
+    //                IGH_Component parent = (IGH_Component)output.Attributes.Parent.DocObject;
+    //                sourceIndecies.Add(parent.Params.Output.IndexOf(output));
+    //            }
+    //        }
+
+    //        this.sourceGuids= sourceGuids;
+    //        this.sourceIndecies = sourceIndecies;
+
+    //        if (input.Attributes.Parent == null) this.inputIndex = -1;
+    //        else
+    //        {
+    //            IGH_Component parent = (IGH_Component)input.Attributes.Parent.DocObject;
+    //            this.inputIndex = parent.Params.Input.IndexOf(input);
+    //        }
+
+    //    }
+    //}
+
     public class WireHistory : RemoCommand
     {
-        public List<WireConnection> wireHistory;
+        public Guid componentGuid;
+        public string wireHistoryXml;
+        public Dictionary<int, List<Guid>> inputGuidsDictionary; // inputIndex, sourceGuids
 
         public WireHistory() { }
-        public WireHistory(string issuerID, IGH_DocumentObject component)
+        public WireHistory(Guid componentGuid, string wireHistoryXml)
         {
-            this.issuerID = issuerID;
-            this.commandType = CommandType.WireHistory;
-            this.objectGuid = Guid.Empty;
-            this.commandID = Guid.NewGuid();
-
-
-            List<WireConnection> wireHistory = new List<WireConnection>();
-
-            if (component is IGH_Param)
+            this.componentGuid = componentGuid;
+            this.wireHistoryXml = wireHistoryXml;
+            this.inputGuidsDictionary = null;
+        }
+        public WireHistory(GhPython.Component.ZuiPythonComponent pythonComponent)
+        {
+            this.componentGuid = pythonComponent.InstanceGuid;
+            inputGuidsDictionary = new Dictionary<int, List<Guid>>();
+            for (int i = 0; i < pythonComponent.Params.Input.Count; i++)
             {
-                wireHistory.Add(new WireConnection((IGH_Param)component));
-                this.wireHistory = wireHistory;
-            }
-            else
-            {
-                IGH_Component gh_component = (IGH_Component)component;
-                foreach (IGH_Param item in gh_component.Params.Input)
+                var input = pythonComponent.Params.Input[i];
+                List<Guid> sourceGuids = new List<Guid>();
+                foreach (var source in input.Sources)
                 {
-                    wireHistory.Add(new WireConnection(item));
+                    
+                    sourceGuids.Add(source.InstanceGuid);
+                  
                 }
-                this.wireHistory = wireHistory;
+                inputGuidsDictionary.Add(i, sourceGuids);
             }
-
+            this.wireHistoryXml = "";
         }
     }
-    
-    public class WireConnection
+
+    public class RecepientRecord
     {
-        public int inputIndex;
-        public List<Guid> sourceGuids;
-        public List<int> sourceIndecies;
+        Guid guid;
+        Dictionary<int, List<Recepient>> recepients;
 
-        public WireConnection() { }
-        public WireConnection(IGH_Param input) 
+        public RecepientRecord() { }
+
+        public RecepientRecord(IGH_DocumentObject obj)
         {
-            
-            
-            List<Guid> sourceGuids = new List<Guid>();
-            List<int> sourceIndecies = new List<int>();
-
-            var inputs = input.Sources;
-            for (int i = 0; i < inputs.Count; i++)
+            Dictionary<int, List<Recepient>> recepients = new Dictionary<int, List<Recepient>>();
+            if (obj is IGH_Param)
             {
-                IGH_Param output= inputs[i];
+                IGH_Param param = (IGH_Param)obj;
+                this.guid = param.InstanceGuid;
+                int index = -1;
 
-                if (output.Attributes.Parent == null)
+                List<Recepient> recs = new List<Recepient>();
+                foreach (var item in param.Recipients)
                 {
-                    sourceGuids.Add(output.InstanceGuid);
-                    sourceIndecies.Add(-1);
+                    Guid recGuid = item.InstanceGuid;
+                    int recipientIndex = -1;
+                    if (item.Attributes.Parent != null)
+                    {
+                        IGH_Component parent = (IGH_Component)item.Attributes.Parent.DocObject;
+                        recipientIndex = parent.Params.Input.IndexOf(item);
+                        recGuid = parent.InstanceGuid;
+                        recs.Add(new Recepient(recGuid, recipientIndex));
+                    }
                 }
-                else
+                recepients.Add(index, recs);
+            }
+            else if (obj is IGH_Component)
+            {
+                IGH_Component comp = (IGH_Component)obj;
+                this.guid = comp.InstanceGuid;
+                for (int i = 0; i < comp.Params.Output.Count; i++)
                 {
-                    sourceGuids.Add(output.Attributes.Parent.DocObject.InstanceGuid);
-                    IGH_Component parent = (IGH_Component)output.Attributes.Parent.DocObject;
-                    sourceIndecies.Add(parent.Params.Output.IndexOf(output));
+                    List<Recepient> recs = new List<Recepient>();
+                    foreach (var item in comp.Params.Input[i].Recipients)
+                    {
+                        Guid recGuid = item.InstanceGuid;
+                        int recipientIndex = -1;
+                        if (item.Attributes.Parent != null)
+                        {
+                            IGH_Component parent = (IGH_Component)item.Attributes.Parent.DocObject;
+                            recipientIndex = parent.Params.Input.IndexOf(item);
+                            recGuid = parent.InstanceGuid;
+                        }
+                        recs.Add(new Recepient(recGuid, recipientIndex));
+                    }
+                    recepients.Add(i, recs);
                 }
             }
 
-            this.sourceGuids= sourceGuids;
-            this.sourceIndecies = sourceIndecies;
-
-            if (input.Attributes.Parent == null) this.inputIndex = -1;
-            else
-            {
-                IGH_Component parent = (IGH_Component)input.Attributes.Parent.DocObject;
-                this.inputIndex = parent.Params.Input.IndexOf(input);
-            }
-
+            this.recepients = recepients;
+            this.guid = obj.InstanceGuid;
         }
+
     }
 
-    
 
+    class Recepient
+    {
+        public Guid guid;
+        public int index;
+        public Recepient(Guid guid, int index)
+        {
+            this.guid = guid;
+            this.index = index;
+        }
+    }
 }

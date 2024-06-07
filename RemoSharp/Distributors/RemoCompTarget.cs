@@ -9,6 +9,8 @@ using WPFNumericUpDown;
 using RemoSharp.RemoCommandTypes;
 using Grasshopper.Kernel.Types;
 using WebSocketSharp;
+using GH_IO.Serialization;
+using System.Collections.ObjectModel;
 
 namespace RemoSharp
 {
@@ -17,7 +19,6 @@ namespace RemoSharp
         //GH_Document GrasshopperDocument;
         //IGH_Component Component;
 
-        PushButton selectButton;
         PushButton hideButton;
         PushButton lockButton;
         StackPanel stackPanel;
@@ -45,20 +46,17 @@ namespace RemoSharp
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            selectButton = new PushButton("Select",
-                "Select a component on the main remote GH_Canvas.", "Sel");
+            
             hideButton = new PushButton("Hide",
                 "Hides a component on the main remote GH_Canvas.", "Hide");
             lockButton = new PushButton("Lock",
                             "Unhides a component on the main remote GH_Canvas.", "Lock");
-
-
-            selectButton.OnValueChanged += SelectButton_OnValueChanged;
+            
             hideButton.OnValueChanged += HideButton_OnValueChanged;
             lockButton.OnValueChanged += LockButton_OnValueChanged;
 
             stackPanel = new StackPanel("C1", Orientation.Horizontal, true,
-                selectButton, hideButton, lockButton
+                hideButton, lockButton
                 );
 
             AddCustomControl(stackPanel);
@@ -67,10 +65,6 @@ namespace RemoSharp
             pManager.AddTextParameter("Username", "user", "This client's username", GH_ParamAccess.item, "");
             pManager.AddGenericParameter("WSClient", "wsc", "Command Websocket Client", GH_ParamAccess.item);
         }
-
-        
-
-        
         private void HideButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             bool currentValue = Convert.ToBoolean(e.Value);
@@ -167,36 +161,13 @@ namespace RemoSharp
 
                 if (!notFound)
                 {
-                    RemoHide cmd = new RemoHide(this.username, guids, states, DateTime.Now.Second);
+                    RemoHide cmd = new RemoHide(this.username, "", guids, states, DateTime.Now.Second);
                     string cmdJson = RemoCommand.SerializeToJson(cmd);
 
                     for (int i = 0; i < commandRepeat; i++)
                     {
                         client.Send(cmdJson);
                     }
-                }
-            }
-        }
-
-
-        private void SelectButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
-        {
-            bool currentValue = Convert.ToBoolean(e.Value);
-            if (currentValue)
-            {
-                var selection = this.OnPingDocument().SelectedObjects();
-
-                List<Guid> slectionGuids = new List<Guid>();
-                foreach (var item in selection)
-                {
-                    slectionGuids.Add(item.InstanceGuid);
-                }
-                RemoSelect cmd = new RemoSelect(this.username, slectionGuids, DateTime.Now.Second);
-                string cmdJson = RemoCommand.SerializeToJson(cmd);
-
-                for (int i = 0; i < commandRepeat; i++)
-                {
-                    client.Send(cmdJson);
                 }
             }
         }
@@ -231,7 +202,7 @@ namespace RemoSharp
 
                     }
 
-                    RemoLock cmd = new RemoLock(this.username, guids, states, DateTime.Now.Second);
+                    RemoLock cmd = new RemoLock(this.username, "", guids, states, DateTime.Now.Second);
                     string cmdJson = RemoCommand.SerializeToJson(cmd);
                     
                     for (int i = 0; i < commandRepeat; i++)
