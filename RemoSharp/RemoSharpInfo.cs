@@ -26,7 +26,7 @@ namespace RemoSharp
             get
             {
                 //Return a short string describing the purpose of this GHA library.
-                return "";
+                return "RemoSharp, a tool for real-time collaborative computational design and digital fabrication";
             }
         }
         public override Guid Id
@@ -42,7 +42,7 @@ namespace RemoSharp
             get
             {
                 //Return a string identifying you or your company.
-                return "HP Inc.";
+                return "Arastoo Khajehee";
             }
         }
         public override string AuthorContact
@@ -50,7 +50,7 @@ namespace RemoSharp
             get
             {
                 //Return a string representing your preferred contact details.
-                return "";
+                return "a.khajehee@gmail.com";
             }
         }
     }

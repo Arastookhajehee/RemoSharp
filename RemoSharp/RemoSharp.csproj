@@ -248,6 +248,7 @@
     <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
     <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
     <None Include="app.config" />
+    <None Include="installer.nsi" />
     <None Include="ScriptBackup\RemoParam.cs_backup" />
     <Compile Include="RemoGeom\WriteToFile.cs" />
     <Compile Include="RemoParams\RemoParamData.cs" />
