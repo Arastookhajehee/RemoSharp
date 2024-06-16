@@ -12,9 +12,6 @@ using Grasshopper.Kernel.Types;
 using GHCustomControls;
 using WPFNumericUpDown;
 
-using System.Net.NetworkInformation;
-
-
 namespace RemoSharp
 {
     public class WS_Server_Samples : GHCustomComponent

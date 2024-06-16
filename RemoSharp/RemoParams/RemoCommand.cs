@@ -105,6 +105,16 @@ namespace RemoSharp.RemoCommandTypes
                 IGH_DocumentObject docObj = (IGH_DocumentObject)obj;
                 docObj.Write(chunk);
             }
+            else if (obj is Grasshopper.Kernel.Special.GH_Scribble)
+            {
+                GH_Scribble gH_Scribble = (GH_Scribble)obj;
+                gH_Scribble.Write(chunk);
+            }
+            else if(obj is Grasshopper.Kernel.Special.GH_Markup)
+            {
+                GH_Markup markup = (GH_Markup)obj;
+                markup.Write(chunk);
+            }
             else return "";
             return MinifyXml(chunk.Serialize_Xml());
         }

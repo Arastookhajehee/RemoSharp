@@ -36,6 +36,7 @@ namespace RemoSharp.Distributors
         public WebSocket client;
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
+        //System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
         int timerCount = 0;
         bool preventUndo = true;
         bool controlDown = false;
@@ -381,7 +382,9 @@ namespace RemoSharp.Distributors
             RemoKeepAlive keepAliveCommand = new RemoKeepAlive(); 
             string connectionString = RemoCommand.SerializeToJson(keepAliveCommand);
             if (enable) client.Send(connectionString);
-            
+
+            //SendRemoMoveAllCommand();
+
             if (timerCount % 2 == 0)
             {
                 var thisDoc = this.OnPingDocument();
@@ -1260,8 +1263,10 @@ namespace RemoSharp.Distributors
 
                 var lastAction = doc.UndoServer.FirstUndoName;
 
+                bool scirbbleSelected = doc.SelectedObjects().Any(o => o is Grasshopper.Kernel.Special.GH_Scribble);
+
                 if (lastAction == null) return;
-                if (lastAction.Equals("Align"))
+                if (lastAction.Equals("Align") || scirbbleSelected)
                 {
                     SendRemoMoveCommand();
                 }
@@ -1542,6 +1547,14 @@ namespace RemoSharp.Distributors
                 {
                     List<IGH_DocumentObject> objs = e.Objects.ToList();
 
+                    //bool drawingsIncuded = objs.Any(o => o is Grasshopper.Kernel.Special.GH_Scribble || o is Grasshopper.Kernel.Special.GH_Markup);
+                    //if (drawingsIncuded)
+                    //{
+                    //    drawingSyncTimer.AutoReset = true;
+                    //    drawingSyncTimer.Elapsed += DrawingSyncTimer_Elapsed;
+                    //    drawingSyncTimer.Start();
+                    //}
+
                     Guid relayGuid = Guid.Empty;
                     List<IGH_Param> relayRecepients = new List<IGH_Param>();
 
@@ -1578,6 +1591,31 @@ namespace RemoSharp.Distributors
             });
 
         }
+
+        //private void DrawingSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
+        //{
+        //    if (sender == null)
+        //    {
+        //        drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
+        //        drawingSyncTimer.Stop();
+        //        drawingSyncTimer.Dispose();
+        //    }
+
+        //    // find all scribbles and markups
+        //    var scribbles = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Scribble);
+        //    var markups = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Markup);
+        //    // create a list of all scribbles and markups
+        //    List<IGH_DocumentObject> scribblesAndMarkups = new List<IGH_DocumentObject>();
+        //    scribblesAndMarkups.AddRange(scribbles.Where(o => o.Attributes.Selected));
+        //    scribblesAndMarkups.AddRange(markups.Where(o => o.Attributes.Selected));
+
+        //    if (scribblesAndMarkups.Count == 0)
+        //    {
+        //        return;
+        //    }
+
+        //    SendSyncComponentCommand(scribblesAndMarkups, 1, this.sessionID, this.enable);
+        //}
 
         private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
         {
@@ -1964,45 +2002,106 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (remoSetupComp == null) return;
 
-            foreach (var item in remoSetupComp.subscribedObjs)
+            foreach (var item in thisDoc.SelectedObjects())
             {
-                item.SolutionExpired -= SendRemoParameterCommand;
-                //remoSetupComp.subscribedObjs.Remove(item);
-            }
-
-            bool controlShift = controlDown && shiftDown;
-            bool noControlShift = !controlDown && !shiftDown;
-
-            if (controlShift || noControlShift)
-            {
-                remoSetupComp.subscribedObjs.Clear();
-                var selection = thisDoc.SelectedObjects();
-                remoSetupComp.subscribedObjs.AddRange(selection);
-            }
-            else if (controlDown)
-            {
-                var selection = thisDoc.SelectedObjects().Select(obj => obj.InstanceGuid).ToList();
-                for (int i = remoSetupComp.subscribedObjs.Count - 1; i > -1; i--)
+               
+                if (remoSetupComp.subscribedObjs.Contains(item))
                 {
-                    var item = remoSetupComp.subscribedObjs[i];
-                    if (selection.Contains(item.InstanceGuid))
-                    {
-                        remoSetupComp.subscribedObjs.RemoveAt(i);
-                    }
+                    item.SolutionExpired -= SendRemoParameterCommand;
+                    item.ObjectChanged -= Item_ObjectChanged;
+                    item.AttributesChanged -= Item_AttributesChanged;
+                    item.DisplayExpired -= Item_DisplayExpired;
+                    item.PreviewExpired -= Markup_PreviewExpired;
+                    remoSetupComp.subscribedObjs.Remove(item);
+                }
+                else
+                {
+                    item.SolutionExpired += SendRemoParameterCommand;
+                    item.ObjectChanged += Item_ObjectChanged;
+                    item.AttributesChanged += Item_AttributesChanged;
+                    item.DisplayExpired += Item_DisplayExpired;
+                    item.PreviewExpired += Markup_PreviewExpired;
+                    remoSetupComp.subscribedObjs.Add(item);
                 }
             }
-            else if (shiftDown)
-            {
-                var selection = thisDoc.SelectedObjects();
-                remoSetupComp.subscribedObjs.AddRange(selection);
-            }
-            
+        }
 
-            foreach (IGH_DocumentObject item in remoSetupComp.subscribedObjs)
+        private void Item_SolutionExpired(IGH_DocumentObject sender, EventArgs e)
+        {
+
+            List<IGH_DocumentObject> objs = new List<IGH_DocumentObject>() { sender};
+
+            // find the remoSetupCompV3 on the active canvas document
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+            RemoSetupClientV3 remoSetupClientV3 = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+
+            SendSyncComponentCommand(objs, 1, remoSetupClientV3.sessionID, remoSetupClientV3.enable);
+        }
+
+        private void Markup_PreviewExpired(IGH_DocumentObject sender, GH_PreviewExpiredEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Item_DisplayExpired(IGH_DocumentObject sender, GH_DisplayExpiredEventArgs e)
+        {
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComp == null) return;
+
+            if (sender is GH_ButtonObject)
             {
-                item.SolutionExpired += SendRemoParameterCommand;                
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject)sender);
+                SendCommands(remoSetupComp, remoParamButton, 1, enable);
+                return;
             }
 
+            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
+
+            SendCommands(remoSetupComp, remoParameter, 1, enable);
+        }
+
+        private void Item_AttributesChanged(IGH_DocumentObject sender, GH_AttributesChangedEventArgs e)
+        {
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComp == null) return;
+
+            if (sender is GH_ButtonObject)
+            {
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject)sender);
+                SendCommands(remoSetupComp, remoParamButton, 1, enable);
+                return;
+            }
+
+            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
+
+            SendCommands(remoSetupComp, remoParameter, 1, enable);
+        }
+
+        private void Item_ObjectChanged(IGH_DocumentObject sender, GH_ObjectChangedEventArgs e)
+        {
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+
+            RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
+            if (remoSetupComp == null) return;
+
+            if (sender is GH_ButtonObject)
+            {
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject)sender);
+                SendCommands(remoSetupComp, remoParamButton, 1, enable);
+                return;
+            }
+
+            RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
+
+            SendCommands(remoSetupComp, remoParameter, 1, enable);
         }
 
         private void HighlightRemoParameters(GH_Canvas sender)
@@ -2015,6 +2114,14 @@ namespace RemoSharp.Distributors
             foreach (IGH_DocumentObject item in remoSetupComp.subscribedObjs)
             {
                 System.Drawing.RectangleF bound = item.Attributes.Bounds;
+
+                var itemDoc = item.OnPingDocument();
+
+                if (itemDoc == null)
+                {
+                    remoSetupComp.subscribedObjs.Remove(item);
+                    return;
+                }
 
                 sender.Graphics.DrawPath(new System.Drawing.Pen(color, 10), DrawFilletedRectangle(bound, 0));
             }            
@@ -2131,6 +2238,14 @@ namespace RemoSharp.Distributors
 
         private void SyncComponents_OnValueChanged(object sender, EventArgs e)
         {
+            GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+            var selectionObjs = thisDoc.SelectedObjects().ToList();
+
+            SendSyncComponentCommand(selectionObjs, this.commandRepeat, this.sessionID, this.enable);
+        }
+
+        private static void SendSyncComponentCommand(List<IGH_DocumentObject> selectionObjs, int commandRepeat, string sessionID, bool enable)
+        {
             List<Guid> guids = new List<Guid>();
             List<string> xmls = new List<string>();
 
@@ -2138,7 +2253,7 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
-            var selectionObjs = thisDoc.SelectedObjects();
+            
             if (selectionObjs.Count == 0) return;
 
             thisDoc.DeselectAll();
@@ -2147,7 +2262,7 @@ namespace RemoSharp.Distributors
             thisDoc.ScheduleSolution(1, doc =>
             {
 
-                
+
 
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
@@ -2156,13 +2271,13 @@ namespace RemoSharp.Distributors
 
                 try
                 {
-                    
+
 
 
 
                     //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
-                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, this.sessionID, selectionObjs.ToList(), thisDoc);
+                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, sessionID, selectionObjs.ToList(), thisDoc);
 
 
                     RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
@@ -2175,8 +2290,6 @@ namespace RemoSharp.Distributors
 
                 setupComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
             });
-            
-
         }
 
         private List<IGH_DocumentObject> ReSelectSingleParameters()

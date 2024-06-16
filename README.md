@@ -10,12 +10,10 @@ In a nutshell, RemoSharp allows multiple Grasshopper documents to connect and sh
 ### Real-Time Collaboration
 RemoSharp syncronizes the contents of one's GH canvas via a RT communication server. Interactions like component creation, wire connection, deletion, or moving components around are all syncrinized between multiple connected computers, resulting in a RT collaborative Grasshopper session.
 
-
+### PNG IMAGE HERE
 
 ### Non-Real-Time 
 Not all collaborations need to be in RT. RemoSharp provides the RemoLibrary GH database. Users can save their small function snippets or their entire scripts to the RemoLibrary. The database offers an interface to search, and modify these entries. It also activley monitors one's grasshopper interactions and suggests functions from the database accordingly.
-
-
 
 ### PNG IMAGE HERE
 
