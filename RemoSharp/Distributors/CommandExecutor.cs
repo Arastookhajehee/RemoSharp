@@ -140,8 +140,9 @@ namespace RemoSharp
                 //}
             }
 
-
-            IGH_Component wscListenerComp = (IGH_Component)this.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
+            var inputComponent = this.Params.Input[0].Sources;
+            if (inputComponent.Count < 1) return;
+            IGH_Component wscListenerComp = (IGH_Component) inputComponent[0].Attributes.Parent.DocObject;
             RemoSharp.Distributors.RemoSetupClientV3 wsClientComp = (RemoSharp.Distributors.RemoSetupClientV3)wscListenerComp.Params.Input[0].Sources[0].Attributes.Parent.DocObject;
 
 
@@ -431,6 +432,13 @@ namespace RemoSharp
                             ExecuteRemoPartialDoc(remoPartialDoc);
 
                             break;
+
+                        case (CommandType.RemoAnnotation):
+                            RemoAnnotation remoAnnotations = (RemoAnnotation)remoCommand;
+
+                            ExecuteRemoAnnotations(remoAnnotations);
+
+                            break;
                         default:
 
                             break;
@@ -636,6 +644,100 @@ namespace RemoSharp
             DA.SetDataList(0, errors);
             //DA.SetDataList(1, connectionList);
 
+        }
+
+        private void ExecuteRemoAnnotations(RemoAnnotation remoAnnotations)
+        {
+            this.OnPingDocument().DeselectAll();
+            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
+
+            this.OnPingDocument().ScheduleSolution(50, doc =>
+            {
+                var thisDoc = this.OnPingDocument();
+                RemoSetupClientV3 sourceComp = thisDoc.Objects
+                .Where(obj => obj is RemoSetupClientV3)
+                .FirstOrDefault() as RemoSetupClientV3;
+
+                var skip = SubcriptionType.Skip;
+                var unsubscribe = SubcriptionType.Unsubscribe;
+                var subscribe = SubcriptionType.Subscribe;
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, unsubscribe, unsubscribe, unsubscribe);
+                try
+                {
+                    GH_Document thisdoc = this.OnPingDocument();
+                    if (thisdoc == null) return;
+
+                    for (int i = 0; i < remoAnnotations.guids.Count; i++)
+                    {
+                        var comp = thisdoc.FindObject(remoAnnotations.guids[i], false);
+                        if (comp == null)
+                        {
+                            GH_Document tempDoc = new GH_Document();
+                            tempDoc.Read(RemoCommand.DeserializeFromXML(remoAnnotations.docXMLs[i]));
+                            thisdoc.MergeDocument(tempDoc, true, true);
+                        }
+                    }
+                    for (int i = 0; i < remoAnnotations.guids.Count; i++)
+                    {
+                        IGH_DocumentObject obj = thisDoc.FindObject(remoAnnotations.guids[i], false);
+                        if (obj == null) continue;
+                        obj.Read(RemoCommand.DeserializeFromXML(remoAnnotations.xmls[i]));
+                        if (obj is IGH_Param)
+                        {
+                            IGH_Param param = (IGH_Param)obj;
+                            obj.ExpireSolution(true);
+                        }
+
+                        if (obj is GH_Scribble)
+                        {
+                            GH_Scribble scribble = (GH_Scribble)obj;
+
+                            if (!sourceComp.scribleHistory.ContainsKey(scribble.InstanceGuid))
+                            {
+                                sourceComp.scribleHistory.Add(scribble.InstanceGuid, scribble.Text + RemoSetupClientV3.uncommonSplitCharacter + scribble.Font.Size);
+                            }
+                            else
+                            {
+                                sourceComp.scribleHistory[scribble.InstanceGuid] = scribble.Text + RemoSetupClientV3.uncommonSplitCharacter + scribble.Font.Size;
+                            }
+                        }
+                        else if (obj is GH_Markup)
+                        {
+                            GH_Markup markup = (GH_Markup)obj;
+
+                            int stringLength = RemoCommand.SerializeToXML(markup).Length;
+
+                            if (!sourceComp.markupHistory.ContainsKey(markup.InstanceGuid))
+                            {
+                                sourceComp.markupHistory.Add(markup.InstanceGuid, stringLength);
+                            }
+                            else
+                            {
+                                sourceComp.markupHistory[markup.InstanceGuid] = stringLength;
+                            }
+
+                        }
+                    }
+                    GH_Document tempDoc2 = new GH_Document();
+                    thisdoc.MergeDocument(tempDoc2, true, true);
+
+                    if (!sourceComp.drawingSyncTimer.Enabled)
+                    {
+                        sourceComp.drawingSyncTimer.Elapsed -= sourceComp.DrawingSyncTimer_Elapsed;
+                        sourceComp.drawingSyncTimer.Elapsed += sourceComp.DrawingSyncTimer_Elapsed;
+                        sourceComp.drawingSyncTimer.Enabled = true;
+                    }
+
+
+
+                }
+                catch (Exception error)
+                {
+                    Rhino.RhinoApp.WriteLine(error.Message);
+                }
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, subscribe, subscribe, subscribe);
+
+            });
         }
 
         private void GetUsernameFromRemoSetupClientV3()

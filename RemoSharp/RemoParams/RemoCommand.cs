@@ -1,31 +1,17 @@
-﻿using Grasshopper.GUI.Base;
+﻿using GH_IO.Serialization;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Special;
+using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Undo.Actions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
-using System.Drawing;
-using Grasshopper.Kernel;
-using Rhino.Geometry;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
-using Grasshopper.Kernel.Parameters;
-using System.Windows.Forms;
-using GH_IO.Serialization;
-using Grasshopper.Kernel.Undo;
-using Grasshopper.Kernel.Undo.Actions;
 using System.Reflection;
-using System.Collections.ObjectModel;
 using System.Xml.Linq;
-using System.Security.Cryptography;
-using GhPython;
-using System.Data.SqlTypes;
-using RemoSharp.Utilities;
 
 namespace RemoSharp.RemoCommandTypes
 {
@@ -64,7 +50,8 @@ namespace RemoSharp.RemoCommandTypes
         CanvasViewport = 27,
         RemoPartialDocument = 28,
         RemoParameter = 29,
-            RemoReWire = 30
+        RemoReWire = 30,
+        RemoAnnotation = 31
     }
 
     public enum RemoConnectType
@@ -110,7 +97,7 @@ namespace RemoSharp.RemoCommandTypes
                 GH_Scribble gH_Scribble = (GH_Scribble)obj;
                 gH_Scribble.Write(chunk);
             }
-            else if(obj is Grasshopper.Kernel.Special.GH_Markup)
+            else if (obj is Grasshopper.Kernel.Special.GH_Markup)
             {
                 GH_Markup markup = (GH_Markup)obj;
                 markup.Write(chunk);
@@ -334,6 +321,9 @@ namespace RemoSharp.RemoCommandTypes
                 case (int)CommandType.RemoReWire:
                     remoCommand = JsonConvert.DeserializeObject<RemoReWire>(commandJson);
                     break;
+                case (int)CommandType.RemoAnnotation:
+                    remoCommand = JsonConvert.DeserializeObject<RemoAnnotation>(commandJson);
+                    break;
                 //break;
                 default:
                     break;
@@ -529,7 +519,7 @@ namespace RemoSharp.RemoCommandTypes
         public Guid sourceGuid;
         public Guid targetGuid;
         public RemoReWire() { }
-        public RemoReWire(string issuerID, string sessionID,IGH_Param source, IGH_Param target)
+        public RemoReWire(string issuerID, string sessionID, IGH_Param source, IGH_Param target)
         {
             this.issuerID = issuerID;
             this.commandType = CommandType.RemoReWire;
@@ -694,8 +684,8 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
-    public class RemoUndo : RemoCommand 
-     {
+    public class RemoUndo : RemoCommand
+    {
 
         public string name;
         public int actionCount;
@@ -754,7 +744,7 @@ namespace RemoSharp.RemoCommandTypes
 
             //    var latestNewWire = e.Document.UndoServer.UndoGuids[0];
 
-                
+
 
             //    Type type = typeof(GH_WireAction);
             //    Grasshopper.Kernel.GH_WireTopologyDiagram mode = type
@@ -806,50 +796,36 @@ namespace RemoSharp.RemoCommandTypes
             this.sessionID = sessionID;
             this.commandType = CommandType.RemoCompSync;
             this.objectGuid = Guid.Empty;
-            
+
             this.guids = objects.Select(x => x.InstanceGuid).ToList();
             this.xmls = objects.Select(x => SerializeToXML(x)).ToList();
             this.docXMLs = SerizlizeToSinglecomponentDocXML(thisDoc, objects);
         }
-
-        private static Dictionary<int,List<Guid>> GetAllOutputConnectionGuids(IGH_DocumentObject component)
-        {
-            Dictionary<int, List<Guid>> outputConnections = new Dictionary<int, List<Guid>>();
-            if (component is IGH_Component)
-            {
-                IGH_Component gH_Component = (IGH_Component)component;
-                
-                for (int i = 0; i < gH_Component.Params.Output.Count; i++)
-                {
-                    IGH_Param output = gH_Component.Params.Output[i];
-                    List<Guid> outputGuids = new List<Guid>();
-                    foreach (var item in output.Recipients)
-                    {
-                        outputGuids.Add(item.InstanceGuid);
-                    }
-                    outputConnections.Add(i, outputGuids);
-                }
-            }
-            else if (component is IGH_Param)
-            {
-                IGH_Param gH_Param = (IGH_Param)component;
-                List<Guid> outputGuids = new List<Guid>();
-                foreach (var item in gH_Param.Recipients)
-                {
-                    outputGuids.Add(item.InstanceGuid);
-                }
-                outputConnections.Add(-1, outputGuids);
-            }
-            else
-            {
-                return null;
-            }
-            return outputConnections;
-        }
-
     }
 
-     
+    public class RemoAnnotation: RemoCommand
+    {
+        public List<Guid> guids;
+        public List<string> xmls;
+        public List<string> docXMLs;
+
+
+        //constructor
+        public RemoAnnotation() { }
+        public RemoAnnotation(string issuerID, string sessionID, List<IGH_DocumentObject> objects, GH_Document thisDoc)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.commandType = CommandType.RemoAnnotation;
+            this.objectGuid = Guid.Empty;
+
+            this.guids = objects.Select(x => x.InstanceGuid).ToList();
+            this.xmls = objects.Select(x => SerializeToXML(x)).ToList();
+            this.docXMLs = SerizlizeToSinglecomponentDocXML(thisDoc, objects);
+        }
+    }
+
+
 
     public class RemoLock : RemoCommand
     {
@@ -918,7 +894,7 @@ namespace RemoSharp.RemoCommandTypes
             this.objectGuid = Guid.Empty;
             this.states = states;
             this.guids = guids;
-            this.timeSeconds= timeSeconds;
+            this.timeSeconds = timeSeconds;
             this.commandID = Guid.NewGuid();
 
         }
@@ -946,7 +922,7 @@ namespace RemoSharp.RemoCommandTypes
             this.commandType = CommandType.RemoParameter;
             this.objectGuid = parameter.InstanceGuid;
             this.commandID = Guid.NewGuid();
-            
+
             GH_LooseChunk chunk = new GH_LooseChunk(null);
             parameter.Write(chunk);
 
@@ -980,7 +956,7 @@ namespace RemoSharp.RemoCommandTypes
 
         // a function that searches trhough an xml string structure for a node with the name "Attributes" 
         // and returns the xml string of that node
-        
+
         public static object GetPersistentData(object objectToInspect, out bool hasPersistentData)
         {
             string propertyName = "PersistentData";
@@ -1102,9 +1078,9 @@ namespace RemoSharp.RemoCommandTypes
             this.issuerID = issuerID;
             this.sessionID = sessionID;
             this.commandType = CommandType.RemoSlider;
-            this.objectGuid = slider == null ?Guid.Empty: slider.InstanceGuid;
-            this.sliderValue = slider == null ? 0:slider.CurrentValue;
-            this.sliderminBound = slider == null ? 0:slider.Slider.Minimum;
+            this.objectGuid = slider == null ? Guid.Empty : slider.InstanceGuid;
+            this.sliderValue = slider == null ? 0 : slider.CurrentValue;
+            this.sliderminBound = slider == null ? 0 : slider.Slider.Minimum;
             this.slidermaxBound = slider == null ? 0 : slider.Slider.Maximum;
             this.decimalPlaces = slider == null ? 0 : slider.Slider.DecimalPlaces;
             this.sliderType = slider == null ? 0 : (int)slider.Slider.Type;
@@ -1119,7 +1095,7 @@ namespace RemoSharp.RemoCommandTypes
     }
 
     // for buttons
-    public class RemoParamButton: RemoCommand
+    public class RemoParamButton : RemoCommand
     {
         // for button *
         public bool buttonValue;
@@ -1249,8 +1225,8 @@ namespace RemoSharp.RemoCommandTypes
             this.sessionID = sessionID;
             this.commandType = CommandType.RemoMDSlider;
             this.objectGuid = mdSlider == null ? Guid.Empty : mdSlider.InstanceGuid;
-            this.ValueX = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.X,3): mdSlider.Value.X;
-            this.ValueY = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.Y,3) : mdSlider.Value.Y;
+            this.ValueX = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.X, 3) : mdSlider.Value.X;
+            this.ValueY = mdSlider == null ? 0 : approximate ? Math.Round(mdSlider.Value.Y, 3) : mdSlider.Value.Y;
             this.minBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Min;
             this.maxBoundX = mdSlider == null ? 0 : mdSlider.XInterval.Max;
             this.minBoundY = mdSlider == null ? 0 : mdSlider.YInterval.Min;
@@ -1273,7 +1249,7 @@ namespace RemoSharp.RemoCommandTypes
         public RemoParamPoint3d() { }
         public RemoParamPoint3d(string issuerID, string sessionID, Param_Point pointComponent, GH_Structure<GH_Point> pntTree, bool approximate)
         {
-            
+
             List<string> pointsAndTreePath = new List<string>();
             foreach (GH_Path path in pntTree.Paths)
             {
@@ -1282,7 +1258,7 @@ namespace RemoSharp.RemoCommandTypes
                 {
                     GH_Point pnt = (GH_Point)item;
                     string coordPath = string.Format("{0},{1},{2}:{3}"
-                        , approximate? Math.Round(pnt.Value.X,3): pnt.Value.X
+                        , approximate ? Math.Round(pnt.Value.X, 3) : pnt.Value.X
                         , approximate ? Math.Round(pnt.Value.Y, 3) : pnt.Value.Y
                         , approximate ? Math.Round(pnt.Value.Z, 3) : pnt.Value.Z
                         , path.ToString().Substring(1, path.ToString().Length - 2));
@@ -1414,7 +1390,7 @@ namespace RemoSharp.RemoCommandTypes
         public List<Guid> selectedObjs;
         public float zoomLevel;
         public RemoCanvasView() { }
-        public RemoCanvasView(string issuerID, string sessionID, List<IGH_DocumentObject> objs, float zoomLevel )
+        public RemoCanvasView(string issuerID, string sessionID, List<IGH_DocumentObject> objs, float zoomLevel)
         {
             this.issuerID = issuerID;
             this.sessionID = sessionID;
@@ -1447,7 +1423,7 @@ namespace RemoSharp.RemoCommandTypes
     {
         //public float moveX;
         //public float moveY;
-        
+
         public Dictionary<Guid, System.Drawing.PointF> objectCoords;
 
         public RemoMove(string issuerID, string sessionID, List<IGH_DocumentObject> objs)
@@ -1456,7 +1432,7 @@ namespace RemoSharp.RemoCommandTypes
             this.sessionID = sessionID;
             this.objectGuid = Guid.Empty;
             this.commandType = CommandType.MoveComponent;
-            
+
             this.objectCoords = objs.ToDictionary(x => x.InstanceGuid, x => x.Attributes.Pivot);
         }
         public RemoMove()
@@ -1521,7 +1497,7 @@ namespace RemoSharp.RemoCommandTypes
 
     //    }
     //}
-    
+
     //public class WireConnection
     //{
     //    public int inputIndex;
@@ -1531,8 +1507,8 @@ namespace RemoSharp.RemoCommandTypes
     //    public WireConnection() { }
     //    public WireConnection(IGH_Param input) 
     //    {
-            
-            
+
+
     //        List<Guid> sourceGuids = new List<Guid>();
     //        List<int> sourceIndecies = new List<int>();
 
@@ -1590,9 +1566,9 @@ namespace RemoSharp.RemoCommandTypes
                 List<Guid> sourceGuids = new List<Guid>();
                 foreach (var source in input.Sources)
                 {
-                    
+
                     sourceGuids.Add(source.InstanceGuid);
-                  
+
                 }
                 inputGuidsDictionary.Add(i, sourceGuids);
             }

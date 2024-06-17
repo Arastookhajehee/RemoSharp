@@ -32,11 +32,12 @@ namespace RemoSharp.Distributors
     }
     public class RemoSetupClientV3 : GHCustomComponent
     {
+        public static string uncommonSplitCharacter = "Ⅎ";
         public List<string> messages = new List<string>();
         public WebSocket client;
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
-        //System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
+        public System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
         int timerCount = 0;
         bool preventUndo = true;
         bool controlDown = false;
@@ -70,6 +71,12 @@ namespace RemoSharp.Distributors
         RemoCommand command = null;
 
         public bool enable = false;
+
+        int annotationStringLength = 0;
+        public Dictionary<Guid,string> scribleHistory = new Dictionary<Guid, string>();
+        public Dictionary<Guid, int> markupHistory = new Dictionary<Guid, int>();
+
+
 
         public List<Guid> remoCommandIDs = new List<Guid>();
 
@@ -111,7 +118,7 @@ namespace RemoSharp.Distributors
             setupButton.OnValueChanged += SetupButton_OnValueChanged;
             AddCustomControl(setupButton);
 
-            usernameLabel = new GHCustomControls.Label("username","username", "username");
+            usernameLabel = new GHCustomControls.Label("username", "username", "username");
             usernameLabel.Border = true;
             AddCustomControl(usernameLabel);
 
@@ -123,7 +130,7 @@ namespace RemoSharp.Distributors
             undoPreventionSwitch.OnValueChanged += UndoPreventionSwitch_OnValueChanged;
             AddCustomControl(undoPreventionSwitch);
 
-            
+
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             //pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
@@ -131,7 +138,7 @@ namespace RemoSharp.Distributors
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
-            
+
 
             enable = Convert.ToBoolean(e.Value);
 
@@ -144,7 +151,7 @@ namespace RemoSharp.Distributors
             //}
 
 
-            
+
 
             if (enable)
             {
@@ -176,7 +183,7 @@ namespace RemoSharp.Distributors
                     SetUpRemoSharpEvents(unsubType, unsubType, unsubType, unsubType, unsubType, unsubType);
                     client.Close();
                 }
-                
+
 
                 CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
                 if (executor != null) executor.enable = enable;
@@ -213,7 +220,7 @@ namespace RemoSharp.Distributors
                     Task.Run(() => EstablishConnection(client));
 
                     timer.Elapsed += Timer_Elapsed;
-                    timer.AutoReset = true; 
+                    timer.AutoReset = true;
                     timer.Start();
                     break;
                 case SubcriptionType.Unsubscribe:
@@ -224,7 +231,7 @@ namespace RemoSharp.Distributors
                         client.OnClose -= Client_OnClose;
                         client.OnOpen -= Client_OnOpen;
                     }
-                    
+
 
                     // get all values from the connection keyword dictionary
                     var allValues = ConnectionMessagePairs.Values.ToList();
@@ -265,7 +272,7 @@ namespace RemoSharp.Distributors
 
             switch (objectsAdded)
             {
-                
+
                 case SubcriptionType.Subscribe:
                     thisDoc.ObjectsAdded += ThisDoc_ObjectsAdded;
                     break;
@@ -379,7 +386,7 @@ namespace RemoSharp.Distributors
             timerCount++;
             if (timerCount > 100) timerCount = 0;
 
-            RemoKeepAlive keepAliveCommand = new RemoKeepAlive(); 
+            RemoKeepAlive keepAliveCommand = new RemoKeepAlive();
             string connectionString = RemoCommand.SerializeToJson(keepAliveCommand);
             if (enable) client.Send(connectionString);
 
@@ -397,22 +404,23 @@ namespace RemoSharp.Distributors
                     timer.Dispose();
                     return;
                 }
-                thisDoc.ScheduleSolution(1, doc => {
-                Dictionary<Guid, int> duplicates = FindDuplicateGuids(
-                    this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList());
-                foreach (var item in duplicates)
+                thisDoc.ScheduleSolution(1, doc =>
                 {
-                    if (item.Value > 1)
+                    Dictionary<Guid, int> duplicates = FindDuplicateGuids(
+                        this.OnPingDocument().Objects.Select(obj => obj.InstanceGuid).ToList());
+                    foreach (var item in duplicates)
                     {
-                        for (int i = 0; i < item.Value - 1; i++)
+                        if (item.Value > 1)
                         {
-                            var obj = this.OnPingDocument().Objects.Where(o => o.InstanceGuid == item.Key).LastOrDefault();
-                            if (obj == null) continue;
+                            for (int i = 0; i < item.Value - 1; i++)
+                            {
+                                var obj = this.OnPingDocument().Objects.Where(o => o.InstanceGuid == item.Key).LastOrDefault();
+                                if (obj == null) continue;
 
-                            this.OnPingDocument().RemoveObject(obj, false);
+                                this.OnPingDocument().RemoveObject(obj, false);
+                            }
                         }
                     }
-                }
 
                 });
 
@@ -424,7 +432,7 @@ namespace RemoSharp.Distributors
         public Dictionary<Guid, int> FindDuplicateGuids(List<Guid> guids)
         {
             Dictionary<Guid, int> duplicateGuids = new Dictionary<Guid, int>();
-            
+
             foreach (var guid in guids)
             {
                 if (duplicateGuids.ContainsKey(guid))
@@ -475,7 +483,7 @@ namespace RemoSharp.Distributors
             if (thisDoc == null || this == null)
             {
                 var unsub = SubcriptionType.Unsubscribe;
-                this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub,unsub);
+                this.SetUpRemoSharpEvents(unsub, unsub, unsub, unsub, unsub, unsub);
                 gh_document = null;
                 return false;
             }
@@ -483,7 +491,7 @@ namespace RemoSharp.Distributors
             return true;
         }
 
-        
+
         private void ActiveCanvas_KeyUp(object sender, KeyEventArgs e)
         {
             if (DisconnectOnImproperClose()) return;
@@ -495,11 +503,11 @@ namespace RemoSharp.Distributors
                 this.controlDown = false;
                 return;
             }
-            if  (e.KeyCode == Keys.ShiftKey)
+            if (e.KeyCode == Keys.ShiftKey)
             {
                 this.shiftDown = false;
                 return;
-            }   
+            }
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
@@ -523,7 +531,7 @@ namespace RemoSharp.Distributors
                 }
 
             }
-            
+
         }
 
         private void ActiveCanvas_KeyDown(object sender, KeyEventArgs e)
@@ -542,7 +550,7 @@ namespace RemoSharp.Distributors
             {
                 this.shiftDown = true;
                 return;
-            }   
+            }
 
             if (e.KeyCode == Keys.Tab || e.KeyCode == Keys.F12)
             {
@@ -585,7 +593,7 @@ namespace RemoSharp.Distributors
                     }
                 }
             }
-           
+
             bool controlDown = this.controlDown;
             bool zIsDown = e.KeyCode == Keys.Z;
             if (controlDown && zIsDown)
@@ -595,9 +603,9 @@ namespace RemoSharp.Distributors
                     System.Windows.Forms.MessageBox.Show("PLEASE DO NOT USE UNDO OR REDO (●◡~)", "Syncing Error!");
                 }
             }
-            
 
-           
+
+
         }
 
         //private void Param_SolutionExpired(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
@@ -835,7 +843,7 @@ namespace RemoSharp.Distributors
         }
 
 
-        
+
 
         public void RemoParameterizeMDSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
         {
@@ -966,7 +974,7 @@ namespace RemoSharp.Distributors
 
         }
 
-        public static void GroupObjParam(RemoSetupClientV3 remoSetupComp,  IGH_DocumentObject obj)
+        public static void GroupObjParam(RemoSetupClientV3 remoSetupComp, IGH_DocumentObject obj)
         {
             remoSetupComp.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -1155,7 +1163,7 @@ namespace RemoSharp.Distributors
         private void Client_OnClose(object sender, CloseEventArgs e)
         {
             this.Message = "Reconnecting!";
-            Task.Run(() => ConnectToServer());  
+            Task.Run(() => ConnectToServer());
         }
 
         private void ConnectToServer()
@@ -1207,7 +1215,7 @@ namespace RemoSharp.Distributors
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.downPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
             this.interaction = canvas.ActiveInteraction;
-            
+
 
             //DateTime dateTime = DateTime.Now;
             //if (dateTime.Subtract(this.recconnectTimer).Minutes > 2 )
@@ -1281,7 +1289,7 @@ namespace RemoSharp.Distributors
         private void SendRemoReWireCommand()
         {
             Type type = typeof(Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction);
-            
+
             IGH_Param source = type
               .GetField("m_source", BindingFlags.NonPublic | BindingFlags.Instance)
               .GetValue(interaction) as IGH_Param;
@@ -1461,7 +1469,7 @@ namespace RemoSharp.Distributors
             //GH_Document temp = new GH_Document();
             //this.OnPingDocument().MergeDocument(temp,true,true);
 
-        
+
         }
 
         private void Client_OnMessage(object sender, MessageEventArgs e)
@@ -1526,7 +1534,7 @@ namespace RemoSharp.Distributors
         }
 
         private void ThisDoc_ObjectsAdded(object sender, GH_DocObjectEventArgs e)
-        {
+        {  
             if (DisconnectOnImproperClose()) return;
             GH_Document activeDoc = (GH_Document)sender;
             if (activeDoc == null) return;
@@ -1547,13 +1555,13 @@ namespace RemoSharp.Distributors
                 {
                     List<IGH_DocumentObject> objs = e.Objects.ToList();
 
-                    //bool drawingsIncuded = objs.Any(o => o is Grasshopper.Kernel.Special.GH_Scribble || o is Grasshopper.Kernel.Special.GH_Markup);
-                    //if (drawingsIncuded)
-                    //{
-                    //    drawingSyncTimer.AutoReset = true;
-                    //    drawingSyncTimer.Elapsed += DrawingSyncTimer_Elapsed;
-                    //    drawingSyncTimer.Start();
-                    //}
+                    bool drawingsIncuded = objs.Any(o => o is Grasshopper.Kernel.Special.GH_Scribble || o is Grasshopper.Kernel.Special.GH_Markup);
+                    if (drawingsIncuded)
+                    {
+                        drawingSyncTimer.AutoReset = true;
+                        drawingSyncTimer.Elapsed += DrawingSyncTimer_Elapsed;
+                        if (!drawingSyncTimer.Enabled) drawingSyncTimer.Start();
+                    }
 
                     Guid relayGuid = Guid.Empty;
                     List<IGH_Param> relayRecepients = new List<IGH_Param>();
@@ -1592,30 +1600,81 @@ namespace RemoSharp.Distributors
 
         }
 
-        //private void DrawingSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
-        //{
-        //    if (sender == null)
-        //    {
-        //        drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
-        //        drawingSyncTimer.Stop();
-        //        drawingSyncTimer.Dispose();
-        //    }
+        public void DrawingSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (sender == null)
+            {
+                drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
+                drawingSyncTimer.Stop();
+                drawingSyncTimer.Dispose();
+            }
 
-        //    // find all scribbles and markups
-        //    var scribbles = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Scribble);
-        //    var markups = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Markup);
-        //    // create a list of all scribbles and markups
-        //    List<IGH_DocumentObject> scribblesAndMarkups = new List<IGH_DocumentObject>();
-        //    scribblesAndMarkups.AddRange(scribbles.Where(o => o.Attributes.Selected));
-        //    scribblesAndMarkups.AddRange(markups.Where(o => o.Attributes.Selected));
+            // find all scribbles and markups
+            var scribbles = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Scribble);
+            var markups = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Markup).ToList();
+            // create a list of all scribbles and markups
+            List<IGH_DocumentObject> scribblesAndMarkups = new List<IGH_DocumentObject>();
+            scribblesAndMarkups.AddRange(scribbles);
+            scribblesAndMarkups.AddRange(markups);
 
-        //    if (scribblesAndMarkups.Count == 0)
-        //    {
-        //        return;
-        //    }
+            if (scribblesAndMarkups.Count == 0)
+            {
+                drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
+                drawingSyncTimer.Stop();
+                return;
+            }
 
-        //    SendSyncComponentCommand(scribblesAndMarkups, 1, this.sessionID, this.enable);
-        //}
+            bool scribblesAlreadySynced = true;
+
+            foreach (var item in scribbles)
+            {
+                GH_Scribble scribble = (GH_Scribble)item;
+                if (!this.scribleHistory.ContainsKey(scribble.InstanceGuid))
+                {
+                    this.scribleHistory.Add(item.InstanceGuid, scribble.Text + uncommonSplitCharacter + scribble.Font.Size);
+                    scribblesAlreadySynced = false;
+                    break;
+                }
+                else
+                {
+                    if (!this.scribleHistory[item.InstanceGuid].Equals(scribble.Text + uncommonSplitCharacter + scribble.Font.Size))
+                    {
+                        this.scribleHistory[item.InstanceGuid] = scribble.Text + uncommonSplitCharacter + scribble.Font.Size;
+                        scribblesAlreadySynced = false;
+                        break;
+                    }
+                }
+            }
+
+            foreach (var item in markups)
+            {
+                GH_Markup markup = (GH_Markup)item;
+
+                string xmlSerialization = RemoCommand.SerializeToXML(markup);
+
+                if (!markupHistory.ContainsKey(markup.InstanceGuid))
+                {
+                    markupHistory.Add(markup.InstanceGuid, xmlSerialization.Length);
+                    scribblesAlreadySynced = false;
+                    break;
+                }
+                else
+                {
+                    if (markupHistory[markup.InstanceGuid] != xmlSerialization.Length)
+                    {
+                        markupHistory[markup.InstanceGuid] = xmlSerialization.Length;
+                        scribblesAlreadySynced = false;
+                        break;
+                    }
+                }               
+            }
+
+            if (scribblesAlreadySynced) return;
+            SendSyncComponentCommand(scribblesAndMarkups, 1, this.sessionID, this.enable, !scribblesAlreadySynced);
+
+        }
+
+
 
         private int FindOutputIndexFromGH_Param(IGH_Param sourceOutput, out Guid parentGuid)
         {
@@ -1647,7 +1706,7 @@ namespace RemoSharp.Distributors
                 {
                     if (string.IsNullOrEmpty(this.username) || this.username.Equals("username"))
                     {
-                        
+
                         loginDialouge.Show();
 
 
@@ -1658,7 +1717,7 @@ namespace RemoSharp.Distributors
                         //    usernameSetupTimer.Dispose();
 
                         //    // lunch login window
-                            
+
                         //};
 
                         //usernameSetupTimer.Start();
@@ -1693,7 +1752,7 @@ namespace RemoSharp.Distributors
                 trigger.Interval = 500;
                 trigger.NickName = "RemoSetup";
 
-                
+
 
                 //// session
                 //var sessionPanel = new Grasshopper.Kernel.Special.GH_Panel();
@@ -1705,7 +1764,7 @@ namespace RemoSharp.Distributors
                 //sessionPanel.SetUserText(this.sessionID);
                 //sessionPanel.NickName = "RemoSetup";
 
-            
+
 
                 //// componentName
                 //var wscComp = new RemoSharp.WebSocketClient.WebSocketClient();
@@ -1782,7 +1841,7 @@ namespace RemoSharp.Distributors
                 //setupTimer.Start();
 
             }
-            
+
             this.ExpireSolution(true);
         }
 
@@ -2004,7 +2063,7 @@ namespace RemoSharp.Distributors
 
             foreach (var item in thisDoc.SelectedObjects())
             {
-               
+
                 if (remoSetupComp.subscribedObjs.Contains(item))
                 {
                     item.SolutionExpired -= SendRemoParameterCommand;
@@ -2029,14 +2088,14 @@ namespace RemoSharp.Distributors
         private void Item_SolutionExpired(IGH_DocumentObject sender, EventArgs e)
         {
 
-            List<IGH_DocumentObject> objs = new List<IGH_DocumentObject>() { sender};
+            List<IGH_DocumentObject> objs = new List<IGH_DocumentObject>() { sender };
 
             // find the remoSetupCompV3 on the active canvas document
             var thisDoc = this.OnPingDocument();
             if (thisDoc == null) return;
             RemoSetupClientV3 remoSetupClientV3 = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
 
-            SendSyncComponentCommand(objs, 1, remoSetupClientV3.sessionID, remoSetupClientV3.enable);
+            SendSyncComponentCommand(objs, 1, remoSetupClientV3.sessionID, remoSetupClientV3.enable, false);
         }
 
         private void Markup_PreviewExpired(IGH_DocumentObject sender, GH_PreviewExpiredEventArgs e)
@@ -2124,12 +2183,12 @@ namespace RemoSharp.Distributors
                 }
 
                 sender.Graphics.DrawPath(new System.Drawing.Pen(color, 10), DrawFilletedRectangle(bound, 0));
-            }            
+            }
         }
 
         public void SendRemoParameterCommand(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
         {
-           var thisDoc = this.OnPingDocument();
+            var thisDoc = this.OnPingDocument();
             if (thisDoc == null) return;
 
             RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
@@ -2137,7 +2196,7 @@ namespace RemoSharp.Distributors
 
             if (sender is GH_ButtonObject)
             {
-                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject) sender);
+                RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject)sender);
                 SendCommands(remoSetupComp, remoParamButton, 1, enable);
                 return;
             }
@@ -2178,7 +2237,8 @@ namespace RemoSharp.Distributors
 
             // come back to this
 
-            thisDoc.ScheduleSolution(1, doc => {
+            thisDoc.ScheduleSolution(1, doc =>
+            {
                 Dictionary<Guid, int> duplicates = FindDuplicateGuids(
                     thisDoc.Objects.Select(obj => obj.InstanceGuid).ToList());
                 foreach (var item in duplicates)
@@ -2206,7 +2266,7 @@ namespace RemoSharp.Distributors
 
             var remoclientv3 = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             var commandExecutor = (CommandExecutor)thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault();
-            
+
             if (remoclientv3 == null || commandExecutor == null) return;
 
             commandExecutor.errors.Clear();
@@ -2232,7 +2292,7 @@ namespace RemoSharp.Distributors
             if (remoclientv3.enable)
             {
                 remoclientv3.client.Send(syncCommand);
-            }           
+            }
 
         }
 
@@ -2241,10 +2301,10 @@ namespace RemoSharp.Distributors
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var selectionObjs = thisDoc.SelectedObjects().ToList();
 
-            SendSyncComponentCommand(selectionObjs, this.commandRepeat, this.sessionID, this.enable);
+            SendSyncComponentCommand(selectionObjs, this.commandRepeat, this.sessionID, this.enable, false);
         }
 
-        private static void SendSyncComponentCommand(List<IGH_DocumentObject> selectionObjs, int commandRepeat, string sessionID, bool enable)
+        private static void SendSyncComponentCommand(List<IGH_DocumentObject> selectionObjs, int commandRepeat, string sessionID, bool enable, bool annotationOnly)
         {
             List<Guid> guids = new List<Guid>();
             List<string> xmls = new List<string>();
@@ -2253,7 +2313,7 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
-            
+
             if (selectionObjs.Count == 0) return;
 
             thisDoc.DeselectAll();
@@ -2261,9 +2321,6 @@ namespace RemoSharp.Distributors
 
             thisDoc.ScheduleSolution(1, doc =>
             {
-
-
-
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
                 var subscribe = SubcriptionType.Subscribe;
@@ -2272,15 +2329,18 @@ namespace RemoSharp.Distributors
                 try
                 {
 
-
-
-
                     //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
-                    RemoCompSync remoCompSync = new RemoCompSync(setupComp.username, sessionID, selectionObjs.ToList(), thisDoc);
-
-
-                    RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
+                    if (annotationOnly) 
+                    {
+                        RemoCommand remoCompSync = new RemoAnnotation(setupComp.username, sessionID, selectionObjs.ToList(), thisDoc);
+                        RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
+                    }
+                    else
+                    {
+                        RemoCommand remoCompSync = new RemoCompSync(setupComp.username, sessionID, selectionObjs.ToList(), thisDoc);
+                        RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
+                    }
 
                 }
                 catch (Exception error)
@@ -2377,7 +2437,7 @@ namespace RemoSharp.Distributors
             RemoSetupClientV3 setupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (setupComp == null) return;
 
-            
+
             var zoomLevel = Grasshopper.Instances.ActiveCanvas.Viewport.Zoom;
 
             RemoCanvasView remoCanvasView = new RemoCanvasView(setupComp.username, this.sessionID, thisDoc.SelectedObjects(), zoomLevel);
@@ -2448,4 +2508,35 @@ namespace RemoSharp.Distributors
             get { return new Guid("8BECA1B2-2251-4AB5-AFC2-89D5E68CBAA6"); }
         }
     }
+
+    public class MarkUpCollectionHistory
+    {
+        public float width;
+        public GH_MarkupDashPattern pattern;
+        public System.Drawing.Color color;
+
+        public MarkUpCollectionHistory(GH_Markup markup)
+        {
+            GH_MarkupAttributes markupAttributes = new GH_MarkupAttributes(markup);
+            // get the properties of the markupattribute
+            var properties = markupAttributes.Properties;
+
+            this.width = properties.Width;
+            this.pattern = properties.Pattern;
+            this.color = properties.Colour;
+        }
+
+        // an equality method to compare two markups
+        public bool EqualsOther(MarkUpCollectionHistory markupAttributes)
+        {
+            // get the properties of the markupattribute
+            if (this.width != markupAttributes.width) return false;
+            if (this.pattern != markupAttributes.pattern) return false;
+            if (this.color != markupAttributes.color) return false;
+
+            return true;
+        }
+
+    }
+
 }
