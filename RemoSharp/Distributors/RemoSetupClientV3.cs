@@ -37,7 +37,7 @@ namespace RemoSharp.Distributors
         public WebSocket client;
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
-        public System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
+        //public System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
         int timerCount = 0;
         bool preventUndo = true;
         bool controlDown = false;
@@ -1555,13 +1555,13 @@ namespace RemoSharp.Distributors
                 {
                     List<IGH_DocumentObject> objs = e.Objects.ToList();
 
-                    bool drawingsIncuded = objs.Any(o => o is Grasshopper.Kernel.Special.GH_Scribble || o is Grasshopper.Kernel.Special.GH_Markup);
-                    if (drawingsIncuded)
-                    {
-                        drawingSyncTimer.AutoReset = true;
-                        drawingSyncTimer.Elapsed += DrawingSyncTimer_Elapsed;
-                        if (!drawingSyncTimer.Enabled) drawingSyncTimer.Start();
-                    }
+                    //bool drawingsIncuded = objs.Any(o => o is Grasshopper.Kernel.Special.GH_Scribble || o is Grasshopper.Kernel.Special.GH_Markup);
+                    //if (drawingsIncuded)
+                    //{
+                    //    drawingSyncTimer.AutoReset = true;
+                    //    drawingSyncTimer.Elapsed += DrawingSyncTimer_Elapsed;
+                    //    if (!drawingSyncTimer.Enabled) drawingSyncTimer.Start();
+                    //}
 
                     Guid relayGuid = Guid.Empty;
                     List<IGH_Param> relayRecepients = new List<IGH_Param>();
@@ -1600,79 +1600,54 @@ namespace RemoSharp.Distributors
 
         }
 
-        public void DrawingSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            if (sender == null)
-            {
-                drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
-                drawingSyncTimer.Stop();
-                drawingSyncTimer.Dispose();
-            }
+        //public void DrawingSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
+        //{
+        //    if (sender == null)
+        //    {
+        //        drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
+        //        drawingSyncTimer.Stop();
+        //        drawingSyncTimer.Dispose();
+        //    }
 
-            // find all scribbles and markups
-            var scribbles = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Scribble);
-            var markups = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Markup).ToList();
-            // create a list of all scribbles and markups
-            List<IGH_DocumentObject> scribblesAndMarkups = new List<IGH_DocumentObject>();
-            scribblesAndMarkups.AddRange(scribbles);
-            scribblesAndMarkups.AddRange(markups);
+        //    // find all scribbles and markups
+        //    var scribbles = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Scribble);
+        //    var markups = this.OnPingDocument().Objects.Where(o => o is Grasshopper.Kernel.Special.GH_Markup).ToList();
+        //    // create a list of all scribbles and markups
+        //    List<IGH_DocumentObject> scribblesAndMarkups = new List<IGH_DocumentObject>();
+        //    scribblesAndMarkups.AddRange(scribbles);
+        //    scribblesAndMarkups.AddRange(markups);
 
-            if (scribblesAndMarkups.Count == 0)
-            {
-                drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
-                drawingSyncTimer.Stop();
-                return;
-            }
+        //    if (scribblesAndMarkups.Count == 0)
+        //    {
+        //        drawingSyncTimer.Elapsed -= DrawingSyncTimer_Elapsed;
+        //        drawingSyncTimer.Stop();
+        //        return;
+        //    }
 
-            bool scribblesAlreadySynced = true;
 
-            foreach (var item in scribbles)
-            {
-                GH_Scribble scribble = (GH_Scribble)item;
-                if (!this.scribleHistory.ContainsKey(scribble.InstanceGuid))
-                {
-                    this.scribleHistory.Add(item.InstanceGuid, scribble.Text + uncommonSplitCharacter + scribble.Font.Size);
-                    scribblesAlreadySynced = false;
-                    break;
-                }
-                else
-                {
-                    if (!this.scribleHistory[item.InstanceGuid].Equals(scribble.Text + uncommonSplitCharacter + scribble.Font.Size))
-                    {
-                        this.scribleHistory[item.InstanceGuid] = scribble.Text + uncommonSplitCharacter + scribble.Font.Size;
-                        scribblesAlreadySynced = false;
-                        break;
-                    }
-                }
-            }
+        //    foreach (var item in scribbles)
+        //    {
+        //        GH_Scribble scribble = (GH_Scribble)item;
+        //        if (!this.scribleHistory.ContainsKey(scribble.InstanceGuid))
+        //        {
+        //            this.scribleHistory.Add(item.InstanceGuid, scribble.Text + uncommonSplitCharacter + scribble.Font.Size);
+        //            List<IGH_DocumentObject> sendables = new List<IGH_DocumentObject>() { scribble };
+        //            SendSyncComponentCommand(sendables, 1, this.sessionID, this.enable, true);
+        //        }
+        //        else
+        //        {
+        //            if (!this.scribleHistory[item.InstanceGuid].Equals(scribble.Text + uncommonSplitCharacter + scribble.Font.Size))
+        //            {
+        //                this.scribleHistory[item.InstanceGuid] = scribble.Text + uncommonSplitCharacter + scribble.Font.Size;
+        //                List<IGH_DocumentObject> sendables = new List<IGH_DocumentObject>() { scribble };
+        //                SendSyncComponentCommand(sendables, 1, this.sessionID, this.enable, true);
+        //            }
+        //        }
+        //    }
 
-            foreach (var item in markups)
-            {
-                GH_Markup markup = (GH_Markup)item;
 
-                string xmlSerialization = RemoCommand.SerializeToXML(markup);
 
-                if (!markupHistory.ContainsKey(markup.InstanceGuid))
-                {
-                    markupHistory.Add(markup.InstanceGuid, xmlSerialization.Length);
-                    scribblesAlreadySynced = false;
-                    break;
-                }
-                else
-                {
-                    if (markupHistory[markup.InstanceGuid] != xmlSerialization.Length)
-                    {
-                        markupHistory[markup.InstanceGuid] = xmlSerialization.Length;
-                        scribblesAlreadySynced = false;
-                        break;
-                    }
-                }               
-            }
-
-            if (scribblesAlreadySynced) return;
-            SendSyncComponentCommand(scribblesAndMarkups, 1, this.sessionID, this.enable, !scribblesAlreadySynced);
-
-        }
+        //}
 
 
 
@@ -1915,6 +1890,21 @@ namespace RemoSharp.Distributors
                         });
                     }
 
+                    if (!items.ContainsKey("SyncAnnotations"))
+                    {
+                        items.Add(new ToolStripButton("SyncAnnotations", (Image)Properties.Resources.Annotate.ToBitmap(), onClick: (s, e) => SyncAnnotations_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncAnnotations",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize Document Scribbles and Drawings.",
+                        });
+                    }
+
                     if (!items.ContainsKey("SyncCanvas"))
                     {
                         items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
@@ -2018,6 +2008,20 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize the Selected Components.",
                         });
                     }
+                    if (!items.ContainsKey("SyncAnnotations"))
+                    {
+                        items.Add(new ToolStripButton("SyncAnnotations", (Image)Properties.Resources.Annotate.ToBitmap(), onClick: (s, e) => SyncAnnotations_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "SyncAnnotations",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Syncronize Document Scribbles and Drawings.",
+                        });
+                    }
                     if (!items.ContainsKey("SyncCanvas"))
                     {
                         items.Add(new ToolStripButton("SyncCanvas", (Image)Properties.Resources.CanvasSync.ToBitmap(), onClick: (s, e) => SyncCanvas_OnValueChanged(s, e))
@@ -2050,6 +2054,32 @@ namespace RemoSharp.Distributors
                 default:
                     break;
             }
+        }
+
+        private void SyncAnnotations_OnValueChanged(object s, EventArgs e)
+        {
+            var thisDoc = this.OnPingDocument();
+            if (thisDoc == null) return;
+            var canvas = Instances.ActiveCanvas;
+
+            var selectedAnnotations = thisDoc.Objects.Where(o => o is GH_Scribble || o is GH_Markup).ToList();
+
+            bool thereIsSelection = selectedAnnotations.Any(o => o.Attributes.Selected);
+
+            // ask the user with a dialouge if they want to continue of there is no selection
+            if (!thereIsSelection)
+            {
+                DialogResult result = MessageBox.Show("There is no selected Scribble or Markup.\nDo you want to sync all Annotations?\nThis may take some time.", "No Selection", MessageBoxButtons.YesNo);
+                if (result == DialogResult.No) return;
+            }
+
+            selectedAnnotations = thereIsSelection ? 
+                selectedAnnotations.Where(o => o.Attributes.Selected).ToList() : selectedAnnotations;
+
+
+            SendSyncComponentCommand(selectedAnnotations, 1, this.sessionID, this.enable, true);
+
+
         }
 
         private void RemoParamButton_OnValueChanged(object s, EventArgs e)
@@ -2300,6 +2330,26 @@ namespace RemoSharp.Distributors
         {
             GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var selectionObjs = thisDoc.SelectedObjects().ToList();
+
+            // if there is more than 10 components selected give a waring saying it is too much and return
+            if (selectionObjs.Count > 10)
+            {
+                DialogResult result = MessageBox.Show("There are more than 10 components selected.\n" +
+                    "This may freeze your computer for several minutes!.\n" +
+                    "Do you want to continue?", "Too Many Components\n" +
+                    "Note:\n" +
+                    "Please remember to rewire your syncronized component outputs afterwards as the may disconnect on the receving computers!", MessageBoxButtons.YesNo);
+                if (result == DialogResult.No) return;
+            }
+            else
+            {
+                // dialouge saying that the components will be syncronized but the outputs will be disconnected
+                MessageBox.Show("The selected components will be syncronized.\n" +
+                                "Please remember to rewire your syncronized component outputs afterwards as the may disconnect on the receving computers!",
+                                "Syncronize Components", MessageBoxButtons.OK);
+            }
+
+            // 
 
             SendSyncComponentCommand(selectionObjs, this.commandRepeat, this.sessionID, this.enable, false);
         }

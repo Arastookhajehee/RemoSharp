@@ -73,6 +73,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        public static System.Drawing.Icon Annotate {
+            get {
+                object obj = ResourceManager.GetObject("Annotate", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         public static System.Drawing.Icon Broadcast_Camera {
             get {
                 object obj = ResourceManager.GetObject("Broadcast_Camera", resourceCulture);

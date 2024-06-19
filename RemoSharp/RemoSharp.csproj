@@ -35,6 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Distributors\NonComponetRemoSetupV3.cs" />
     <Compile Include="Distributors\RemoSetupClientV3.cs" />
     <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
     <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
@@ -275,27 +276,24 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Users\akhaj\source\repos\Vicc_Tools\Vicc_Tools\ref\GHCustomControls.dll</HintPath>
     </Reference>
-    <Reference Include="GhPython, Version=7.37.24107.15001, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="GhPython, Version=7.32.23221.10241, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Components\GhPython.dll</HintPath>
+      <HintPath>..\..\..\RemoSharp3\REF\GhPython.dll</HintPath>
     </Reference>
-    <Reference Include="GH_IO, Version=7.37.24107.15001, Culture=neutral, PublicKeyToken=6a29997d2e6b4f97, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
+    <Reference Include="GH_IO">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Grasshopper, Version=7.37.24107.15001, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
+    <Reference Include="Grasshopper">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Grasshopper.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="RhinoCommon, Version=7.37.24107.15001, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Rhino 7\System\RhinoCommon.dll</HintPath>
+    <Reference Include="RhinoCommon">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\System\RhinoCommon.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="ScriptComponents, Version=7.37.24107.15001, Culture=neutral, processorArchitecture=MSIL">
@@ -321,6 +319,9 @@
       <HintPath>..\..\..\..\Users\akhaj\source\repos\Arastookhajehee\RemoSharp\RemoSharp\REF\WPFNumericUpDown.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Annotate.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -331,7 +332,7 @@
   -->
   <PropertyGroup>
     <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
-Copy "$(TargetDir)" "C:\Users\akhaj\Syntegrate&amp;vicc Dropbox\Khajehee Arastoo\RemoSharp"</PostBuildEvent>
+Copy "$(TargetDir)" "C:\Users\akhaj\Dropbox\RemoSharp"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <FallbackCulture>en-US</FallbackCulture>
