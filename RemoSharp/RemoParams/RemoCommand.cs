@@ -7,10 +7,12 @@ using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Undo.Actions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RemoSharp.RemoParams;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace RemoSharp.RemoCommandTypes
@@ -51,7 +53,10 @@ namespace RemoSharp.RemoCommandTypes
         RemoPartialDocument = 28,
         RemoParameter = 29,
         RemoReWire = 30,
-        RemoAnnotation = 31
+        RemoAnnotation = 31,
+        RequestSync = 32,
+        CanvasSyncResponse = 33
+
     }
 
     public enum RemoConnectType
@@ -324,6 +329,12 @@ namespace RemoSharp.RemoCommandTypes
                 case (int)CommandType.RemoAnnotation:
                     remoCommand = JsonConvert.DeserializeObject<RemoAnnotation>(commandJson);
                     break;
+                case (int)CommandType.RequestSync:
+                    remoCommand = JsonConvert.DeserializeObject<RemoRequestSync>(commandJson);
+                    break;
+                case (int)CommandType.CanvasSyncResponse:
+                    remoCommand = JsonConvert.DeserializeObject<RemoCanvasSyncResponse>(commandJson);
+                    break;
                 //break;
                 default:
                     break;
@@ -511,6 +522,39 @@ namespace RemoSharp.RemoCommandTypes
         public override string ToString()
         {
             return string.Format("RemoDelete Command from {0}", this.issuerID);
+        }
+    }
+
+
+    public class RemoRequestSync : RemoCommand
+    {
+        public RemoRequestSync() { }
+
+        public RemoRequestSync(string issuerID, string sessionID)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.RequestSync;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
+        }
+    }
+
+    public class RemoCanvasSyncResponse : RemoCommand
+    {
+        public RemoCanvasSync canvasSync;
+        public string targetUsername;
+        public RemoCanvasSyncResponse() { }
+
+        public RemoCanvasSyncResponse(string issuerID, string sessionID, string targetUsername, RemoCanvasSync canvasSync)
+        {
+            this.issuerID = issuerID;
+            this.commandType = CommandType.CanvasSyncResponse;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.sessionID = sessionID;
+            this.canvasSync = canvasSync;
+            this.targetUsername = targetUsername;
         }
     }
 
@@ -803,7 +847,7 @@ namespace RemoSharp.RemoCommandTypes
         }
     }
 
-    public class RemoAnnotation: RemoCommand
+    public class RemoAnnotation : RemoCommand
     {
         public List<Guid> guids;
         public List<string> xmls;
@@ -1015,6 +1059,130 @@ namespace RemoSharp.RemoCommandTypes
                 return true;
             }
             return false;
+        }
+
+        public static bool InvokeRemovePersistentData(object objectToInvoke, object[] parameters = null)
+        {
+
+            //Grasshopper.Kernel.Parameters.Param_Brep param_Brep = new Param_Brep();
+            //param_Brep.PersistentData.ClearData();
+            //
+            //I want to invoke the ClearData() method on the PersistentData property of the objectToInvoke object
+
+            string propertyName = "PersistentData";
+            string methodName = "ClearData";
+            // Use reflection to get the Type of the object
+            Type type = objectToInvoke.GetType();
+            PropertyInfo propertyInfo = type.GetProperty(propertyName);
+
+            if (propertyInfo == null) return false;
+
+            var persistentData = propertyInfo.GetValue(objectToInvoke);
+
+            // Get the MethodInfo object for the specified method
+            MethodInfo methodInfo = persistentData.GetType().GetMethod(methodName);
+
+            if (methodInfo == null) return false;
+
+            try
+            {
+                methodInfo.Invoke(propertyInfo, parameters);
+            }
+            catch (Exception error)
+            {
+
+                string message = error.Message;
+            }
+            // Use the MethodInfo object to invoke the method on the object
+
+
+            var target = objectToInvoke;
+
+            if (objectToInvoke is Param_Box)
+            {
+                Param_Box boxParam = (Param_Box)objectToInvoke;
+                boxParam.PersistentData.ClearData();                
+                return true;
+            }
+            else if (target is Param_Point)
+            {
+                Param_Point pointParam = (Param_Point)target;
+                pointParam.PersistentData.ClearData();
+            }
+            else if(target is Param_Vector)
+            {
+                Param_Vector vectorParam = (Param_Vector)target;
+                vectorParam.PersistentData.ClearData();
+            }
+            else if(target is Param_Circle)
+            {
+                Param_Circle circleParam = (Param_Circle)target;
+                circleParam.PersistentData.ClearData();
+            }
+            // the rest of the types are Curve, Line, Plane, Surface, Mesh, Brep, GeometryBase
+            else if (target is Param_Curve)
+            {
+                Param_Curve curveParam = (Param_Curve)target;
+                curveParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Line)
+            {
+                Param_Line lineParam = (Param_Line)target;
+                lineParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Plane)
+            {
+                Param_Plane planeParam = (Param_Plane)target;
+                planeParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Surface)
+            {
+                Param_Surface surfaceParam = (Param_Surface)target;
+                surfaceParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Mesh)
+            {
+                Param_Mesh meshParam = (Param_Mesh)target;
+                meshParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Brep)
+            {
+                Param_Brep brepParam = (Param_Brep)target;
+                brepParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Integer)
+            {
+                Param_Integer integerParam = (Param_Integer)target;
+                integerParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Number)
+            {
+                Param_Number numberParam = (Param_Number)target;
+                numberParam.PersistentData.ClearData();
+            }
+            else if (target is Param_String)
+            {
+                Param_String stringParam = (Param_String)target;
+                stringParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Vector)
+            {
+                Param_Vector vectorParam = (Param_Vector)target;
+                vectorParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Boolean)
+            {
+                Param_Boolean booleanParam = (Param_Boolean)target;
+                booleanParam.PersistentData.ClearData();
+            }
+            else if (target is Param_Colour)
+            {
+                Param_Colour colourParam = (Param_Colour)target;
+                colourParam.PersistentData.ClearData();
+            }            
+
+            return true;
+
         }
 
         public static bool InvokeWritePersistentDataMethod(object objectToInvoke, object[] parameters = null)

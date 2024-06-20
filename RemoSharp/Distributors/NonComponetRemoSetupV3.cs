@@ -1,12 +1,10 @@
 ﻿using GH_IO.Serialization;
-using GHCustomControls;
 using Grasshopper.GUI.Base;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
-using RemoSharp.Distributors;
 using RemoSharp.RemoCommandTypes;
 using RemoSharp.RemoParams;
 using Rhino.Geometry;
@@ -30,10 +28,9 @@ namespace RemoSharp.Distributors
         public GH_Document _Document;
         public RemoSetupClientV3 wsClientComp;
 
-        public GH_Document OnPingDocument()
-        {
-            return this._Document;
-        }
+
+
+
 
         List<WireHistory> wireHistories = new List<WireHistory>();
 
@@ -88,42 +85,24 @@ namespace RemoSharp.Distributors
         List<RemoCommand> retryCommands = new List<RemoCommand>();
         List<Guid> MoveCommands = new List<Guid>();
 
-        public NonComponetRemoSetupV3(){}
+        public NonComponetRemoSetupV3() { }
+        public NonComponetRemoSetupV3(GH_Document _Document, RemoSetupClientV3 wsClientComp)
+        {
+            this._Document = _Document;
+            this.wsClientComp = wsClientComp;
+        }
+
+        public GH_Document OnPingDocument()
+        {
+            return this._Document;
+        }
 
         /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
-        public void SolveInstance(IGH_DataAccess DA)
+        public void SolveInstance()
         {
-            if (string.IsNullOrEmpty(this.username) || this.username.ToUpper().Equals("USERNAME")) GetUsernameFromRemoSetupClientV3();
-
-            int maxErrorCount = 30;
-            int errorCount = this.errors.Count;
-            ShowBackgroundDesyncColor(errorCount, maxErrorCount);
-            if (errorCount > 0 && errorCount <= 3)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Remark, "Minimal Desynchronization!");
-            }
-            else if (errorCount > 3 && errorCount <= 10)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Considarable Desynchronization!");
-            }
-            else if (errorCount > 10 && errorCount <= 29)
-            {
-
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Major Desynchronization!\nPlease consider re-syncing!");
-            }
-            else if (errorCount > maxErrorCount)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Documents Are Desynchronized!\nPlease consider re-syncing!");
-                //if (errorCount % 5 == 0)
-                //{
-                //    Thread errorThread = new Thread(RaiseSyncError);
-                //    errorThread.Start();
-                //}
-            }
-
 
             List<RemoConnect> connectionList = new List<RemoConnect>();
 
@@ -202,6 +181,8 @@ namespace RemoSharp.Distributors
 
                     int messageLength = command.Length;
 
+                    this.username = this.wsClientComp.username;
+
                     if (username.Equals(remoCommand.issuerID) || username.IsNullOrEmpty())
                     {
                         wsClientComp.messages.RemoveAt(0);
@@ -239,29 +220,10 @@ namespace RemoSharp.Distributors
 
                             break;
                         #endregion
-                        #region componentCreation
-                        //case (CommandType.Create):
-                        //    RemoCreate createCommand = (RemoCreate)remoCommand;
-                        //    ExecuteCreate(createCommand);
-                        //    break;
-                        #endregion
-                        #region relayCreation
-                        case (CommandType.RemoRelay):
-                            //RemoRelay relayCommand = (RemoRelay)remoCommand;
-                            //ExecuteRemoRelay(relayCommand);
-                            break;
-                        #endregion
                         #region deleteComponent
                         case (CommandType.Delete):
                             RemoDelete remoDelete = (RemoDelete)remoCommand;
                             ExecuteDelete(remoDelete);
-                            break;
-                        #endregion
-
-                        #region GeometryStream
-                        case (CommandType.StreamGeom):
-                            DA.SetData(0, remoCommand.ToString());
-
                             break;
                         #endregion
 
@@ -281,73 +243,10 @@ namespace RemoSharp.Distributors
                             break;
                         #endregion
 
-                        #region RemoParamSlider
-                        case (CommandType.RemoSlider):
-                            //RemoParamSlider remoSlider = (RemoParamSlider)remoCommand;
-                            //ExecuteRemoSlider(remoSlider);
-
-                            break;
-                        #endregion
-
                         #region RemoParamButton
                         case (CommandType.RemoButton):
                             RemoParamButton remoButton = (RemoParamButton)remoCommand;
                             ExecuteRemoButton(remoButton);
-                            break;
-                        #endregion
-
-                        #region RemoParamToggle
-                        case (CommandType.RemoToggle):
-                            //RemoParamToggle remoToggle = (RemoParamToggle)remoCommand;
-                            //ExecuteRemoToggle(remoToggle);
-                            break;
-                        #endregion
-
-                        #region RemoParamPanel
-                        case (CommandType.RemoPanel):
-                            //RemoParamPanel remoPanel = (RemoParamPanel)remoCommand;
-                            //ExecuteRemoPanel(remoPanel);
-
-                            break;
-                        #endregion
-
-                        #region RemoParamColor
-                        case (CommandType.RemoColor):
-                            //RemoParamColor remoColor = (RemoParamColor)remoCommand;
-                            //ExecuteRemoColor(remoColor);
-
-                            break;
-                        #endregion
-
-                        #region RemoParamMDSlider
-                        case (CommandType.RemoMDSlider):
-                            //RemoParamMDSlider remoMDSlider = (RemoParamMDSlider)remoCommand;
-                            //ExecuteRemoMDSlider(remoMDSlider);
-
-                            break;
-                        #endregion
-
-                        #region RemoParamPoint3d
-                        case (CommandType.RemoPoint3d):
-                            //RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
-
-                            //ExecuteRemoPoint3d(remoPoint3d);
-
-                            break;
-                        #endregion
-
-                        #region RemoParamVector3d
-                        case (CommandType.RemoVector3d):
-                            //RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
-                            //ExecuteRemoVector3d(remoVector3d);
-
-                            break;
-                        #endregion
-
-                        #region RemoParamPlane
-                        case (CommandType.RemoPlane):
-                            //RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
-                            //ExecuteRemoPlane(remoPlane);
                             break;
                         #endregion
 
@@ -364,13 +263,6 @@ namespace RemoSharp.Distributors
                             RemoCanvasSync remoCanvasSync = (RemoCanvasSync)remoCommand;
 
                             SyncCanvasFromRemoCanvasSync(remoCanvasSync);
-
-                            break;
-
-                        case (CommandType.RemoScriptCS):
-                            //RemoScriptCS remoScriptCS = (RemoScriptCS)remoCommand;
-
-                            //ExecuteSelectRemoScriptCS(remoScriptCS);
 
                             break;
                         case (CommandType.RemoUndo):
@@ -409,6 +301,19 @@ namespace RemoSharp.Distributors
                             ExecuteRemoAnnotations(remoAnnotations);
 
                             break;
+                        case (CommandType.RequestSync):
+                            RemoRequestSync remoRequestSync = (RemoRequestSync)remoCommand;
+
+                            ExecuteRemoRequestSync(remoRequestSync);
+
+                            break;
+                        case (CommandType.CanvasSyncResponse):
+                            RemoCanvasSyncResponse remoCanvasSyncResponse = (RemoCanvasSyncResponse)remoCommand;
+
+                            ExecuteRemoCanvasSyncResponse(remoCanvasSyncResponse);
+
+                            break;
+
                         default:
 
                             break;
@@ -416,204 +321,31 @@ namespace RemoSharp.Distributors
 
                     wsClientComp.messages.RemoveAt(0);
                     remoCommand.executed = true;
-                }
-                catch
-                {
-                    remoCommand.executionAttempts++;
-                    retryCommands.Add(remoCommand);
-                    wsClientComp.messages.RemoveAt(0);
-                }
 
-            }
-
-
-            foreach (RemoCommand remoCommand in retryCommands)
-            {
-                try
-                {
-                    if (remoCommand.executionAttempts > 10 && !remoCommand.executed)
+                    if (this.wsClientComp.isMain)
                     {
-                        errors.Add("Fail: " + remoCommand.ToString());
-                        remoCommand.executed = true;
-                    }
-                    else
-                    {
-                        switch (remoCommand.commandType)
+                        this.OnPingDocument().ScheduleSolution(1, doc => 
                         {
-                            #region moveComp
-                            case (CommandType.MoveComponent):
-                                RemoMove moveCommand = (RemoMove)remoCommand;
-                                ExcecuteMove(moveCommand);
-                                break;
-                            #endregion
-                            case (CommandType.NullCommand):
-                                break;
-                            #region wireconnection
-                            case (CommandType.WireConnection):
-                                RemoConnect wireCommand = (RemoConnect)remoCommand;
-                                ExecuteRemoConnect(wireCommand);
-                                break;
-                            #endregion
-                            #region componentCreation
-                            case (CommandType.Create):
-                            //RemoCreate createCommand = (RemoCreate)remoCommand;
-                            //ExecuteCreate(createCommand);
-                            //break;
-                            #endregion
-                            #region relayCreation
-                            case (CommandType.RemoRelay):
-                                //RemoRelay relayCommand = (RemoRelay)remoCommand;
-                                //ExecuteRemoRelay(relayCommand);
-                                break;
-                            #endregion
-                            #region deleteComponent
-                            case (CommandType.Delete):
-                                RemoDelete remoDelete = (RemoDelete)remoCommand;
-                                ExecuteDelete(remoDelete);
-                                break;
-                            #endregion
+                            var allParams = this.OnPingDocument().Objects.Where(o => o is IGH_Param);
 
-                            #region GeometryStream
-                            case (CommandType.StreamGeom):
-                                DA.SetData(0, remoCommand.ToString());
+                            foreach (var param in allParams)
+                            {
+                                RemoParameter.InvokeRemovePersistentData(param);
+                            }
 
-                                break;
-                            #endregion
-
-                            #region hide
-                            case (CommandType.Hide):
-
-                                RemoHide hideCommand = (RemoHide)remoCommand;
-                                ExecuteHide(hideCommand);
-                                break;
-                            #endregion
-
-                            #region lock
-                            case (CommandType.Lock):
-
-                                RemoLock lockCommand = (RemoLock)remoCommand;
-                                ExecuteLock(lockCommand);
-                                break;
-                            #endregion
-
-                            #region RemoParamSlider
-                            case (CommandType.RemoSlider):
-                                RemoParamSlider remoSlider = (RemoParamSlider)remoCommand;
-                                ExecuteRemoSlider(remoSlider);
-
-                                break;
-                            #endregion
-
-                            #region RemoParamButton
-                            case (CommandType.RemoButton):
-                                RemoParamButton remoButton = (RemoParamButton)remoCommand;
-                                ExecuteRemoButton(remoButton);
-                                break;
-                            #endregion
-
-                            #region RemoParamToggle
-                            case (CommandType.RemoToggle):
-                                RemoParamToggle remoToggle = (RemoParamToggle)remoCommand;
-                                ExecuteRemoToggle(remoToggle);
-                                break;
-                            #endregion
-
-                            #region RemoParamPanel
-                            case (CommandType.RemoPanel):
-                                RemoParamPanel remoPanel = (RemoParamPanel)remoCommand;
-                                ExecuteRemoPanel(remoPanel);
-
-                                break;
-                            #endregion
-
-                            #region RemoParamColor
-                            case (CommandType.RemoColor):
-                                RemoParamColor remoColor = (RemoParamColor)remoCommand;
-                                ExecuteRemoColor(remoColor);
-
-                                break;
-                            #endregion
-
-                            #region RemoParamMDSlider
-                            case (CommandType.RemoMDSlider):
-                                RemoParamMDSlider remoMDSlider = (RemoParamMDSlider)remoCommand;
-                                ExecuteRemoMDSlider(remoMDSlider);
-
-                                break;
-                            #endregion
-
-                            #region RemoParamPoint3d
-                            case (CommandType.RemoPoint3d):
-                                RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
-                                ExecuteRemoPoint3d(remoPoint3d);
-
-                                break;
-                            #endregion
-
-                            #region RemoParamVector3d
-                            case (CommandType.RemoVector3d):
-                                RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
-                                ExecuteRemoVector3d(remoVector3d);
-
-                                break;
-                            #endregion
-
-
-                            #region RemoParamPlane
-                            case (CommandType.RemoPlane):
-                                RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
-                                ExecuteRemoPlane(remoPlane);
-
-
-                                break;
-                            #endregion
-
-                            #region RemoParamText
-                            case (CommandType.RemoText):
-                                RemoParameter remoText = (RemoParameter)remoCommand;
-                                ExecuteRemoParameter(remoText);
-
-
-                                break;
-                            #endregion
-
-                            #region select
-                            case (CommandType.Select):
-
-                                RemoSelect selectionCommand = (RemoSelect)remoCommand;
-                                ExecuteSelect(selectionCommand);
-
-                                break;
-                            #endregion
-                            default:
-
-                                break;
-                        }
+                        });
+                        
                     }
 
+                }
+                catch (Exception error)
+                {
+
+                    Rhino.RhinoApp.WriteLine(error.Message);
                     wsClientComp.messages.RemoveAt(0);
-                    remoCommand.executed = true;
-                }
-                catch
-                {
-                    remoCommand.executionAttempts++;
                 }
 
             }
-
-
-            for (int i = retryCommands.Count - 1; i > -1; i--)
-            {
-                RemoCommand remoCommand = retryCommands[i];
-                if (remoCommand.executed)
-                {
-                    retryCommands.RemoveAt(i);
-                }
-            }
-
-            DA.SetDataList(0, errors);
-            //DA.SetDataList(1, connectionList);
-
         }
 
         public void AddRuntimeMessage(GH_RuntimeMessageLevel remark, string message)
@@ -624,17 +356,66 @@ namespace RemoSharp.Distributors
 
         }
 
+        private void ExecuteRemoCanvasSyncResponse(RemoCanvasSyncResponse remoCanvasSyncResponse)
+        {
+            bool isTargetUsername  = remoCanvasSyncResponse.targetUsername.Equals(this.wsClientComp.username);
+            if (!isTargetUsername) return;
+
+            SyncCanvasFromRemoCanvasSync(remoCanvasSyncResponse.canvasSync);
+        }
+
+        private void ExecuteRemoRequestSync(RemoRequestSync remoRequestSync)
+        {
+            if (!this.wsClientComp.isMain) return;
+
+            var thisDoc = this.OnPingDocument();
+            ResetGHColorsToDefault();
+
+            var nonCompExecutor = this;
+
+            if (nonCompExecutor.wsClientComp == null) return;
+            if (!nonCompExecutor.enable) return;
+
+            SubcriptionType skip = SubcriptionType.Skip;
+            SubcriptionType unsubscribe = SubcriptionType.Unsubscribe;
+            SubcriptionType subscribe = SubcriptionType.Subscribe;
+            this.wsClientComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, skip);
+
+            thisDoc.DeselectAll();
+            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
+
+            GH_LooseChunk tempChunk = new GH_LooseChunk(null);
+            thisDoc.Write(tempChunk);
+
+            GH_Document saveDoc = new GH_Document();
+            saveDoc.Read(tempChunk);
+
+            saveDoc.RemoveObjects(saveDoc.Objects.Where(obj => obj.NickName.Contains("RemoSetup")).ToList(), false);
+
+            GH_LooseChunk toSendChunk = new GH_LooseChunk(null);
+            saveDoc.Write(toSendChunk);
+            string xml = toSendChunk.Serialize_Xml();
+
+            RemoCanvasSync remoCanvasSync = new RemoCanvasSync(username, this.wsClientComp.sessionID, xml);
+
+            RemoCanvasSyncResponse response = new
+                RemoCanvasSyncResponse(this.wsClientComp.username, this.wsClientComp.sessionID, remoRequestSync.issuerID, remoCanvasSync);
+            string syncCommand = RemoCommand.SerializeToJson(response);
+
+            nonCompExecutor.wsClientComp.client.Send(syncCommand);
+
+
+            this.wsClientComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, skip);
+        }
+
         public void ExecuteRemoAnnotations(RemoAnnotation remoAnnotations)
         {
             this.OnPingDocument().DeselectAll();
-            Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
             this.OnPingDocument().ScheduleSolution(50, doc =>
             {
                 var thisDoc = this.OnPingDocument();
-                RemoSetupClientV3 sourceComp = thisDoc.Objects
-                .Where(obj => obj is RemoSetupClientV3)
-                .FirstOrDefault() as RemoSetupClientV3;
+                RemoSetupClientV3 sourceComp = this.wsClientComp;
 
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
@@ -660,53 +441,11 @@ namespace RemoSharp.Distributors
                         IGH_DocumentObject obj = thisDoc.FindObject(remoAnnotations.guids[i], false);
                         if (obj == null) continue;
                         obj.Read(RemoCommand.DeserializeFromXML(remoAnnotations.xmls[i]));
-                        if (obj is IGH_Param)
-                        {
-                            IGH_Param param = (IGH_Param)obj;
-                            obj.ExpireSolution(true);
-                        }
 
-                        if (obj is GH_Scribble)
-                        {
-                            GH_Scribble scribble = (GH_Scribble)obj;
+                        GH_Document tempDoc2 = new GH_Document();
+                        thisdoc.MergeDocument(tempDoc2, true, true);
 
-                            if (!sourceComp.scribleHistory.ContainsKey(scribble.InstanceGuid))
-                            {
-                                sourceComp.scribleHistory.Add(scribble.InstanceGuid, scribble.Text + RemoSetupClientV3.uncommonSplitCharacter + scribble.Font.Size);
-                            }
-                            else
-                            {
-                                sourceComp.scribleHistory[scribble.InstanceGuid] = scribble.Text + RemoSetupClientV3.uncommonSplitCharacter + scribble.Font.Size;
-                            }
-                        }
-                        else if (obj is GH_Markup)
-                        {
-                            GH_Markup markup = (GH_Markup)obj;
-
-                            int stringLength = RemoCommand.SerializeToXML(markup).Length;
-
-                            if (!sourceComp.markupHistory.ContainsKey(markup.InstanceGuid))
-                            {
-                                sourceComp.markupHistory.Add(markup.InstanceGuid, stringLength);
-                            }
-                            else
-                            {
-                                sourceComp.markupHistory[markup.InstanceGuid] = stringLength;
-                            }
-
-                        }
                     }
-                    GH_Document tempDoc2 = new GH_Document();
-                    thisdoc.MergeDocument(tempDoc2, true, true);
-
-                    //if (!sourceComp.drawingSyncTimer.Enabled)
-                    //{
-                    //    sourceComp.drawingSyncTimer.Elapsed -= sourceComp.DrawingSyncTimer_Elapsed;
-                    //    sourceComp.drawingSyncTimer.Elapsed += sourceComp.DrawingSyncTimer_Elapsed;
-                    //    sourceComp.drawingSyncTimer.Enabled = true;
-                    //}
-
-
 
                 }
                 catch (Exception error)
@@ -745,7 +484,7 @@ namespace RemoSharp.Distributors
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
 
-                RemoSetupClientV3 remoSetupClientV3 = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
+                RemoSetupClientV3 remoSetupClientV3 = this.wsClientComp;
 
                 var skip = SubcriptionType.Skip;
                 var unsub = SubcriptionType.Unsubscribe;
@@ -795,14 +534,12 @@ namespace RemoSharp.Distributors
             OnPingDocument().ScheduleSolution(1, doc =>
             {
 
-                RemoSetupClientV3 sourceComp = OnPingDocument().Objects
-                .Where(obj => obj is RemoSetupClientV3)
-                .FirstOrDefault() as RemoSetupClientV3;
+
 
                 var skip = SubcriptionType.Skip;
                 var subscribe = SubcriptionType.Subscribe;
                 var unsubscribe = SubcriptionType.Unsubscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
+                this.wsClientComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
 
                 try
                 {
@@ -883,7 +620,7 @@ namespace RemoSharp.Distributors
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
 
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+                this.wsClientComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
                 return;
 
             });
@@ -1295,9 +1032,7 @@ namespace RemoSharp.Distributors
             this.OnPingDocument().ScheduleSolution(50, doc =>
             {
                 var thisDoc = this.OnPingDocument();
-                RemoSetupClientV3 sourceComp = thisDoc.Objects
-                .Where(obj => obj is RemoSetupClientV3)
-                .FirstOrDefault() as RemoSetupClientV3;
+                RemoSetupClientV3 sourceComp = this.wsClientComp;
 
                 var skip = SubcriptionType.Skip;
                 var unsubscribe = SubcriptionType.Unsubscribe;
@@ -1430,8 +1165,8 @@ namespace RemoSharp.Distributors
 
 
 
-                RemoSetupClientV3 sourceComp = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
-                if (sourceComp == null) return;
+                RemoSetupClientV3 sourceComp = this.wsClientComp;
+
                 var paramComp = this.OnPingDocument().FindObject(remoParameter.objectGuid, false);
                 if (paramComp == null) return;
                 //var ogPivot  = paramComp.Attributes.Pivot;
@@ -1531,15 +1266,7 @@ namespace RemoSharp.Distributors
 
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
-                    RemoSetupClientV3 remoSetupComp = this.OnPingDocument().Objects
-                    .Where(obj => obj is RemoSetupClientV3)
-                    .FirstOrDefault() as RemoSetupClientV3;
-
-                    if (remoSetupComp == null)
-                    {
-                        System.Windows.Forms.MessageBox.Show("RemoSharp Sync Failed!", "RemoSharp Sync Failed. Please Try Seting up RemoSharp Again!");
-                        return;
-                    }
+                    RemoSetupClientV3 remoSetupComp = this.wsClientComp;
 
                     var skip = SubcriptionType.Skip;
                     var unsubscribe = SubcriptionType.Unsubscribe;
@@ -1599,9 +1326,9 @@ namespace RemoSharp.Distributors
 
 
             }
-            catch
+            catch (Exception error)
             {
-
+                Rhino.RhinoApp.WriteLine(error.Message);
             }
 
         }
@@ -2090,7 +1817,7 @@ namespace RemoSharp.Distributors
 
                 if (compGuid == Guid.Empty) continue;
 
-                IGH_DocumentObject selection = (IGH_DocumentObject)this.OnPingDocument().FindObject(compGuid, false);
+                IGH_DocumentObject selection = this.OnPingDocument().FindObject(compGuid, false);
 
                 if (selection is GH_Component)
                 {
@@ -2158,10 +1885,7 @@ namespace RemoSharp.Distributors
 
         public void ExecuteDelete(RemoDelete remoDelete)
         {
-            RemoSetupClientV3 remoSetupComp = this.OnPingDocument().Objects
-                    .Where(obj => obj is RemoSetupClientV3)
-                    .FirstOrDefault() as RemoSetupClientV3;
-            if (remoSetupComp == null) return;
+            RemoSetupClientV3 remoSetupComp = this.wsClientComp;
 
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
@@ -2353,7 +2077,7 @@ namespace RemoSharp.Distributors
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
 
-                RemoSetupClientV3 remoSetupClientV3 = this.OnPingDocument().Objects.FirstOrDefault(obj => obj is RemoSetupClientV3) as RemoSetupClientV3;
+                RemoSetupClientV3 remoSetupClientV3 = this.wsClientComp;
 
                 var skip = SubcriptionType.Skip;
                 var unsub = SubcriptionType.Unsubscribe;

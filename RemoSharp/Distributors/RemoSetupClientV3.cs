@@ -35,6 +35,9 @@ namespace RemoSharp.Distributors
         public static string uncommonSplitCharacter = "Ⅎ";
         public List<string> messages = new List<string>();
         public WebSocket client;
+
+        public NonComponetRemoSetupV3 nonComponentRemoSetupV3;
+
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
         //public System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
@@ -60,11 +63,13 @@ namespace RemoSharp.Distributors
         PushButton setupButton;
         ToggleSwitch undoPreventionSwitch;
         ToggleSwitch enableSwitch;
+        ToggleSwitch mainSwitch;
         public GHCustomControls.Label usernameLabel;
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
         bool listen = true;
+        public bool isMain = false; 
 
         int commandRepeat = 1;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
@@ -73,7 +78,7 @@ namespace RemoSharp.Distributors
         public bool enable = false;
 
         int annotationStringLength = 0;
-        public Dictionary<Guid,string> scribleHistory = new Dictionary<Guid, string>();
+        public Dictionary<Guid, string> scribleHistory = new Dictionary<Guid, string>();
         public Dictionary<Guid, int> markupHistory = new Dictionary<Guid, int>();
 
 
@@ -130,10 +135,17 @@ namespace RemoSharp.Distributors
             undoPreventionSwitch.OnValueChanged += UndoPreventionSwitch_OnValueChanged;
             AddCustomControl(undoPreventionSwitch);
 
-
+            mainSwitch = new ToggleSwitch("Main", "Main", false);
+            mainSwitch.OnValueChanged += MainSwitch_OnValueChanged;
+            AddCustomControl(mainSwitch);
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             //pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
+        }
+
+        private void MainSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            isMain = Convert.ToBoolean(e.Value);
         }
 
         private void EnableSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -155,6 +167,8 @@ namespace RemoSharp.Distributors
 
             if (enable)
             {
+                this.nonComponentRemoSetupV3 = new NonComponetRemoSetupV3(this.OnPingDocument(), this);
+
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
                 this.NickName = "RemoSetup";
@@ -166,8 +180,9 @@ namespace RemoSharp.Distributors
                 SubcriptionType subType = SubcriptionType.Subscribe;
                 SetUpRemoSharpEvents(subType, subType, subType, subType, subType, subType);
 
-                CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
-                executor.enable = enable;
+                //CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
+                //executor.enable = enable;
+                this.nonComponentRemoSetupV3.enable = true;
 
             }
             else
@@ -184,9 +199,7 @@ namespace RemoSharp.Distributors
                     client.Close();
                 }
 
-
-                CommandExecutor executor = thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault() as CommandExecutor;
-                if (executor != null) executor.enable = enable;
+                if (this.nonComponentRemoSetupV3 != null) this.nonComponentRemoSetupV3.enable = false;
             }
 
 
@@ -201,7 +214,7 @@ namespace RemoSharp.Distributors
             , SubcriptionType canvas
             )
         {
-            GH_Document thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
+            GH_Document thisDoc = this.OnPingDocument();
             var client = this.client;
             if (thisDoc == null) return;
             //bool isAlive = client.IsAlive;
@@ -1523,6 +1536,10 @@ namespace RemoSharp.Distributors
             }
 
             messages.Add(e.Data);
+
+            nonComponentRemoSetupV3.SolveInstance();
+
+
             if (!this.keepRecord)
             {
 
@@ -1534,7 +1551,7 @@ namespace RemoSharp.Distributors
         }
 
         private void ThisDoc_ObjectsAdded(object sender, GH_DocObjectEventArgs e)
-        {  
+        {
             if (DisconnectOnImproperClose()) return;
             GH_Document activeDoc = (GH_Document)sender;
             if (activeDoc == null) return;
@@ -1700,79 +1717,7 @@ namespace RemoSharp.Distributors
                     return;
                 }
 
-                int xShift = 2;
-                int yShift = 80;
                 PointF pivot = this.Attributes.Pivot;
-                //PointF wscButtonPivot = new PointF(pivot.X + xShift - 216, pivot.Y - 227 + yShift);
-                PointF triggerPivot = new PointF(pivot.X + xShift - 63, pivot.Y - 77);
-                //PointF sessionPivot = new PointF(pivot.X + xShift - 275 + 8, pivot.Y - 12);
-                //PointF wscPivot = new PointF(pivot.X + xShift + 150, pivot.Y - 336 + yShift);
-                PointF listenPivot = new PointF(pivot.X + xShift + 150, pivot.Y);
-
-                PointF commandPivot = new PointF(pivot.X + xShift + 300, pivot.Y);
-                //PointF commandButtonPivot = new PointF(pivot.X + xShift + 350, pivot.Y - 254 + yShift);
-
-                #region setup components
-                //// button
-                //Grasshopper.Kernel.Special.GH_ButtonObject wscButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                //wscButton.CreateAttributes();
-                //wscButton.Attributes.Pivot = wscButtonPivot;
-                //wscButton.NickName = "RemoSetup";
-
-                // RemoSharp trigger
-                var trigger = new Grasshopper.Kernel.Special.GH_Timer();
-                trigger.CreateAttributes();
-                trigger.Attributes.Pivot = triggerPivot;
-                trigger.NickName = "RemoSharp";
-                trigger.Interval = 500;
-                trigger.NickName = "RemoSetup";
-
-
-
-                //// session
-                //var sessionPanel = new Grasshopper.Kernel.Special.GH_Panel();
-                //sessionPanel.CreateAttributes();
-                //sessionPanel.Attributes.Pivot = sessionPivot;
-                //sessionPanel.Attributes.Bounds = new Rectangle((int)sessionPivot.X, (int)sessionPivot.Y, 152, 45);
-                //// generate a 6 character random password with upper and lower case letters and numbers
-                //// do not use GUID to generate the password               
-                //sessionPanel.SetUserText(this.sessionID);
-                //sessionPanel.NickName = "RemoSetup";
-
-
-
-                //// componentName
-                //var wscComp = new RemoSharp.WebSocketClient.WebSocketClient();
-                //wscComp.CreateAttributes();
-                //wscComp.Attributes.Pivot = wscPivot;
-                //wscComp.Params.RepairParamAssociations();
-                //wscComp.NickName = "RemoSetup";
-                //wscComp.autoUpdateSwitch.CurrentValue = false;
-                //wscComp.keepRecordSwitch.CurrentValue = true;
-                //wscComp.autoUpdate = false;
-                //wscComp.keepRecord = true;
-
-                // componentName
-                var listenComp = new RemoSharp.WebSocketClient.WSClientListen();
-                listenComp.CreateAttributes();
-                listenComp.Attributes.Pivot = listenPivot;
-                listenComp.Params.RepairParamAssociations();
-                listenComp.NickName = "RemoSetup";
-
-                // componentName
-                var commandComp = new RemoSharp.CommandExecutor();
-                commandComp.CreateAttributes();
-                commandComp.Attributes.Pivot = commandPivot;
-                commandComp.Params.RepairParamAssociations();
-                commandComp.NickName = "RemoSetup";
-
-                //// button
-                //Grasshopper.Kernel.Special.GH_ButtonObject commandCompButton = new Grasshopper.Kernel.Special.GH_ButtonObject();
-                //commandCompButton.CreateAttributes();
-                //commandCompButton.Attributes.Pivot = commandButtonPivot;
-                //commandCompButton.NickName = "RemoSetup";
-
-                #endregion
 
                 var addressOutPut = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, 7, 50, true);
 
@@ -1780,22 +1725,8 @@ namespace RemoSharp.Distributors
                 this.OnPingDocument().ScheduleSolution(1, doc =>
                 {
 
-                    this.OnPingDocument().AddObject(trigger, true);
-                    //this.OnPingDocument().AddObject(sessionPanel, true);
-                    this.OnPingDocument().AddObject(listenComp, true);
-                    this.OnPingDocument().AddObject(commandComp, true);
-
-                    //this.Params.Input[1].AddSource(sessionPanel);
                     this.Params.Input[0].AddSource(addressOutPut);
 
-                    listenComp.Params.Input[0].AddSource(this.Params.Output[0]);
-
-                    commandComp.Params.Input[0].AddSource(listenComp.Params.Output[0]);
-                    //commandComp.Params.Input[2].AddSource(commandCompButton);
-
-                    //bffTrigger.AddTarget(bffTriggerTarget);
-                    trigger.AddTarget(listenComp.InstanceGuid);
-                    //trigger.AddTarget(targetComp.InstanceGuid);
                     this.setupButton.CurrentValue = false;
                 });
 
@@ -1803,18 +1734,6 @@ namespace RemoSharp.Distributors
                 loginDialouge.Show();
 
                 this.setupButton.CurrentValue = false;
-                //System.Timers.Timer setupTimer = new System.Timers.Timer(5);
-                //setupTimer.Elapsed += (s, args) =>
-                //{
-                //    setupTimer.Stop();
-                //    setupTimer.Dispose();
-
-                //    // lunch login window
-
-                //};
-
-                //setupTimer.Start();
-
             }
 
             this.ExpireSolution(true);
@@ -1824,6 +1743,7 @@ namespace RemoSharp.Distributors
         {
 
 
+            ToolStrip bar = (ToolStrip)Grasshopper.Instances.DocumentEditor.Controls[0].Controls[1];
 
             ToolStripItemCollection items = ((ToolStrip)(Grasshopper.Instances.DocumentEditor).Controls[0].Controls[1]).Items;
 
@@ -1889,6 +1809,8 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize the Selected Components.",
                         });
                     }
+                    
+                    
 
                     if (!items.ContainsKey("SyncAnnotations"))
                     {
@@ -1902,6 +1824,21 @@ namespace RemoSharp.Distributors
                             Name = "SyncAnnotations",
                             Size = new Size(28, 28),
                             ToolTipText = "Syncronize Document Scribbles and Drawings.",
+                        });
+                    }
+
+                    if (!items.ContainsKey("RequestSync"))
+                    {
+                        items.Add(new ToolStripButton("RequestSync", (Image)Properties.Resources.RequestSync.ToBitmap(), onClick: (s, e) => RequestSyncComponents_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "RequestSync",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Requests a sync from the main reference script.",
                         });
                     }
 
@@ -1940,6 +1877,8 @@ namespace RemoSharp.Distributors
                     if (items.ContainsKey("Select")) items.RemoveByKey("Select");
                     if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
                     if (items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
+                    if (items.ContainsKey("SyncAnnotations")) items.RemoveByKey("SyncAnnotations");
+                    if (items.ContainsKey("RequestSync")) items.RemoveByKey("RequestSync");
                     if (items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
                     if (items.ContainsKey("FixCanvas")) items.RemoveByKey("FixCanvas");
                     break;
@@ -1950,6 +1889,8 @@ namespace RemoSharp.Distributors
                     if (items.ContainsKey("Select")) items.RemoveByKey("Select");
                     if (items.ContainsKey("RemoParam")) items.RemoveByKey("RemoParam");
                     if (items.ContainsKey("SyncComps")) items.RemoveByKey("SyncComps");
+                    if (items.ContainsKey("SyncAnnotations")) items.RemoveByKey("SyncAnnotations");
+                    if (items.ContainsKey("RequestSync")) items.RemoveByKey("RequestSync");
                     if (items.ContainsKey("SyncCanvas")) items.RemoveByKey("SyncCanvas");
                     if (items.ContainsKey("FixCanvas")) items.RemoveByKey("FixCanvas");
                     if (!items.ContainsKey("Look"))
@@ -2008,6 +1949,7 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize the Selected Components.",
                         });
                     }
+                    
                     if (!items.ContainsKey("SyncAnnotations"))
                     {
                         items.Add(new ToolStripButton("SyncAnnotations", (Image)Properties.Resources.Annotate.ToBitmap(), onClick: (s, e) => SyncAnnotations_OnValueChanged(s, e))
@@ -2020,6 +1962,20 @@ namespace RemoSharp.Distributors
                             Name = "SyncAnnotations",
                             Size = new Size(28, 28),
                             ToolTipText = "Syncronize Document Scribbles and Drawings.",
+                        });
+                    }
+                    if (!items.ContainsKey("RequestSync"))
+                    {
+                        items.Add(new ToolStripButton("RequestSync", (Image)Properties.Resources.RequestSync.ToBitmap(), onClick: (s, e) => RequestSyncComponents_OnValueChanged(s, e))
+                        {
+                            AutoSize = true,
+                            DisplayStyle = ToolStripItemDisplayStyle.Image,
+                            ImageAlign = ContentAlignment.MiddleCenter,
+                            ImageScaling = ToolStripItemImageScaling.SizeToFit,
+                            Margin = new Padding(0, 0, 0, 0),
+                            Name = "RequestSync",
+                            Size = new Size(28, 28),
+                            ToolTipText = "Requests a sync from the main reference script.",
                         });
                     }
                     if (!items.ContainsKey("SyncCanvas"))
@@ -2056,6 +2012,12 @@ namespace RemoSharp.Distributors
             }
         }
 
+        private void RequestSyncComponents_OnValueChanged(object s, EventArgs e)
+        {
+            RemoRequestSync remoRequestSync = new RemoRequestSync(this.username, this.sessionID);
+            SendCommands(this, remoRequestSync, 1, enable);
+        }
+
         private void SyncAnnotations_OnValueChanged(object s, EventArgs e)
         {
             var thisDoc = this.OnPingDocument();
@@ -2073,7 +2035,7 @@ namespace RemoSharp.Distributors
                 if (result == DialogResult.No) return;
             }
 
-            selectedAnnotations = thereIsSelection ? 
+            selectedAnnotations = thereIsSelection ?
                 selectedAnnotations.Where(o => o.Attributes.Selected).ToList() : selectedAnnotations;
 
 
@@ -2294,13 +2256,10 @@ namespace RemoSharp.Distributors
             var thisDoc = Grasshopper.Instances.ActiveCanvas.Document;
             ResetGHColorsToDefault();
 
-            var remoclientv3 = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
-            var commandExecutor = (CommandExecutor)thisDoc.Objects.Where(obj => obj is CommandExecutor).FirstOrDefault();
+            var remoclientv3 = this;
 
-            if (remoclientv3 == null || commandExecutor == null) return;
+            if (remoclientv3 == null) return;
 
-            commandExecutor.errors.Clear();
-            commandExecutor.ExpireSolution(true);
             thisDoc.DeselectAll();
             Rhino.RhinoDoc.ActiveDoc.Views.Redraw();
 
@@ -2381,7 +2340,7 @@ namespace RemoSharp.Distributors
 
                     //RemoPartialDoc remoPartialDoc = new RemoPartialDoc(setupComp.username, selectionObjs.ToList(), thisDoc);
 
-                    if (annotationOnly) 
+                    if (annotationOnly)
                     {
                         RemoCommand remoCompSync = new RemoAnnotation(setupComp.username, sessionID, selectionObjs.ToList(), thisDoc);
                         RemoSetupClientV3.SendCommands(setupComp, remoCompSync, commandRepeat, enable);
@@ -2518,7 +2477,6 @@ namespace RemoSharp.Distributors
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("WSClient", "wsc", "", GH_ParamAccess.item);
         }
 
         /// <summary>
