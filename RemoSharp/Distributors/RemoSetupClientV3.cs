@@ -85,7 +85,7 @@ namespace RemoSharp.Distributors
 
         public List<Guid> remoCommandIDs = new List<Guid>();
 
-        string url = "";
+        internal string url = "";
         public string username = "";
         internal string password = "";
         public string sessionID = "";
@@ -139,7 +139,7 @@ namespace RemoSharp.Distributors
             mainSwitch.OnValueChanged += MainSwitch_OnValueChanged;
             AddCustomControl(mainSwitch);
 
-            pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
+            //pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             //pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
         }
 
@@ -171,6 +171,7 @@ namespace RemoSharp.Distributors
 
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
+                if (string.IsNullOrEmpty(this.url)) return;
                 this.NickName = "RemoSetup";
                 AddInteractionButtonsToTopBar(SubcriptionType.Subscribe);
 
@@ -1693,50 +1694,16 @@ namespace RemoSharp.Distributors
 
             if (currentValue)
             {
-                LoginDialouge loginDialouge = new LoginDialouge();
-                if (this.Params.Input[0].Sources.Count > 0)
+                if (this.client != null) 
                 {
-                    if (string.IsNullOrEmpty(this.username) || this.username.Equals("username"))
-                    {
-
-                        loginDialouge.Show();
-
-
-                        //System.Timers.Timer usernameSetupTimer = new System.Timers.Timer(5);
-                        //usernameSetupTimer.Elapsed += (s, args) =>
-                        //{
-                        //    usernameSetupTimer.Stop();
-                        //    usernameSetupTimer.Dispose();
-
-                        //    // lunch login window
-
-                        //};
-
-                        //usernameSetupTimer.Start();
-                    }
-                    return;
+                    client.Close();
+                    this.enableSwitch.CurrentValue = false;
                 }
 
-                PointF pivot = this.Attributes.Pivot;
-
-                var addressOutPut = RemoSharp.RemoCommandTypes.Utilites.CreateServerMakerComponent(this.OnPingDocument(), pivot, 7, 50, true);
-
-
-                this.OnPingDocument().ScheduleSolution(1, doc =>
-                {
-
-                    this.Params.Input[0].AddSource(addressOutPut);
-
-                    this.setupButton.CurrentValue = false;
-                });
-
-                loginDialouge = new LoginDialouge();
+                LoginDialouge loginDialouge = new LoginDialouge();
                 loginDialouge.Show();
 
-                this.setupButton.CurrentValue = false;
             }
-
-            this.ExpireSolution(true);
         }
 
         private void AddInteractionButtonsToTopBar(SubcriptionType subcriptionType)
@@ -2485,9 +2452,8 @@ namespace RemoSharp.Distributors
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            DA.GetData(0, ref url);
+            //DA.GetData(0, ref url);
             //DA.GetData(1, ref sessionID);
-
             if (string.IsNullOrEmpty(this.username) || this.username == "username")
             {
                 this.enableSwitch.CurrentValue = false;

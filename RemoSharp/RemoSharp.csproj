@@ -51,7 +51,9 @@
     <Compile Include="Utilities\LoginDialouge.Designer.cs">
       <DependentUpon>LoginDialouge.cs</DependentUpon>
     </Compile>
-    <Compile Include="Utilities\RemoLibraryInterface.cs" />
+    <Compile Include="Utilities\RemoLibraryInterface.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Utilities\RemoLibraryInterface.Designer.cs">
       <DependentUpon>RemoLibraryInterface.cs</DependentUpon>
     </Compile>

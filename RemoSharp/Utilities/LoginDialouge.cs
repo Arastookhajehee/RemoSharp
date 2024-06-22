@@ -15,6 +15,7 @@ namespace RemoSharp.Utilities
     public partial class LoginDialouge : Form
     {
         internal Credentials credentials { get; private set; }
+        string serverAddress = "";
 
         public LoginDialouge()
         {
@@ -51,25 +52,26 @@ namespace RemoSharp.Utilities
             var ghDoc = Grasshopper.Instances.ActiveCanvas.Document;
             var setupComp = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Distributors.RemoSetupClientV3)
                 as RemoSharp.Distributors.RemoSetupClientV3;
-            var serializeToFile = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Utilities.RemoLibrary)
+            var remoLibrary = ghDoc.Objects.FirstOrDefault(x => x is RemoSharp.Utilities.RemoLibrary)
                 as RemoSharp.Utilities.RemoLibrary;
 
             Credentials credentials = new Credentials(usernameBox.Text, passwordBox.Text, sessionIDBox.Text, "dbPath");
-
             
-            if (setupComp != null)
+            if (setupComp != null && !this.serverAddress.Equals(""))
             {
+
                 setupComp.username = credentials.username;
                 setupComp.password = credentials.password;
                 setupComp.sessionID = credentials.sessionID;
+                setupComp.url = this.serverAddress;
 
-                setupComp.usernameLabel.CurrentValue = setupComp.username + "\n" + setupComp.sessionID;
+                setupComp.usernameLabel.CurrentValue = this.serverSelector.Text + "\n" + setupComp.username + "\n" + setupComp.sessionID;
                 setupComp.Attributes.ExpireLayout();
             }
-            if (serializeToFile != null)
+            if (remoLibrary != null)
             {
-                serializeToFile.label.CurrentValue = credentials.username;
-                serializeToFile.Attributes.ExpireLayout();
+                remoLibrary.label.CurrentValue = credentials.username;
+                remoLibrary.Attributes.ExpireLayout();
             }
             
 
@@ -98,11 +100,6 @@ namespace RemoSharp.Utilities
             this.passwordBox.PasswordChar = showPassCheck.Checked ? '\0' : '*';
         }
 
-        private void KeyPressUP(object sender, KeyPressEventArgs e)
-        {
-
-        }
-
         private void okButton_KeyUp(object sender, KeyEventArgs e)
         {
             // if key is enter
@@ -115,6 +112,21 @@ namespace RemoSharp.Utilities
             {
                 this.Close();
             }
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var serverList = new List<string>();
+
+            for (int i = 1; i < 4; i++)
+            {
+                string addressIndex = i.ToString("00");
+                serverList.Add("wss://remosharp-public-server" + addressIndex + ".glitch.me/");
+            }
+            serverList.Add("ws://52.192.245.31:18580");
+            serverList.Add("ws://133.247.128.84:18580");
+
+            this.serverAddress = serverList[serverSelector.SelectedIndex];
         }
     }
 

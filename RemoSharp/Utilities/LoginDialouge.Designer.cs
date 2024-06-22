@@ -37,13 +37,15 @@
             this.label3 = new System.Windows.Forms.Label();
             this.okButton = new System.Windows.Forms.Button();
             this.showPassCheck = new System.Windows.Forms.CheckBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.serverSelector = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // usernameBox
             // 
             this.usernameBox.BackColor = System.Drawing.Color.White;
             this.usernameBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
-            this.usernameBox.Location = new System.Drawing.Point(72, 10);
+            this.usernameBox.Location = new System.Drawing.Point(72, 32);
             this.usernameBox.Margin = new System.Windows.Forms.Padding(1);
             this.usernameBox.Name = "usernameBox";
             this.usernameBox.Size = new System.Drawing.Size(181, 21);
@@ -53,7 +55,7 @@
             // 
             this.passwordBox.BackColor = System.Drawing.Color.White;
             this.passwordBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
-            this.passwordBox.Location = new System.Drawing.Point(72, 33);
+            this.passwordBox.Location = new System.Drawing.Point(72, 55);
             this.passwordBox.Margin = new System.Windows.Forms.Padding(1);
             this.passwordBox.Name = "passwordBox";
             this.passwordBox.PasswordChar = '*';
@@ -64,7 +66,7 @@
             // 
             this.sessionIDBox.BackColor = System.Drawing.Color.White;
             this.sessionIDBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
-            this.sessionIDBox.Location = new System.Drawing.Point(72, 56);
+            this.sessionIDBox.Location = new System.Drawing.Point(72, 78);
             this.sessionIDBox.Margin = new System.Windows.Forms.Padding(1);
             this.sessionIDBox.Name = "sessionIDBox";
             this.sessionIDBox.Size = new System.Drawing.Size(181, 21);
@@ -74,7 +76,7 @@
             // 
             this.saveCheck.AutoSize = true;
             this.saveCheck.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
-            this.saveCheck.Location = new System.Drawing.Point(118, 83);
+            this.saveCheck.Location = new System.Drawing.Point(118, 105);
             this.saveCheck.Margin = new System.Windows.Forms.Padding(1);
             this.saveCheck.Name = "saveCheck";
             this.saveCheck.Size = new System.Drawing.Size(53, 19);
@@ -85,7 +87,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(10, 14);
+            this.label1.Location = new System.Drawing.Point(10, 36);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(55, 13);
             this.label1.TabIndex = 6;
@@ -94,7 +96,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(10, 37);
+            this.label2.Location = new System.Drawing.Point(10, 59);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(53, 13);
             this.label2.TabIndex = 7;
@@ -103,7 +105,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(10, 60);
+            this.label3.Location = new System.Drawing.Point(10, 82);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(58, 13);
             this.label3.TabIndex = 8;
@@ -111,7 +113,7 @@
             // 
             // okButton
             // 
-            this.okButton.Location = new System.Drawing.Point(178, 79);
+            this.okButton.Location = new System.Drawing.Point(178, 101);
             this.okButton.Name = "okButton";
             this.okButton.Size = new System.Drawing.Size(75, 23);
             this.okButton.TabIndex = 3;
@@ -123,7 +125,7 @@
             // showPassCheck
             // 
             this.showPassCheck.AutoSize = true;
-            this.showPassCheck.Location = new System.Drawing.Point(12, 85);
+            this.showPassCheck.Location = new System.Drawing.Point(12, 107);
             this.showPassCheck.Name = "showPassCheck";
             this.showPassCheck.Size = new System.Drawing.Size(102, 17);
             this.showPassCheck.TabIndex = 4;
@@ -132,11 +134,37 @@
             this.showPassCheck.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             this.showPassCheck.CheckStateChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(10, 11);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(38, 13);
+            this.label4.TabIndex = 9;
+            this.label4.Text = "Server";
+            // 
+            // serverSelector
+            // 
+            this.serverSelector.FormattingEnabled = true;
+            this.serverSelector.Items.AddRange(new object[] {
+            "International 1",
+            "International 2",
+            "International 3",
+            "Japan 1",
+            "Japan 2 (Under Development)"});
+            this.serverSelector.Location = new System.Drawing.Point(72, 8);
+            this.serverSelector.Name = "serverSelector";
+            this.serverSelector.Size = new System.Drawing.Size(179, 21);
+            this.serverSelector.TabIndex = 10;
+            this.serverSelector.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            // 
             // LoginDialouge
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(263, 115);
+            this.ClientSize = new System.Drawing.Size(263, 140);
+            this.Controls.Add(this.serverSelector);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.showPassCheck);
             this.Controls.Add(this.okButton);
             this.Controls.Add(this.label3);
@@ -171,5 +199,7 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button okButton;
         private System.Windows.Forms.CheckBox showPassCheck;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox serverSelector;
     }
 }

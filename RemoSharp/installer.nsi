@@ -36,7 +36,9 @@
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "Setup.exe"
+; the output file should be in the Installer directory of the project but it should be dynamic and not hard coded
+; the TargetDir is $SolutionDir\Installer
+OutFile "Installer\RemoSharp Setup.exe"
 InstallDir "$PROGRAMFILES\RemoSharp"
 ShowInstDetails show
 ShowUnInstDetails show

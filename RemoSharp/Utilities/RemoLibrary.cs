@@ -1,25 +1,20 @@
 ﻿using GHCustomControls;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Special;
 using RemoSharp.RemoCommandTypes;
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using System.Data.SQLite;
-using Grasshopper.Kernel.Special;
-using System.Threading;
 namespace RemoSharp.Utilities
 {
     public class RemoLibrary : GHCustomComponent
     {
-        string databasePath = "";
         GHCustomControls.PushButton saveButton;
         public PushButton setupButton;
-        PushButton deleteButton;
-        StackPanel stackPanel2;
         PushButton loadButton;
-        StackPanel stackPanel;
         public GHCustomControls.Label label;
 
         /// <summary>
@@ -161,7 +156,7 @@ namespace RemoSharp.Utilities
             }
         }
 
-        internal static void DeleteDBEntry( GH_Document thisDoc, string purpose)
+        internal static void DeleteDBEntry(GH_Document thisDoc, string purpose)
         {
 
             if (thisDoc == null) return;
@@ -192,7 +187,7 @@ namespace RemoSharp.Utilities
                         command.Parameters.AddWithValue("@Purpose", purpose);
                         command.ExecuteNonQuery();
                     }
-                }                
+                }
             }
             catch (Exception error)
             {
@@ -206,90 +201,28 @@ namespace RemoSharp.Utilities
             bool val = Convert.ToBoolean(e.Value);
             if (!val) return;
 
-            // who is the sender
-            var button = (PushButton)sender;
+            GHCustomControls.PushButton pushButton = (GHCustomControls.PushButton)sender;
+            pushButton.OnValueChanged -= SetupButton_OnValueChanged;
+            pushButton.CurrentValue = false;
 
-
-            // a timer that waits for 700ms before executing the code in SetUpSaveToFile
-            bool success = SetUpSaveToFile();
+            // a timer that waits for 700ms before executing the code in LoadRemoLibraryInterface
+            bool success = LoadRemoLibraryInterface();
             if (success)
             {
-                this.OnPingDocument().ScheduleSolution(100, doc => 
+                this.OnPingDocument().ScheduleSolution(100, doc =>
                 {
                     this.OnPingDocument().RemoveObject(this, true);
                 });
             }
         }
 
-        private bool SetUpSaveToFile()
+        private bool LoadRemoLibraryInterface()
         {
-            string dbPath = "";
-            Credentials credents = null;
-            bool dbExists = GetDBPath(out dbPath, out credents);
-
-
-            //if (this.label.CurrentValue.Equals("username") || credents.username.Equals("username"))
-            //{
-            //    LoginDialouge loginDialouge = new LoginDialouge();
-            //    loginDialouge.Show();
-
-            //    if (credents.username.Equals("username")) return;
-
-            //}
-            // Snipates.sqlite is the database that will store the partial docs. The columns are: username, purpose, tags, partialDoc
-            // username is a string, purpose is a string, tags is a string, partialDoc is a string
-            // if the file does not exist, create it and create the table Snipates
-            // the purpose is the primary column
-            // use the Microsoft.Data.Sqlite library
-
-            try
-            {
-
-
-                credents = new Credentials();
-                credents.dbPath = dbPath;
-
-                // create the database
-                string connectionString = $"Data Source={credents.dbPath};Version=3;";
-
-                // Create the SQLite database file
-                bool dbFileExists = File.Exists(credents.dbPath);
-                if (!dbFileExists) SQLiteConnection.CreateFile(credents.dbPath);
-
-
-                // Connect to the database
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
-
-                    // Create a table in the database called Snippets, with the columns: Purpose, Nicknames, PartialDoc, Username
-                    // Purpose is the primary key
-                    // if the table does not exist, create it
-
-                    string createTableQuery = "CREATE TABLE IF NOT EXISTS Snippets (Purpose TEXT PRIMARY KEY, Nicknames TEXT, PartialDoc TEXT, Username TEXT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
-
-                    using (SQLiteCommand command = new SQLiteCommand(createTableQuery, connection))
-                    {
-                        command.ExecuteNonQuery();
-                    }
-                }
-
-                credents.WriteToFile();
-            }
-            catch (Exception error)
-            {
-                // text box to show the error
-                MessageBox.Show(error.Message, "Error");
-                return false;
-            }
 
             RemoLibraryInterface remoLibraryInterface = new RemoLibraryInterface();
             remoLibraryInterface.gh_Document = this.OnPingDocument();
             remoLibraryInterface.Show();
 
-            //this.setupButton.CurrentValue = false;
-            this.setupButton.Enabled = false;
-            //this.ExpireSolution(true);
             return true;
         }
 
@@ -302,19 +235,32 @@ namespace RemoSharp.Utilities
 
             if (dbPathIsDefault || missingDB)
             {
-                // open a file path dialouge to select a folder to save the database
-                FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-                folderBrowserDialog.Description = "Select the folder to save the database";
-                folderBrowserDialog.ShowDialog();
+                // a save/load dialog box to get the path of the database
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+                saveFileDialog.Filter = "Database files (*.rmdb)|*.rmdb";
+                saveFileDialog.Title = "Please Select a RemoSharp Database file.";
+                saveFileDialog.FileName = "RemoLibrary.rmdb";
+                bool dialougeResultOK = saveFileDialog.ShowDialog() == DialogResult.OK;
 
-                // get the path of the database and join it with snipates.sqlite
-                path = Path.Combine(folderBrowserDialog.SelectedPath, "RemoSnippets.rmdb");
-                credentials.dbPath = path;
-                credents = credentials;
 
-                bool fileExists = File.Exists(credents.dbPath);
+                if (dialougeResultOK)
+                {
+                    string filePath = saveFileDialog.FileName;
 
-                return fileExists;
+                    if (!File.Exists(filePath)) RemoLibrary.CreateDataBase(filePath);
+
+                    path = filePath;
+                    credentials.dbPath = path;
+                    credents = credentials;
+                    credents.WriteToFile();
+                    return true;
+                }
+                else
+                {
+                    path = credentials.dbPath;
+                    credents = credentials;
+                    return false;
+                }
             }
             else
             {
@@ -325,6 +271,35 @@ namespace RemoSharp.Utilities
             }
         }
 
+        internal static void CreateDataBase(string path)
+        {
+            string connectionString = $"Data Source={path};Version=3;";
+
+            // Create the SQLite database file
+            bool dbFileExists = File.Exists(path);
+            if (!dbFileExists) SQLiteConnection.CreateFile(path);
+
+
+            // Connect to the database
+            using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+            {
+                connection.Open();
+
+                // Create a table in the database called Snippets, with the columns: Purpose, Nicknames, PartialDoc, Username
+                // Purpose is the primary key
+                // if the table does not exist, create it
+                // also add ain integer load count colum
+                string createTableQuery = "CREATE TABLE IF NOT EXISTS Snippets (Purpose TEXT PRIMARY KEY, Nicknames TEXT, LoadCount INTEGER DEFAULT 0, PartialDoc TEXT, Username TEXT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, LastLoadedDATETIME DEFAULT CURRENT_TIMESTAMP )";
+
+
+                using (SQLiteCommand command = new SQLiteCommand(createTableQuery, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+            }
+
+        }
+
         private void LoadButton_OnValueChanged(object sender, ValueChangeEventArgumnet e)
         {
             var val = Convert.ToBoolean(e.Value);
@@ -332,7 +307,7 @@ namespace RemoSharp.Utilities
 
             // create a timer that waits for 700ms before executing the code in load snippet
             LoadSnippet();
-            
+
         }
 
         private void LoadSnippet()
@@ -452,10 +427,14 @@ namespace RemoSharp.Utilities
             }
         }
 
-        internal static void LoadSnippet(string purposeOptions, GH_Document thisDoc)
+        internal static void LoadSnippet(string purposeOptions, GH_Document thisDoc, out int loadCounter)
         {
-           
-            if (thisDoc == null) return;
+            loadCounter = -1;
+            if (thisDoc == null)
+            {
+                loadCounter = -1;
+                return;
+            }
 
             //if (string.IsNullOrEmpty((string)this.label.CurrentValue) || ((string)this.label.CurrentValue).Equals("username")) return;
 
@@ -477,9 +456,13 @@ namespace RemoSharp.Utilities
                 // if the user cancels the window, return
                 // if the user selects a purpose, get the partial doc from the database and deserialize it
                 bool dbFileExists = File.Exists(fileName);
-                if (!dbFileExists) return;
+                if (!dbFileExists)
+                {
+                    loadCounter = -1;
+                    return;
+                }
 
-                
+
 
                 // get the partial doc from the database
                 RemoPartialDoc remoPartialDoc = null;
@@ -487,7 +470,15 @@ namespace RemoSharp.Utilities
                 {
                     connection.Open();
 
-                    string selectQuery = "SELECT PartialDoc FROM Snippets WHERE Purpose = @Purpose";
+                    // increase the load count of the purpose
+                    string updateQuery = "UPDATE Snippets SET LoadCount = LoadCount + 1 WHERE Purpose = @Purpose";
+                    using (SQLiteCommand command = new SQLiteCommand(updateQuery, connection))
+                    {
+                        command.Parameters.AddWithValue("@Purpose", purposeOptions);
+                        command.ExecuteNonQuery();
+                    }
+
+                    string selectQuery = "SELECT PartialDoc, LoadCount FROM Snippets WHERE Purpose = @Purpose";
                     using (SQLiteCommand command = new SQLiteCommand(selectQuery, connection))
                     {
                         command.Parameters.AddWithValue("@Purpose", purposeOptions);
@@ -496,6 +487,7 @@ namespace RemoSharp.Utilities
                             if (reader.Read())
                             {
                                 string partialDoc = reader.GetString(0);
+                                loadCounter = reader.GetInt32(1);
                                 remoPartialDoc = (RemoPartialDoc)RemoCommand.DeserializeFromJson(partialDoc);
                             }
                         }
@@ -846,6 +838,46 @@ namespace RemoSharp.Utilities
         public override Guid ComponentGuid
         {
             get { return new Guid("AD3A5883-0EE0-49E3-A2CF-7A97C880F58C"); }
+        }
+
+        public class RemoLibraryEntry
+        {
+            public string purpose { get; set; }
+            public string nicknames { get; set; }
+            public string partialDoc { get; set; }
+            public string username { get; set; }
+            public DateTime timestamp { get; set; }
+
+            public DateTime lastLoaded { get; set; }
+            public int loadCount { get; set; }
+
+            public RemoLibraryEntry(string purpose, string nicknames, string partialDoc, string username)
+            {
+                this.purpose = purpose;
+                this.nicknames = nicknames;
+                this.partialDoc = partialDoc;
+                this.username = username;
+                this.timestamp = DateTime.Now;
+                this.lastLoaded = DateTime.Now;
+                this.loadCount = 0;
+            }
+
+            // Purpose, Nicknames, LoadCount, Username, Timestamp
+            public RemoLibraryEntry(string purpose, string nicknames, int loadCount, string username, DateTime timestamp)
+            {
+                this.purpose = purpose;
+                this.nicknames = nicknames;
+                this.loadCount = loadCount;
+                this.username = username;
+                this.timestamp = timestamp;
+
+                this.partialDoc = "";
+                this.lastLoaded = DateTime.Now;
+            }
+
+            public RemoLibraryEntry()
+            {
+            }
         }
     }
 }
