@@ -21,7 +21,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>C:\Users\akhaj\AppData\Roaming\Grasshopper\Libraries\RemoSharp\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
@@ -272,13 +272,11 @@
     <Reference Include="FuzzySharp, Version=1.0.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FuzzySharp.2.0.2\lib\net461\FuzzySharp.dll</HintPath>
     </Reference>
-    <Reference Include="GHCustomControls, Version=1.0.5.1, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Users\akhaj\source\repos\Vicc_Tools\Vicc_Tools\ref\GHCustomControls.dll</HintPath>
+    <Reference Include="GHCustomControls">
+      <HintPath>..\..\..\RemoSharp3\REF\GHCustomControls.dll</HintPath>
     </Reference>
-    <Reference Include="GhPython, Version=7.32.23221.10241, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\RemoSharp3\REF\GhPython.dll</HintPath>
+    <Reference Include="GhPython">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Components\GhPython.dll</HintPath>
     </Reference>
     <Reference Include="GH_IO">
       <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\GH_IO.dll</HintPath>
@@ -296,15 +294,13 @@
       <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\System\RhinoCommon.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="ScriptComponents, Version=7.37.24107.15001, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Components\ScriptComponents.dll</HintPath>
+    <Reference Include="ScriptComponents">
+      <HintPath>..\..\..\..\..\..\..\Program Files\Rhino 7\Plug-ins\Grasshopper\Components\ScriptComponents.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.SQLite, Version=1.0.118.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Users\akhaj\source\repos\Arastookhajehee\RemoSharp\RemoSharp\REF\System.Data.SQLite.dll</HintPath>
+    <Reference Include="System.Data.SQLite">
+      <HintPath>..\..\..\..\..\Desktop\sqlite lib\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows" />
@@ -314,9 +310,8 @@
     <Reference Include="websocket-sharp, Version=1.0.2.32519, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
       <HintPath>..\packages\WebSocketSharp-NonPreRelease.1.0.0\lib\net35\websocket-sharp.dll</HintPath>
     </Reference>
-    <Reference Include="WPFNumericUpDown, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Users\akhaj\source\repos\Arastookhajehee\RemoSharp\RemoSharp\REF\WPFNumericUpDown.dll</HintPath>
+    <Reference Include="WPFNumericUpDown">
+      <HintPath>..\packages\WPFNumericUpDown\WPFNumericUpDown.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -334,8 +329,7 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"
-Copy "$(TargetDir)" "C:\Users\akhaj\Dropbox\RemoSharp"</PostBuildEvent>
+    <PostBuildEvent>Copy "$(TargetPath)" "$(TargetDir)$(ProjectName).gha"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <FallbackCulture>en-US</FallbackCulture>

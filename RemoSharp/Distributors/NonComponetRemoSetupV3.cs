@@ -333,6 +333,8 @@ namespace RemoSharp.Distributors
                                 RemoParameter.InvokeRemovePersistentData(param);
                             }
 
+                            this.OnPingDocument().ExpireSolution();
+
                         });
                         
                     }
