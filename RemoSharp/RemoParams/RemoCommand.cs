@@ -7,12 +7,11 @@ using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Undo.Actions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RemoSharp.RemoParams;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace RemoSharp.RemoCommandTypes
@@ -55,7 +54,8 @@ namespace RemoSharp.RemoCommandTypes
         RemoReWire = 30,
         RemoAnnotation = 31,
         RequestSync = 32,
-        CanvasSyncResponse = 33
+        CanvasSyncResponse = 33,
+        RemoLibraryPartialDocument = 34
 
     }
 
@@ -334,6 +334,9 @@ namespace RemoSharp.RemoCommandTypes
                     break;
                 case (int)CommandType.CanvasSyncResponse:
                     remoCommand = JsonConvert.DeserializeObject<RemoCanvasSyncResponse>(commandJson);
+                    break;
+                case (int)CommandType.RemoLibraryPartialDocument:
+                    remoCommand = JsonConvert.DeserializeObject<RemoLibraryPartialDoc>(commandJson);
                     break;
                 //break;
                 default:
@@ -683,6 +686,28 @@ namespace RemoSharp.RemoCommandTypes
             this.compXMLs = objects.Select(x => RemoCommand.GetSelectXMLAttributesToFalse(SerializeToXML(x))).ToList();
             this.xml = SerializeToXML(tempDoc);
         }
+    }
+
+    public class RemoLibraryPartialDoc : RemoCommand
+    {
+        public RemoPartialDoc partialDoc;
+        public PointF location;
+
+        public RemoLibraryPartialDoc() { }
+
+        public RemoLibraryPartialDoc(string issuerID, string sessionID, RemoPartialDoc partialDoc, PointF location)
+        {
+            this.issuerID = issuerID;
+            this.sessionID = sessionID;
+            this.executed = false;
+            this.objectGuid = Guid.Empty;
+            this.commandID = Guid.NewGuid();
+            this.commandType = CommandType.RemoLibraryPartialDocument;
+            this.executionAttempts = 0;
+            this.partialDoc = partialDoc;
+            this.location = location;
+        }
+
     }
 
     public class RemoRelay : RemoCommand
@@ -1101,7 +1126,7 @@ namespace RemoSharp.RemoCommandTypes
             if (objectToInvoke is Param_Box)
             {
                 Param_Box boxParam = (Param_Box)objectToInvoke;
-                boxParam.PersistentData.ClearData();                
+                boxParam.PersistentData.ClearData();
                 return true;
             }
             else if (target is Param_Point)
@@ -1109,12 +1134,12 @@ namespace RemoSharp.RemoCommandTypes
                 Param_Point pointParam = (Param_Point)target;
                 pointParam.PersistentData.ClearData();
             }
-            else if(target is Param_Vector)
+            else if (target is Param_Vector)
             {
                 Param_Vector vectorParam = (Param_Vector)target;
                 vectorParam.PersistentData.ClearData();
             }
-            else if(target is Param_Circle)
+            else if (target is Param_Circle)
             {
                 Param_Circle circleParam = (Param_Circle)target;
                 circleParam.PersistentData.ClearData();
@@ -1179,7 +1204,7 @@ namespace RemoSharp.RemoCommandTypes
             {
                 Param_Colour colourParam = (Param_Colour)target;
                 colourParam.PersistentData.ClearData();
-            }            
+            }
 
             return true;
 

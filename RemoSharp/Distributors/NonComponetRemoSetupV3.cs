@@ -313,6 +313,12 @@ namespace RemoSharp.Distributors
                             ExecuteRemoCanvasSyncResponse(remoCanvasSyncResponse);
 
                             break;
+                        case (CommandType.RemoLibraryPartialDocument):
+                            RemoLibraryPartialDoc remoLibraryPartialDoc = (RemoLibraryPartialDoc)remoCommand;
+
+                            ExecuteRemoLibraryPartialDoc(remoLibraryPartialDoc);
+
+                            break;
 
                         default:
 
@@ -348,6 +354,11 @@ namespace RemoSharp.Distributors
                 }
 
             }
+        }
+
+        private void ExecuteRemoLibraryPartialDoc(RemoLibraryPartialDoc remoLibraryPartialDoc)
+        {
+            
         }
 
         public void AddRuntimeMessage(GH_RuntimeMessageLevel remark, string message)
