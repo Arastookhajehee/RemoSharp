@@ -1,4 +1,5 @@
 ﻿using GH_IO.Serialization;
+using GhPython.Component;
 using Grasshopper.GUI.Base;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
@@ -316,7 +317,7 @@ namespace RemoSharp.Distributors
                         case (CommandType.RemoLibraryPartialDocument):
                             RemoLibraryPartialDoc remoLibraryPartialDoc = (RemoLibraryPartialDoc)remoCommand;
 
-                            ExecuteRemoLibraryPartialDoc(remoLibraryPartialDoc);
+                            //ExecuteRemoLibraryPartialDoc(remoLibraryPartialDoc);
 
                             break;
 
@@ -330,7 +331,7 @@ namespace RemoSharp.Distributors
 
                     if (this.wsClientComp.isMain)
                     {
-                        this.OnPingDocument().ScheduleSolution(1, doc => 
+                        this.OnPingDocument().ScheduleSolution(1, doc =>
                         {
                             var allParams = this.OnPingDocument().Objects.Where(o => o is IGH_Param);
 
@@ -342,7 +343,7 @@ namespace RemoSharp.Distributors
                             this.OnPingDocument().ExpireSolution();
 
                         });
-                        
+
                     }
 
                 }
@@ -358,7 +359,10 @@ namespace RemoSharp.Distributors
 
         private void ExecuteRemoLibraryPartialDoc(RemoLibraryPartialDoc remoLibraryPartialDoc)
         {
-            
+
+            PointF gotoPnt = remoLibraryPartialDoc.location;
+            RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(this.OnPingDocument(), remoLibraryPartialDoc.partialDoc, gotoPnt, true);
+
         }
 
         public void AddRuntimeMessage(GH_RuntimeMessageLevel remark, string message)
@@ -371,7 +375,7 @@ namespace RemoSharp.Distributors
 
         private void ExecuteRemoCanvasSyncResponse(RemoCanvasSyncResponse remoCanvasSyncResponse)
         {
-            bool isTargetUsername  = remoCanvasSyncResponse.targetUsername.Equals(this.wsClientComp.username);
+            bool isTargetUsername = remoCanvasSyncResponse.targetUsername.Equals(this.wsClientComp.username);
             if (!isTargetUsername) return;
 
             SyncCanvasFromRemoCanvasSync(remoCanvasSyncResponse.canvasSync);
@@ -529,6 +533,8 @@ namespace RemoSharp.Distributors
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
 
+                IGH_DocumentObject[] cleanableParamComp = { sourceComp, targetComp };
+                CleanScriptComponents(cleanableParamComp);
 
                 remoSetupClientV3.SetUpRemoSharpEvents(skip, sub, sub, skip, skip, skip);
 
@@ -558,6 +564,7 @@ namespace RemoSharp.Distributors
                 {
                     var selection = OnPingDocument().SelectedObjects();
                     OnPingDocument().DeselectAll();
+                    CleanScriptComponents(tempDoc.Objects);
 
                     this.OnPingDocument().MergeDocument(tempDoc, true, true);
 
@@ -638,6 +645,39 @@ namespace RemoSharp.Distributors
 
             });
 
+        }
+
+        private void CleanScriptComponents(IEnumerable<IGH_DocumentObject> objects)
+        {
+            if (this.wsClientComp.allowScripts) return;
+            
+            foreach (var item in objects)
+            {
+                // find the scripting components including C#, VS, and Python
+                if (item is GhPython.Component.ZuiPythonComponent)
+                {
+                    GhPython.Component.ZuiPythonComponent zuiPythonComponent = (GhPython.Component.ZuiPythonComponent)item;
+                    zuiPythonComponent.Code = "";
+                    zuiPythonComponent.ClearData();
+                }
+                else if (item is ScriptComponents.Component_CSNET_Script)
+                {
+                    ScriptComponents.Component_CSNET_Script csNetComponent = (ScriptComponents.Component_CSNET_Script)item;
+                    csNetComponent.ScriptSource.UsingCode = "";
+                    csNetComponent.ScriptSource.ScriptCode = "";
+                    csNetComponent.ScriptSource.AdditionalCode = "";
+                    csNetComponent.ClearData();
+                }
+                else if (item is ScriptComponents.Component_VBNET_Script)
+                {
+                    ScriptComponents.Component_VBNET_Script vbNetComponent = (ScriptComponents.Component_VBNET_Script)item;
+                    vbNetComponent.ScriptSource.UsingCode = "";
+                    vbNetComponent.ScriptSource.ScriptCode = "";
+                    vbNetComponent.ScriptSource.AdditionalCode = "";
+                    vbNetComponent.ClearData();
+                }
+            }
+            
         }
 
         public static void ExecuteRemoPartialDoc(GH_Document thisDoc, RemoPartialDoc remoPartialDoc, bool ignoreSubscriptions)
@@ -1063,6 +1103,9 @@ namespace RemoSharp.Distributors
                         {
                             GH_Document tempDoc = new GH_Document();
                             tempDoc.Read(RemoCommand.DeserializeFromXML(remoCompSync.docXMLs[i]));
+
+                            CleanScriptComponents(tempDoc.Objects);
+
                             thisdoc.MergeDocument(tempDoc, true, true);
                         }
                     }
@@ -1076,9 +1119,13 @@ namespace RemoSharp.Distributors
                             IGH_Param param = (IGH_Param)obj;
                             obj.ExpireSolution(true);
                         }
+
+                        IGH_DocumentObject[] cleanable = { obj };
+                        CleanScriptComponents(cleanable);
+
                     }
-                    GH_Document tempDoc2 = new GH_Document();
-                    thisdoc.MergeDocument(tempDoc2, true, true);
+                    GH_Document dummyDoc = new GH_Document();
+                    thisdoc.MergeDocument(dummyDoc, true, true);
 
                 }
                 catch (Exception error)
@@ -1210,6 +1257,10 @@ namespace RemoSharp.Distributors
                     RemoParameter.InvokeReadMethod(persistentData, objects);
 
                     paramComp.Attributes.Selected = false;
+
+                    IGH_DocumentObject[] cleanableParamComp = { paramComp };
+                    CleanScriptComponents(cleanableParamComp);
+
                     //paramComp.Attributes.Pivot = ogPivot;
                     paramComp.ExpireSolution(true);
                 }
@@ -1325,6 +1376,8 @@ namespace RemoSharp.Distributors
                             this.OnPingDocument().RemoveObject(obj, false);
                         }
                     }
+
+                    CleanScriptComponents(incomingDoc.Objects);
 
                     this.OnPingDocument().MergeDocument(incomingDoc);
 
@@ -2112,7 +2165,14 @@ namespace RemoSharp.Distributors
                     {
                         bool isSelected = sourceComp.Attributes.Selected;
                         RelinkComponentWires(sourceComp, sourceAttributes);
-                        if (sourceComp is ScriptComponents.Component_CSNET_Script) sourceComp.ExpireSolution(true);
+                        if (sourceComp is ScriptComponents.Component_CSNET_Script 
+                        || sourceComp is GhPython.Component.ZuiPythonComponent zuiPythonComponent
+                        || sourceComp is ScriptComponents.Component_VBNET_Script)
+                        {
+                            IGH_DocumentObject[] cleanable = { sourceComp };
+                            CleanScriptComponents(cleanable);
+                            sourceComp.ExpireSolution(true);
+                        }
                         if (isSelected) sourceComp.Attributes.Selected = true;
                         else sourceComp.Attributes.Selected = false;
                     }
@@ -2120,10 +2180,21 @@ namespace RemoSharp.Distributors
                     {
                         bool isSelected = targetComp.Attributes.Selected;
                         RelinkComponentWires(targetComp, targetAttributes);
-                        if (targetComp is ScriptComponents.Component_CSNET_Script) targetComp.ExpireSolution(true);
+                        if (targetComp is ScriptComponents.Component_CSNET_Script 
+                        || targetComp is GhPython.Component.ZuiPythonComponent zuiPythonComponent
+                        || targetComp is ScriptComponents.Component_VBNET_Script)
+                        {
+                            IGH_DocumentObject[] cleanable = { targetComp };
+                            CleanScriptComponents(cleanable);
+                            targetComp.ExpireSolution(true);
+                        }
                         if (isSelected) targetComp.Attributes.Selected = true;
                         else targetComp.Attributes.Selected = false;
                     }
+
+                    IGH_DocumentObject[] cleanableParamComp = { sourceComp, targetComp };
+                    CleanScriptComponents(cleanableParamComp);
+
                     GH_Document dummydoc = new GH_Document();
                     this.OnPingDocument().MergeDocument(dummydoc, true, true);
                 }

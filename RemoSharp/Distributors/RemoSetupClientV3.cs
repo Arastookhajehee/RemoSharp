@@ -64,12 +64,14 @@ namespace RemoSharp.Distributors
         ToggleSwitch undoPreventionSwitch;
         ToggleSwitch enableSwitch;
         ToggleSwitch mainSwitch;
+        ToggleSwitch allowScriptsSwitch;
         public GHCustomControls.Label usernameLabel;
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
         bool listen = true;
         public bool isMain = false; 
+        public bool allowScripts = true;
 
         int commandRepeat = 1;
         Grasshopper.GUI.Canvas.Interaction.IGH_MouseInteraction interaction;
@@ -135,12 +137,21 @@ namespace RemoSharp.Distributors
             undoPreventionSwitch.OnValueChanged += UndoPreventionSwitch_OnValueChanged;
             AddCustomControl(undoPreventionSwitch);
 
+            allowScriptsSwitch = new ToggleSwitch("Allow Scripts", "Allow Scripts", true);
+            allowScriptsSwitch.OnValueChanged += AllowScriptsSwitch_OnValueChanged;
+            AddCustomControl(allowScriptsSwitch);
+
             mainSwitch = new ToggleSwitch("Main", "Main", false);
             mainSwitch.OnValueChanged += MainSwitch_OnValueChanged;
             AddCustomControl(mainSwitch);
 
             //pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             //pManager.AddTextParameter("session", "session", "", GH_ParamAccess.item, "");
+        }
+
+        private void AllowScriptsSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            allowScripts = Convert.ToBoolean(e.Value);
         }
 
         private void MainSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -1269,7 +1280,7 @@ namespace RemoSharp.Distributors
             }
             else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_DragInteraction)
             {
-                SendRemoMoveCommand();
+                SendRemoMoveAllCommand();
             }
             else if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_RewireInteraction)
             {

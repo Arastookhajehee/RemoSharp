@@ -912,7 +912,7 @@ namespace RemoSharp
 
         }
 
-        public static void ExecuteRemoPartialDoc(GH_Document thisDoc, RemoPartialDoc remoPartialDoc, bool ignoreSubscriptions)
+        public static void ExecuteRemoPartialDoc(GH_Document thisDoc, RemoPartialDoc remoPartialDoc, PointF location, bool ignoreSubscriptions)
         {
 
             GH_Document tempDoc = new GH_Document();
@@ -921,13 +921,22 @@ namespace RemoSharp
 
             thisDoc.ScheduleSolution(1, doc =>
             {
+
+                RemoSetupClientV3 sourceComp = thisDoc.Objects
+                .Where(obj => obj is RemoSetupClientV3)
+                .FirstOrDefault() as RemoSetupClientV3;
+
+                var skip = SubcriptionType.Skip;
+                var subscribe = SubcriptionType.Subscribe;
+                var unsubscribe = SubcriptionType.Unsubscribe;
+                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
                 try
                 {
                     var selection = thisDoc.SelectedObjects();
                     thisDoc.DeselectAll();
 
                     // canvas view center point
-                    var currentMidPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+                    var currentMidPoint = location;
 
                     // average of the tempDoc objects pivot points
                     PointF tempDocMidPoint = new PointF(0, 0);
@@ -1055,6 +1064,7 @@ namespace RemoSharp
                 {
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
+                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
 
 
                 foreach (var obj in thisDoc.Objects) obj.Attributes.ExpireLayout();

@@ -1,10 +1,12 @@
 ﻿using GHCustomControls;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
+using RemoSharp.Distributors;
 using RemoSharp.RemoCommandTypes;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -413,7 +415,8 @@ namespace RemoSharp.Utilities
                     }
                 }
 
-                RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, true);
+                var canvasMidPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+                RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, canvasMidPoint, true);
 
                 this.loadButton.CurrentValue = false;
                 this.saveButton.CurrentValue = false;
@@ -462,7 +465,7 @@ namespace RemoSharp.Utilities
                     return;
                 }
 
-
+                string partialDocString = "";
 
                 // get the partial doc from the database
                 RemoPartialDoc remoPartialDoc = null;
@@ -487,6 +490,7 @@ namespace RemoSharp.Utilities
                             if (reader.Read())
                             {
                                 string partialDoc = reader.GetString(0);
+                                partialDocString = partialDoc;
                                 loadCounter = reader.GetInt32(1);
                                 remoPartialDoc = (RemoPartialDoc)RemoCommand.DeserializeFromJson(partialDoc);
                             }
@@ -494,8 +498,29 @@ namespace RemoSharp.Utilities
                     }
                 }
 
-                RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, true);
+                var activeCanvas = Grasshopper.Instances.ActiveCanvas;
+                PointF canvasViewPoint = activeCanvas.Viewport.MidPoint;
+                RemoSetupClientV3 setupComp = (RemoSetupClientV3)activeCanvas.Document.Objects.Where(o => o is RemoSetupClientV3).FirstOrDefault();
+                
+                if (setupComp != null)
+                {
+                    //if (setupComp.enable)
+                    //{
+                    //    RemoLibraryPartialDoc remoLibraryPartialDoc = new RemoLibraryPartialDoc
+                    //        (setupComp.username, setupComp.sessionID, remoPartialDoc, canvasViewPoint);
+                    //    RemoSetupClientV3.SendCommands(setupComp, remoLibraryPartialDoc, 1, setupComp.enable);
+                    //}
+                }
 
+                if (setupComp == null || !setupComp.enable)
+                {
+                    RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, canvasViewPoint, true);
+                }
+                else
+                {
+                    // message box to show that the setup component is enabled
+                    MessageBox.Show("RemoLibrary cannot be used while connected to a server!\n(Real-Time RemoLibrary Coming Soon!)", "Server Connection Enabled");
+                }
             }
             catch (Exception error)
             {
@@ -552,8 +577,8 @@ namespace RemoSharp.Utilities
                     }
                 }
             }
-
-            RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, true);
+            PointF canvasMid = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+            RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, canvasMid, true);
         }
 
         // a function that opens a window to get the 9 keywords from the user using the windows built-in dialog

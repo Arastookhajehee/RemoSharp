@@ -1206,6 +1206,13 @@ namespace RemoSharp.RemoCommandTypes
                 colourParam.PersistentData.ClearData();
             }
 
+            IGH_Param targetIGH = (IGH_Param)target;
+            if (targetIGH != null)
+            {
+                targetIGH.Locked = true;
+                targetIGH.ClearData();
+            }
+
             return true;
 
         }
