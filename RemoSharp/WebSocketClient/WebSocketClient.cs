@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Windows.Forms;
-using GHCustomControls;
+﻿using GHCustomControls;
 using Grasshopper.Kernel;
-using Rhino.Geometry;
+using System;
+using System.Collections.Generic;
 using WebSocketSharp;
-
-using WPFNumericUpDown;
-using System.Data.SqlTypes;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RemoSharp.WebSocketClient
 {
@@ -19,14 +11,19 @@ namespace RemoSharp.WebSocketClient
         public List<string> messages = new List<string>();
         public WebSocket client;
         int connectionAttempts = 0;
-        
+
         public ToggleSwitch autoUpdateSwitch;
         public ToggleSwitch keepRecordSwitch;
         public ToggleSwitch listenSwitch;
+        public ToggleSwitch KeepAliveSwitch;
+
+        bool keepAlive = true;
 
         public bool autoUpdate = true;
         public bool keepRecord = false;
         public bool listen = true;
+
+        System.Timers.Timer timer = new System.Timers.Timer(60000);
 
         /// <summary>
         /// Initializes a new instance of the WebSocketClient class.
@@ -49,13 +46,30 @@ namespace RemoSharp.WebSocketClient
             listenSwitch.OnValueChanged += ListenSwitch_OnValueChanged;
             keepRecordSwitch = new ToggleSwitch("Keep Record", "Keeps all the messages coming from the server", false);
             keepRecordSwitch.OnValueChanged += KeepRecordSwitch_OnValueChanged;
+            KeepAliveSwitch = new ToggleSwitch("Keep Alive", "Keeps the connection alive", true);
+            KeepAliveSwitch.OnValueChanged += KeepAliveSwitch_OnValueChanged;
+
 
             AddCustomControl(autoUpdateSwitch);
             AddCustomControl(listenSwitch);
             AddCustomControl(keepRecordSwitch);
+            AddCustomControl(KeepAliveSwitch);
 
             pManager.AddTextParameter("url", "url", "", GH_ParamAccess.item, "");
             pManager.AddBooleanParameter("connect", "connect", "", GH_ParamAccess.item);
+        }
+
+        private void KeepAliveSwitch_OnValueChanged(object sender, ValueChangeEventArgumnet e)
+        {
+            this.keepAlive = Convert.ToBoolean(e.Value);
+
+            if (!keepAlive)
+            {
+                timer.Elapsed -= Timer_Elapsed;
+                timer.AutoReset = false;
+                timer.Stop();
+                timer.Dispose();
+            }
         }
 
         private void AutoUPdate_OnValueChanged(object sender, ValueChangeEventArgumnet e)
@@ -70,7 +84,7 @@ namespace RemoSharp.WebSocketClient
             if (client == null) return;
 
             if (listen) client.OnMessage += Client_OnMessage;
-            else client.OnMessage -= Client_OnMessage;       
+            else client.OnMessage -= Client_OnMessage;
 
         }
 
@@ -97,7 +111,7 @@ namespace RemoSharp.WebSocketClient
             bool connect = false;
 
             string url = "";
-            DA.GetData(0,ref url);
+            DA.GetData(0, ref url);
             DA.GetData(1, ref connect);
 
             //if (client != null && !url.Equals(client.Url.AbsoluteUri))
@@ -132,6 +146,11 @@ namespace RemoSharp.WebSocketClient
                     client.OnOpen += Client_OnOpen;
                     client.OnClose += Client_OnClose;
                     client.OnMessage += Client_OnMessage;
+
+                    timer = new System.Timers.Timer(60000);
+                    timer.Elapsed += Timer_Elapsed;
+                    timer.AutoReset = true;
+                    timer.Start();
                 }
 
 
@@ -147,10 +166,10 @@ namespace RemoSharp.WebSocketClient
                     client = null;
                 }
             }
-           
+
             DA.SetData(0, client);
 
-            
+
         }
 
         private void Client_OnClose(object sender, CloseEventArgs e)
@@ -161,15 +180,21 @@ namespace RemoSharp.WebSocketClient
                 connectionAttempts++;
                 if (client.IsAlive) connectionAttempts = 0;
             }
+
+            timer.Elapsed -= Timer_Elapsed;
+            timer.AutoReset = false;
+            timer.Stop();
+            timer.Dispose();
         }
 
         private void Client_OnMessage(object sender, MessageEventArgs e)
         {
-           
+
+            if (e.Data == "pong") return;
             messages.Add(e.Data);
             if (!this.keepRecord)
             {
-                
+
                 while (messages.Count > 1)
                 {
                     messages.RemoveAt(0);
@@ -215,8 +240,34 @@ namespace RemoSharp.WebSocketClient
             this.Message = "Connected";
             this.OnPingDocument().ScheduleSolution(1, doc =>
             {
-                this.ExpireSolution(true);
+                this.Attributes.ExpireLayout();
             });
+
+            if (keepAlive)
+            {
+                timer.Elapsed += Timer_Elapsed;
+                timer.AutoReset = true;
+                timer.Start();
+            }
+        }
+
+        private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                if (client != null)
+                {
+                    client.Send("ping");
+                }
+            }
+            catch (Exception)
+            {
+                timer.Elapsed -= Timer_Elapsed;
+                timer.AutoReset = false;
+                timer.Stop();
+                timer.Dispose();
+            }
+
         }
 
         /// <summary>
@@ -228,7 +279,7 @@ namespace RemoSharp.WebSocketClient
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return RemoSharp.Properties.Resources.WSC.ToBitmap();;
+                return RemoSharp.Properties.Resources.WSC.ToBitmap(); ;
             }
         }
 

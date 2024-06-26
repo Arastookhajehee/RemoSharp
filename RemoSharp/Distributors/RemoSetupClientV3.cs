@@ -40,7 +40,7 @@ namespace RemoSharp.Distributors
 
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
-        //public System.Timers.Timer drawingSyncTimer = new System.Timers.Timer(1000);
+        //public System.Timers.timer drawingSyncTimer = new System.Timers.timer(1000);
         int timerCount = 0;
         bool preventUndo = true;
         bool controlDown = false;
