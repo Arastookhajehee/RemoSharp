@@ -13,8 +13,6 @@ RemoSharp syncronizes the contents of one's GH canvas via a RT communication ser
 ### Non-Real-Time 
 Not all collaborations need to be in RT. RemoSharp provides the RemoLibrary GH database. Users can save their small function snippets or their entire scripts to the RemoLibrary. The database offers an interface to search, and modify these entries. It also activley monitors one's grasshopper interactions and suggests functions from the database accordingly.
 
-### PNG IMAGE HERE
-
 A Tool for Remote Collaboration in Architecture and Computational Design.
 RemoSharp is a Tool for Remote/Local Real-Time Collaboration.
 It is made out of two major parts:
