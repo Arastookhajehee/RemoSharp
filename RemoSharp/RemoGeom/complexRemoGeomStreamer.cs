@@ -94,7 +94,7 @@ namespace RemoSharp
             {
                 //You can add image files to your project resources and access them like this:
                 // return Resources.IconForThisComponent;
-                return null;
+                return RemoSharp.Properties.Resources.ComplexGeomStream.ToBitmap();
             }
         }
 

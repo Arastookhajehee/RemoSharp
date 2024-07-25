@@ -139,6 +139,12 @@
   <data name="CMD" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\CMD.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="ComplexGeomParse" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\ComplexGeomParse.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="ComplexGeomStream" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\ComplexGeomStream.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="Distributor" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Distributor.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -247,6 +253,9 @@
   <data name="Sync_Camera" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Sync Camera.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="Tag" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Tag.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="TargetComp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\TargetComp.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -255,6 +264,9 @@
   </data>
   <data name="Text_Point" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\Text_Point.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="Unique" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\Unique.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="WriteToFile" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\images\WriteToFile.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

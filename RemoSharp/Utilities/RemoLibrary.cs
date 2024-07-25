@@ -1,7 +1,6 @@
 ﻿using GHCustomControls;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
-using RemoSharp.Distributors;
 using RemoSharp.RemoCommandTypes;
 using System;
 using System.Collections.Generic;
@@ -500,27 +499,9 @@ namespace RemoSharp.Utilities
 
                 var activeCanvas = Grasshopper.Instances.ActiveCanvas;
                 PointF canvasViewPoint = activeCanvas.Viewport.MidPoint;
-                RemoSetupClientV3 setupComp = (RemoSetupClientV3)activeCanvas.Document.Objects.Where(o => o is RemoSetupClientV3).FirstOrDefault();
-                
-                if (setupComp != null)
-                {
-                    //if (setupComp.enable)
-                    //{
-                    //    RemoLibraryPartialDoc remoLibraryPartialDoc = new RemoLibraryPartialDoc
-                    //        (setupComp.username, setupComp.sessionID, remoPartialDoc, canvasViewPoint);
-                    //    RemoSetupClientV3.SendCommands(setupComp, remoLibraryPartialDoc, 1, setupComp.enable);
-                    //}
-                }
 
-                if (setupComp == null || !setupComp.enable)
-                {
-                    RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, canvasViewPoint, true);
-                }
-                else
-                {
-                    // message box to show that the setup component is enabled
-                    MessageBox.Show("RemoLibrary cannot be used while connected to a server!\n(Real-Time RemoLibrary Coming Soon!)", "Server Connection Enabled");
-                }
+                RemoSharp.CommandExecutor.ExecuteRemoPartialDoc(thisDoc, remoPartialDoc, canvasViewPoint, true);
+
             }
             catch (Exception error)
             {

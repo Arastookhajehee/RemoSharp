@@ -143,6 +143,26 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        public static System.Drawing.Icon ComplexGeomParse {
+            get {
+                object obj = ResourceManager.GetObject("ComplexGeomParse", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        public static System.Drawing.Icon ComplexGeomStream {
+            get {
+                object obj = ResourceManager.GetObject("ComplexGeomStream", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         public static System.Drawing.Icon Distributor {
             get {
                 object obj = ResourceManager.GetObject("Distributor", resourceCulture);
@@ -503,6 +523,16 @@ namespace RemoSharp.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        public static System.Drawing.Icon Tag {
+            get {
+                object obj = ResourceManager.GetObject("Tag", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         public static System.Drawing.Icon TargetComp {
             get {
                 object obj = ResourceManager.GetObject("TargetComp", resourceCulture);
@@ -526,6 +556,16 @@ namespace RemoSharp.Properties {
         public static System.Drawing.Icon Text_Point {
             get {
                 object obj = ResourceManager.GetObject("Text_Point", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        public static System.Drawing.Icon Unique {
+            get {
+                object obj = ResourceManager.GetObject("Unique", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }

@@ -2,13 +2,9 @@
 using GHCustomControls;
 using Grasshopper.GUI.Base;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
 using RemoSharp.Distributors;
 using RemoSharp.RemoCommandTypes;
-using RemoSharp.RemoParams;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
@@ -22,6 +18,8 @@ using WebSocketSharp;
 
 namespace RemoSharp
 {
+    // make the component hidden from Grasshopper
+    [System.ComponentModel.ToolboxItem(false)]
     public class CommandExecutor : GHCustomComponent
     {
         public bool enable = false;
@@ -572,31 +570,31 @@ namespace RemoSharp
                                 break;
                             #endregion
 
-                            #region RemoParamPoint3d
-                            case (CommandType.RemoPoint3d):
-                                RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
-                                ExecuteRemoPoint3d(remoPoint3d);
+                            //#region RemoParamPoint3d
+                            //case (CommandType.RemoPoint3d):
+                            //    RemoParamPoint3d remoPoint3d = (RemoParamPoint3d)remoCommand;
+                            //    ExecuteRemoPoint3d(remoPoint3d);
 
-                                break;
-                            #endregion
+                            //    break;
+                            //#endregion
 
-                            #region RemoParamVector3d
-                            case (CommandType.RemoVector3d):
-                                RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
-                                ExecuteRemoVector3d(remoVector3d);
+                            //#region RemoParamVector3d
+                            //case (CommandType.RemoVector3d):
+                            //    RemoParamVector3d remoVector3d = (RemoParamVector3d)remoCommand;
+                            //    ExecuteRemoVector3d(remoVector3d);
 
-                                break;
-                            #endregion
-
-
-                            #region RemoParamPlane
-                            case (CommandType.RemoPlane):
-                                RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
-                                ExecuteRemoPlane(remoPlane);
+                            //    break;
+                            //#endregion
 
 
-                                break;
-                            #endregion
+                            //#region RemoParamPlane
+                            //case (CommandType.RemoPlane):
+                            //    RemoParamPlane remoPlane = (RemoParamPlane)remoCommand;
+                            //    ExecuteRemoPlane(remoPlane);
+
+
+                            //break;
+
 
                             #region RemoParamText
                             case (CommandType.RemoText):
@@ -915,12 +913,13 @@ namespace RemoSharp
         public static void ExecuteRemoPartialDoc(GH_Document thisDoc, RemoPartialDoc remoPartialDoc, PointF location, bool ignoreSubscriptions)
         {
 
-            GH_Document tempDoc = new GH_Document();
-            GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
-            tempDoc.Read(chunk);
+
 
             thisDoc.ScheduleSolution(1, doc =>
             {
+                GH_Document tempDoc = new GH_Document();
+                GH_LooseChunk chunk = RemoCommand.DeserializeFromXML(remoPartialDoc.xml);
+                tempDoc.Read(chunk);
 
                 RemoSetupClientV3 sourceComp = thisDoc.Objects
                 .Where(obj => obj is RemoSetupClientV3)
@@ -929,14 +928,20 @@ namespace RemoSharp
                 var skip = SubcriptionType.Skip;
                 var subscribe = SubcriptionType.Subscribe;
                 var unsubscribe = SubcriptionType.Unsubscribe;
-                sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
+                if (sourceComp != null) sourceComp.SetUpRemoSharpEvents(skip, unsubscribe, unsubscribe, skip, skip, unsubscribe);
                 try
                 {
                     var selection = thisDoc.SelectedObjects();
                     thisDoc.DeselectAll();
 
+                    // fixing the wiring and id duplicate issues
+                    GH_Document dummyTempDoc = new GH_Document();
+                    tempDoc.MergeDocument(dummyTempDoc, true, true);
+                    tempDoc.MutateAllIds();
+                    tempDoc.DeselectAll();
+
                     // canvas view center point
-                    var currentMidPoint = location;
+                    var currentMidPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
 
                     // average of the tempDoc objects pivot points
                     PointF tempDocMidPoint = new PointF(0, 0);
@@ -948,97 +953,19 @@ namespace RemoSharp
                     tempDocMidPoint.X /= tempDoc.Objects.Count;
                     tempDocMidPoint.Y /= tempDoc.Objects.Count;
 
-                    Dictionary<Guid, Guid> groupGuidPairs = new Dictionary<Guid, Guid>();
-                    Dictionary<Guid, Guid> prevCurrentGuidPairs = new Dictionary<Guid, Guid>();
-                    // move the tempDoc to the center of the canvas
-                    foreach (var item in tempDoc.Objects)
+
+                    tempDoc.TranslateObjects(new Size(Convert.ToInt32(currentMidPoint.X - tempDocMidPoint.X)
+                                                     , Convert.ToInt32(currentMidPoint.Y - tempDocMidPoint.Y)), false);
+
+                    PointF canvasViewPoint = Grasshopper.Instances.ActiveCanvas.Viewport.MidPoint;
+                    RemoSetupClientV3 setupComp = (RemoSetupClientV3)Grasshopper.Instances.ActiveCanvas.Document.Objects.Where(o => o is RemoSetupClientV3).FirstOrDefault();
+
+                    if (setupComp != null)
                     {
-                        item.Attributes.Pivot = new PointF(item.Attributes.Pivot.X - tempDocMidPoint.X + currentMidPoint.X,
-                                                       item.Attributes.Pivot.Y - tempDocMidPoint.Y + currentMidPoint.Y);
-                        if (item is GH_Group)
-                        {
-                            Guid prevGuid = item.InstanceGuid;
-                            GH_Group group = (GH_Group)item;
-                            Guid currentGuid = group.InstanceGuid;
-
-                            groupGuidPairs.Add(prevGuid, currentGuid);
-                        }
-                        else if (item is IGH_Component)
-                        {
-                            Guid prevGuid = item.InstanceGuid;
-                            IGH_Component component = (IGH_Component)item;
-                            component.NewInstanceGuid();
-                            Guid currentGuid = component.InstanceGuid;
-
-                            prevCurrentGuidPairs.Add(prevGuid, currentGuid);
-
-                            foreach (var param in component.Params.Input)
-                            {
-                                param.NewInstanceGuid();
-                            }
-                            foreach (var param in component.Params.Output)
-                            {
-                                param.NewInstanceGuid();
-                            }
-                        }
-                        else if (item is IGH_Param)
-                        {
-                            Guid prevGuid = item.InstanceGuid;
-                            IGH_Param param = (IGH_Param)item;
-                            param.NewInstanceGuid();
-                            Guid currentGuid = param.InstanceGuid;
-
-                            prevCurrentGuidPairs.Add(prevGuid, currentGuid);
-                        }
+                        RemoPartialDoc newGuidPartialDoc = new RemoPartialDoc(setupComp.username, setupComp.sessionID, tempDoc.Objects.ToList(), tempDoc);
+                        RemoSetupClientV3.SendCommands(setupComp, newGuidPartialDoc, 1, setupComp.enable);
                     }
-
-                    string pause = "";
-
-                    // get a dictionary of all groups ids and their objects ids
-                    Dictionary<Guid, GroupAttributes> groupObjects = new Dictionary<Guid, GroupAttributes>();
-                    foreach (var item in tempDoc.Objects)
-                    {
-                        if (item is GH_Group)
-                        {
-                            GH_Group group = (GH_Group)item;
-                            groupObjects.Add(group.InstanceGuid, new GroupAttributes(group));
-                        }
-                    }
-
-                    // get all GH_group objects in tempDoc
-                    tempDoc.RemoveObjects(tempDoc.Objects.OfType<GH_Group>().ToList(), true);
-
                     thisDoc.MergeDocument(tempDoc, true, true);
-
-                    foreach (var groupID in groupObjects.Keys)
-                    {
-
-                        GH_Group newGroup = new GH_Group();
-                        newGroup.CreateAttributes();
-                        newGroup.NickName = groupObjects[groupID].NickName;
-                        newGroup.Colour = groupObjects[groupID].Color;
-                        newGroup.Border = groupObjects[groupID].style;
-
-
-                        //newGroup.Colour = Color.FromArgb(150,171,135,255);
-
-                        foreach (var objID in groupObjects[groupID].ObjectIDs)
-                        {
-                            Guid prevId = objID;
-                            Guid newID = prevCurrentGuidPairs[objID];
-
-                            newGroup.AddObject(prevCurrentGuidPairs[objID]);
-                        }
-
-                        thisDoc.AddObject(newGroup, false);
-                        newGroup.Attributes.ExpireLayout();
-                    }
-
-                    GH_DocumentIO docIO = new GH_DocumentIO(thisDoc);
-                    docIO.Copy(GH_ClipboardType.Local, remoPartialDoc.compGuids);
-
-                    docIO.Paste(GH_ClipboardType.Local);
-
 
                     GH_Document dummyDoc = new GH_Document();
                     thisDoc.MergeDocument(dummyDoc, true, true);
@@ -1064,7 +991,7 @@ namespace RemoSharp
                 {
                     Rhino.RhinoApp.WriteLine(error.Message);
                 }
-                sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
+                if (sourceComp != null) sourceComp.SetUpRemoSharpEvents(skip, subscribe, subscribe, skip, skip, subscribe);
 
 
                 foreach (var obj in thisDoc.Objects) obj.Attributes.ExpireLayout();
@@ -1847,21 +1774,21 @@ namespace RemoSharp
         }
 
 
-        private RemoSharp.RemoParams.RemoParam GetSourceCompFromRemoParamInput(Guid paramGuid)
-        {
-            IGH_Param targetParam = (IGH_Param)this.OnPingDocument().FindObject(paramGuid, false);
-            var paramRecipients = targetParam.Recipients;
-            foreach (IGH_DocumentObject item in paramRecipients)
-            {
-                if (item.Attributes.Parent == null) continue;
-                if (item.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
-                {
-                    RemoSharp.RemoParams.RemoParam remoParamComp = (RemoSharp.RemoParams.RemoParam)item.Attributes.Parent.DocObject;
-                    return remoParamComp;
-                }
-            }
-            return null;
-        }
+        //private RemoSharp.RemoParams.RemoParam GetSourceCompFromRemoParamInput(Guid paramGuid)
+        //{
+        //    IGH_Param targetParam = (IGH_Param)this.OnPingDocument().FindObject(paramGuid, false);
+        //    var paramRecipients = targetParam.Recipients;
+        //    foreach (IGH_DocumentObject item in paramRecipients)
+        //    {
+        //        if (item.Attributes.Parent == null) continue;
+        //        if (item.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam"))
+        //        {
+        //            RemoSharp.RemoParams.RemoParam remoParamComp = (RemoSharp.RemoParams.RemoParam)item.Attributes.Parent.DocObject;
+        //            return remoParamComp;
+        //        }
+        //    }
+        //    return null;
+        //}
 
         private void CheckForDirectoryAndFileExistance(string path)
         {
@@ -1894,99 +1821,99 @@ namespace RemoSharp
             }
         }
 
-        private void ExecuteRemoPlane(RemoParamPlane remoPlane)
-        {
-            if (remoPlane.objectGuid == Guid.Empty) return;
-            IGH_Param planeComp = (IGH_Param)this.OnPingDocument().FindObject(remoPlane.objectGuid, false);
-            Param_Plane planeParamComp = (Param_Plane)planeComp;
+        //private void ExecuteRemoPlane(RemoParamPlane remoPlane)
+        //{
+        //    if (remoPlane.objectGuid == Guid.Empty) return;
+        //    IGH_Param planeComp = (IGH_Param)this.OnPingDocument().FindObject(remoPlane.objectGuid, false);
+        //    Param_Plane planeParamComp = (Param_Plane)planeComp;
 
-            GH_Structure<GH_Plane> planeTree = new GH_Structure<GH_Plane>();
-            foreach (string item in remoPlane.planesAndTreePath)
-            {
-                string[] coordsAndPath = item.Split(':');
-                string[] coordsStrings = coordsAndPath[0].Split(',');
-                string[] pathStrings = coordsAndPath[1].Split(',');
-                double[] coords = coordsStrings.Select(double.Parse).ToArray();
-                int[] path = pathStrings.Select(int.Parse).ToArray();
+        //    GH_Structure<GH_Plane> planeTree = new GH_Structure<GH_Plane>();
+        //    foreach (string item in remoPlane.planesAndTreePath)
+        //    {
+        //        string[] coordsAndPath = item.Split(':');
+        //        string[] coordsStrings = coordsAndPath[0].Split(',');
+        //        string[] pathStrings = coordsAndPath[1].Split(',');
+        //        double[] coords = coordsStrings.Select(double.Parse).ToArray();
+        //        int[] path = pathStrings.Select(int.Parse).ToArray();
 
-                Point3d planeOrigin = new Point3d(coords[0], coords[1], coords[2]);
-                Vector3d planeVecX = new Vector3d(coords[3], coords[4], coords[5]);
-                Vector3d planeVecY = new Vector3d(coords[6], coords[7], coords[8]);
-                planeTree.Append(new GH_Plane(new Plane(planeOrigin, planeVecX, planeVecY)), new GH_Path(path));
-            }
+        //        Point3d planeOrigin = new Point3d(coords[0], coords[1], coords[2]);
+        //        Vector3d planeVecX = new Vector3d(coords[3], coords[4], coords[5]);
+        //        Vector3d planeVecY = new Vector3d(coords[6], coords[7], coords[8]);
+        //        planeTree.Append(new GH_Plane(new Plane(planeOrigin, planeVecX, planeVecY)), new GH_Path(path));
+        //    }
 
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                planeParamComp.RemoveAllSources();
+        //    this.OnPingDocument().ScheduleSolution(1, doc =>
+        //    {
+        //        planeParamComp.RemoveAllSources();
 
-                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(planeComp.InstanceGuid);
-                remoParamComp.enableRemoParam = false;
+        //        RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(planeComp.InstanceGuid);
+        //        remoParamComp.enableRemoParam = false;
 
-                planeParamComp.SetPersistentData(planeTree);
-                planeParamComp.ExpireSolution(false);
+        //        planeParamComp.SetPersistentData(planeTree);
+        //        planeParamComp.ExpireSolution(false);
 
-                remoParamComp.enableRemoParam = true;
+        //        remoParamComp.enableRemoParam = true;
 
-            });
-        }
+        //    });
+        //}
 
-        private void ExecuteRemoVector3d(RemoParamVector3d remoVector3d)
-        {
-            if (remoVector3d.objectGuid == Guid.Empty) return;
-            IGH_Param vectorComp = (IGH_Param)this.OnPingDocument().FindObject(remoVector3d.objectGuid, false);
-            Param_Vector vectorParamComp = (Param_Vector)vectorComp;
+        //private void ExecuteRemoVector3d(RemoParamVector3d remoVector3d)
+        //{
+        //    if (remoVector3d.objectGuid == Guid.Empty) return;
+        //    IGH_Param vectorComp = (IGH_Param)this.OnPingDocument().FindObject(remoVector3d.objectGuid, false);
+        //    Param_Vector vectorParamComp = (Param_Vector)vectorComp;
 
-            GH_Structure<GH_Vector> vectorTree = new GH_Structure<GH_Vector>();
-            foreach (string item in remoVector3d.vectorsAndTreePath)
-            {
-                string[] coordsAndPath = item.Split(':');
-                string[] coordsStrings = coordsAndPath[0].Split(',');
-                string[] pathStrings = coordsAndPath[1].Split(',');
-                double[] coords = coordsStrings.Select(double.Parse).ToArray();
-                int[] path = pathStrings.Select(int.Parse).ToArray();
-
-
-                vectorTree.Append(new GH_Vector(new Vector3d(coords[0], coords[1], coords[2])), new GH_Path(path));
-            }
-
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                vectorParamComp.RemoveAllSources();
-
-                RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(vectorComp.InstanceGuid);
-                remoParamComp.enableRemoParam = false;
-
-                vectorParamComp.SetPersistentData(vectorTree);
-                vectorParamComp.ExpireSolution(false);
-
-                remoParamComp.enableRemoParam = true;
-            });
-        }
-
-        private void ExecuteRemoPoint3d(RemoParamPoint3d remoPoint3d)
-        {
-            if (remoPoint3d.objectGuid == Guid.Empty) return;
-            IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
-            Param_Point pointParamComp = (Param_Point)pointComp;
-
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
+        //    GH_Structure<GH_Vector> vectorTree = new GH_Structure<GH_Vector>();
+        //    foreach (string item in remoVector3d.vectorsAndTreePath)
+        //    {
+        //        string[] coordsAndPath = item.Split(':');
+        //        string[] coordsStrings = coordsAndPath[0].Split(',');
+        //        string[] pathStrings = coordsAndPath[1].Split(',');
+        //        double[] coords = coordsStrings.Select(double.Parse).ToArray();
+        //        int[] path = pathStrings.Select(int.Parse).ToArray();
 
 
-                GH_LooseChunk chunk = new GH_LooseChunk(null);
-                chunk.Deserialize_Xml(remoPoint3d.pointXML);
+        //        vectorTree.Append(new GH_Vector(new Vector3d(coords[0], coords[1], coords[2])), new GH_Path(path));
+        //    }
 
-                GH_Structure<GH_Point> gh_points = new GH_Structure<GH_Point>();
-                gh_points.Read(chunk);
+        //    this.OnPingDocument().ScheduleSolution(1, doc =>
+        //    {
+        //        vectorParamComp.RemoveAllSources();
 
-                if (pointParamComp.SourceCount > 0) return;
-                pointParamComp.Attributes.Selected = false;
+        //        RemoSharp.RemoParams.RemoParam remoParamComp = GetSourceCompFromRemoParamInput(vectorComp.InstanceGuid);
+        //        remoParamComp.enableRemoParam = false;
 
-                pointParamComp.SetPersistentData(gh_points);
-                pointParamComp.ExpireSolution(false);
+        //        vectorParamComp.SetPersistentData(vectorTree);
+        //        vectorParamComp.ExpireSolution(false);
 
-            });
-        }
+        //        remoParamComp.enableRemoParam = true;
+        //    });
+        //}
+
+        //private void ExecuteRemoPoint3d(RemoParamPoint3d remoPoint3d)
+        //{
+        //    if (remoPoint3d.objectGuid == Guid.Empty) return;
+        //    IGH_Param pointComp = (IGH_Param)this.OnPingDocument().FindObject(remoPoint3d.objectGuid, false);
+        //    Param_Point pointParamComp = (Param_Point)pointComp;
+
+        //    this.OnPingDocument().ScheduleSolution(1, doc =>
+        //    {
+
+
+        //        GH_LooseChunk chunk = new GH_LooseChunk(null);
+        //        chunk.Deserialize_Xml(remoPoint3d.pointXML);
+
+        //        GH_Structure<GH_Point> gh_points = new GH_Structure<GH_Point>();
+        //        gh_points.Read(chunk);
+
+        //        if (pointParamComp.SourceCount > 0) return;
+        //        pointParamComp.Attributes.Selected = false;
+
+        //        pointParamComp.SetPersistentData(gh_points);
+        //        pointParamComp.ExpireSolution(false);
+
+        //    });
+        //}
 
         private void ExecuteRemoMDSlider(RemoParamMDSlider remoMDSlider)
         {
@@ -2127,28 +2054,28 @@ namespace RemoSharp
             });
         }
 
-        private RemoParamData FindAssociatedRemoParamDataComp(IGH_Param paramComp)
-        {
-            var rpmComps = paramComp.Recipients.Where(obj => obj.Attributes.Parent != null)
-                .Where(obj => obj.Attributes.Parent.DocObject != null)
-                .Where(obj => obj.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
+        //private RemoParamData FindAssociatedRemoParamDataComp(IGH_Param paramComp)
+        //{
+        //    var rpmComps = paramComp.Recipients.Where(obj => obj.Attributes.Parent != null)
+        //        .Where(obj => obj.Attributes.Parent.DocObject != null)
+        //        .Where(obj => obj.Attributes.Parent.DocObject.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
 
 
-            var rpmComp = (RemoSharp.RemoParams.RemoParam)rpmComps[0].Attributes.Parent.DocObject;
+        //    var rpmComp = (RemoSharp.RemoParams.RemoParam)rpmComps[0].Attributes.Parent.DocObject;
 
-            string rpmNickname = rpmComp.Message;
+        //    string rpmNickname = rpmComp.Message;
 
-            var dataComps = this.OnPingDocument().Objects.Where(obj => obj is GH_Component).Select(obj => (GH_Component)obj).ToList();
-            //&& !obj.GetType().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
-            //.Select(obj => (RemoParamData) obj).ToList()[0];
+        //    var dataComps = this.OnPingDocument().Objects.Where(obj => obj is GH_Component).Select(obj => (GH_Component)obj).ToList();
+        //    //&& !obj.GetType().Equals("RemoSharp.RemoParams.RemoParam")).ToList();
+        //    //.Select(obj => (RemoParamData) obj).ToList()[0];
 
-            var dataComp = dataComps.Where(obj => obj.Message != null).ToList();
+        //    var dataComp = dataComps.Where(obj => obj.Message != null).ToList();
 
-            var dataC = dataComp.Where(obj => obj.Message.Equals(rpmComp.Message) && obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParamData")).ToList();
+        //    var dataC = dataComp.Where(obj => obj.Message.Equals(rpmComp.Message) && obj.GetType().ToString().Equals("RemoSharp.RemoParams.RemoParamData")).ToList();
 
-            var remoParamDataComponent = (RemoSharp.RemoParams.RemoParamData)dataC[0];
-            return remoParamDataComponent;
-        }
+        //    var remoParamDataComponent = (RemoSharp.RemoParams.RemoParamData)dataC[0];
+        //    return remoParamDataComponent;
+        //}
 
         private void ExecuteLock(RemoLock lockCommand)
         {
@@ -2361,57 +2288,57 @@ namespace RemoSharp
 
         }
         */
-        private void AddRemoParamDataComponent(IGH_DocumentObject obj, string dataCompXml)
-        {
+        //private void AddRemoParamDataComponent(IGH_DocumentObject obj, string dataCompXml)
+        //{
 
 
-            this.OnPingDocument().ScheduleSolution(0, doc =>
-            {
-                var rpmPivot = obj.Attributes.Pivot;
-                PointF dataPivot = new PointF(rpmPivot.X + 36, rpmPivot.Y);
+        //    this.OnPingDocument().ScheduleSolution(0, doc =>
+        //    {
+        //        var rpmPivot = obj.Attributes.Pivot;
+        //        PointF dataPivot = new PointF(rpmPivot.X + 36, rpmPivot.Y);
 
-                RemoParam remoParamComp = obj as RemoParam;
-                RemoParamData dataComp = new RemoParamData();
-                dataComp.CreateAttributes();
-                dataComp.Attributes.Pivot = dataPivot;
-                dataComp.Params.RepairParamAssociations();
-                dataComp.Params.RepairProxyParams(this.OnPingDocument());
-
-
-                GH_LooseChunk chunk2 = new GH_LooseChunk(null);
-                chunk2.Deserialize_Xml(dataCompXml);
-                dataComp.Read(chunk2);
-
-                dataComp.ExpireSolution(true);
+        //        RemoParam remoParamComp = obj as RemoParam;
+        //        RemoParamData dataComp = new RemoParamData();
+        //        dataComp.CreateAttributes();
+        //        dataComp.Attributes.Pivot = dataPivot;
+        //        dataComp.Params.RepairParamAssociations();
+        //        dataComp.Params.RepairProxyParams(this.OnPingDocument());
 
 
+        //        GH_LooseChunk chunk2 = new GH_LooseChunk(null);
+        //        chunk2.Deserialize_Xml(dataCompXml);
+        //        dataComp.Read(chunk2);
 
-                this.OnPingDocument().AddObject(dataComp, false);
+        //        dataComp.ExpireSolution(true);
 
-                GroupRemoParamDataComponents(remoParamComp, dataComp);
 
-            });
-        }
 
-        public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
-        {
+        //        this.OnPingDocument().AddObject(dataComp, false);
 
-            GH_Group group = new GH_Group();
-            group.CreateAttributes();
-            group.AddObject(remoParamComp.InstanceGuid);
-            group.AddObject(remoParamData.InstanceGuid);
-            Random rand = new Random();
-            int hue1 = rand.Next(100, 255);
-            int hue2 = rand.Next(100, 255);
-            int hue3 = rand.Next(100, 255);
-            group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
-            group.Border = GH_GroupBorder.Blob;
-            group.NickName = "";
+        //        GroupRemoParamDataComponents(remoParamComp, dataComp);
 
-            remoParamComp.groupGuid = group.InstanceGuid;
+        //    });
+        //}
 
-            this.OnPingDocument().AddObject(group, false);
-        }
+        //public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
+        //{
+
+        //    GH_Group group = new GH_Group();
+        //    group.CreateAttributes();
+        //    group.AddObject(remoParamComp.InstanceGuid);
+        //    group.AddObject(remoParamData.InstanceGuid);
+        //    Random rand = new Random();
+        //    int hue1 = rand.Next(100, 255);
+        //    int hue2 = rand.Next(100, 255);
+        //    int hue3 = rand.Next(100, 255);
+        //    group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
+        //    group.Border = GH_GroupBorder.Blob;
+        //    group.NickName = "";
+
+        //    remoParamComp.groupGuid = group.InstanceGuid;
+
+        //    this.OnPingDocument().AddObject(group, false);
+        //}
 
         private void ExcecuteMove(RemoMove moveCommand)
         {
@@ -2719,12 +2646,12 @@ namespace RemoSharp
                 //GH_RelevantObjectData grip = new GH_RelevantObjectData(gh_Component.Attributes.Pivot);
                 //this.OnPingDocument().Select(grip, false, true);
 
-                string rpmType = "RemoSharp.RemoParams.RemoParam";
-                if (gh_Component.GetType().ToString().Equals(rpmType))
-                {
-                    AddRemoParamDataComponent(gh_Component, associatedAttribute);
+                //string rpmType = "RemoSharp.RemoParams.RemoParam";
+                //if (gh_Component.GetType().ToString().Equals(rpmType))
+                //{
+                //    AddRemoParamDataComponent(gh_Component, associatedAttribute);
 
-                }
+                //}
 
             }
             catch

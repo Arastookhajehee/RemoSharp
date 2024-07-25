@@ -47,7 +47,7 @@
             // 
             this.loadButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.loadButton.Enabled = false;
-            this.loadButton.Location = new System.Drawing.Point(93, 342);
+            this.loadButton.Location = new System.Drawing.Point(89, 342);
             this.loadButton.Name = "loadButton";
             this.loadButton.Size = new System.Drawing.Size(75, 23);
             this.loadButton.TabIndex = 0;
@@ -59,7 +59,7 @@
             // 
             this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.saveButton.Enabled = false;
-            this.saveButton.Location = new System.Drawing.Point(173, 342);
+            this.saveButton.Location = new System.Drawing.Point(165, 342);
             this.saveButton.Name = "saveButton";
             this.saveButton.Size = new System.Drawing.Size(75, 23);
             this.saveButton.TabIndex = 1;
@@ -71,7 +71,7 @@
             // 
             this.deleteButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.deleteButton.Enabled = false;
-            this.deleteButton.Location = new System.Drawing.Point(253, 342);
+            this.deleteButton.Location = new System.Drawing.Point(241, 342);
             this.deleteButton.Name = "deleteButton";
             this.deleteButton.Size = new System.Drawing.Size(75, 23);
             this.deleteButton.TabIndex = 2;
@@ -117,9 +117,9 @@
             // 
             this.LoadRMDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.LoadRMDB.Enabled = false;
-            this.LoadRMDB.Location = new System.Drawing.Point(333, 342);
+            this.LoadRMDB.Location = new System.Drawing.Point(317, 342);
             this.LoadRMDB.Name = "LoadRMDB";
-            this.LoadRMDB.Size = new System.Drawing.Size(75, 23);
+            this.LoadRMDB.Size = new System.Drawing.Size(83, 23);
             this.LoadRMDB.TabIndex = 8;
             this.LoadRMDB.Text = "Load Library";
             this.LoadRMDB.UseVisualStyleBackColor = true;
@@ -129,9 +129,9 @@
             // 
             this.SaveRMDB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.SaveRMDB.Enabled = false;
-            this.SaveRMDB.Location = new System.Drawing.Point(413, 342);
+            this.SaveRMDB.Location = new System.Drawing.Point(401, 342);
             this.SaveRMDB.Name = "SaveRMDB";
-            this.SaveRMDB.Size = new System.Drawing.Size(75, 23);
+            this.SaveRMDB.Size = new System.Drawing.Size(86, 23);
             this.SaveRMDB.TabIndex = 9;
             this.SaveRMDB.Text = "New Library";
             this.SaveRMDB.UseVisualStyleBackColor = true;

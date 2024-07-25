@@ -6,7 +6,6 @@ using Grasshopper.GUI.Canvas;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 using RemoSharp.RemoCommandTypes;
-using RemoSharp.RemoParams;
 using RemoSharp.Utilities;
 using System;
 using System.Collections.Generic;
@@ -36,7 +35,9 @@ namespace RemoSharp.Distributors
         public List<string> messages = new List<string>();
         public WebSocket client;
 
-        public NonComponetRemoSetupV3 nonComponentRemoSetupV3;
+        public NonComponetCommandExecutor nonComponentRemoSetupV3;
+        public RemoCommand lastCommand = null;
+        public Guid lastRpmGuid = Guid.Empty;
 
         // periodic timber  for every 60 secs
         System.Timers.Timer timer = new System.Timers.Timer(60000);
@@ -70,7 +71,7 @@ namespace RemoSharp.Distributors
         public bool autoUpdate = true;
         public bool keepRecord = false;
         bool listen = true;
-        public bool isMain = false; 
+        public bool isMain = false;
         public bool allowScripts = true;
 
         int commandRepeat = 1;
@@ -104,6 +105,9 @@ namespace RemoSharp.Distributors
 
         public List<IGH_DocumentObject> subscribedObjs = new List<IGH_DocumentObject>();
 
+
+        System.Timers.Timer remoParamExecution = new System.Timers.Timer(200);
+        public List<RemoParameter> remoParams = new List<RemoParameter>();
 
         /// <summary>
         /// Initializes a new instance of the RemoSetupClientV3 class.
@@ -178,7 +182,12 @@ namespace RemoSharp.Distributors
 
             if (enable)
             {
-                this.nonComponentRemoSetupV3 = new NonComponetRemoSetupV3(this.OnPingDocument(), this);
+                this.nonComponentRemoSetupV3 = new NonComponetCommandExecutor(this.OnPingDocument(), this);
+                remoParamExecution = new System.Timers.Timer(200);
+                remoParamExecution.AutoReset = true;
+                remoParamExecution.Elapsed += RemoParamExecution_Elapsed;
+                remoParamExecution.Start();
+
 
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
@@ -199,6 +208,11 @@ namespace RemoSharp.Distributors
             }
             else
             {
+                remoParamExecution.AutoReset = false;
+                remoParamExecution.Elapsed -= RemoParamExecution_Elapsed;
+                remoParamExecution.Stop();
+                remoParamExecution.Dispose();
+
                 var thisDoc = this.OnPingDocument();
                 if (thisDoc == null) return;
                 AddInteractionButtonsToTopBar(SubcriptionType.Unsubscribe);
@@ -215,6 +229,17 @@ namespace RemoSharp.Distributors
             }
 
 
+        }
+
+        private void RemoParamExecution_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            while (remoParams.Count > 0)
+            {
+                RemoParameter remoParam = remoParams[0];
+                remoParams.RemoveAt(0);
+
+                this.nonComponentRemoSetupV3.ExecuteRemoParameter(remoParam);
+            }
         }
 
         public void SetUpRemoSharpEvents(
@@ -487,7 +512,11 @@ namespace RemoSharp.Distributors
             RemoNullCommand nullCommand = new RemoNullCommand(this.username, this.password, this.sessionID);
             string connectionString = RemoCommand.SerializeToJson(nullCommand);
             client.Send(connectionString);
-            if (client.IsAlive) this.Message = "Connected";
+            if (client.IsAlive)
+            {
+                this.Message = "Connected";
+                Grasshopper.Instances.ActiveCanvas.Invalidate();
+            }
         }
 
         private void EstablishConnection(WebSocket client, bool checkForConnection)
@@ -497,7 +526,11 @@ namespace RemoSharp.Distributors
             if (connected) return;
             SubcriptionType resub = SubcriptionType.Resubscribe;
             SetUpRemoSharpEvents(resub, resub, resub, resub, resub, resub);
-            if (client.IsAlive) this.Message = "Connected";
+            if (client.IsAlive)
+            {
+                this.Message = "Connected";
+                Grasshopper.Instances.ActiveCanvas.Invalidate();
+            }
             this.recconnectTimer = DateTime.Now;
         }
 
@@ -638,399 +671,399 @@ namespace RemoSharp.Distributors
         //    Rhino.RhinoApp.WriteLine(sender.ToString() + "Solution Expired");
         //}
 
-        public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, bool subscribe)
-        {
-            List<string> accaptableTypes = new List<string>() {
-            "Grasshopper.Kernel.Special.GH_NumberSlider",
-            "Grasshopper.Kernel.Special.GH_Panel",
-            "Grasshopper.Kernel.Special.GH_ColourSwatch",
-            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
-            "Grasshopper.Kernel.Special.GH_BooleanToggle",
-            "Grasshopper.Kernel.Special.GH_ButtonObject"
-            };
+        //public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, bool subscribe)
+        //{
+        //    List<string> accaptableTypes = new List<string>() {
+        //    "Grasshopper.Kernel.Special.GH_NumberSlider",
+        //    "Grasshopper.Kernel.Special.GH_Panel",
+        //    "Grasshopper.Kernel.Special.GH_ColourSwatch",
+        //    "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
+        //    "Grasshopper.Kernel.Special.GH_BooleanToggle",
+        //    "Grasshopper.Kernel.Special.GH_ButtonObject"
+        //    };
 
-            var allParams = remoSetupComp.OnPingDocument().Objects;
-
-
-            if (!subscribe)
-            {
-                var deletionGuids = remoSetupComp.OnPingDocument().Objects
-                    .Where(obj => obj.NickName.Equals(RemoParam.RemoParamKeyword))
-                    .Select(obj => remoSetupComp.OnPingDocument().FindObject(obj.InstanceGuid, false))
-                    .ToList();
-
-                remoSetupComp.OnPingDocument().RemoveObjects(deletionGuids, false);
-            }
-
-            foreach (var item in allParams)
-            {
-                if (subscribe)
-                {
-                    string typeString = item.GetType().FullName;
-
-                    string pause = "";
+        //    var allParams = remoSetupComp.OnPingDocument().Objects;
 
 
-                    bool isInTheList = accaptableTypes.Contains(typeString);
+        //    if (!subscribe)
+        //    {
+        //        var deletionGuids = remoSetupComp.OnPingDocument().Objects
+        //            .Where(obj => obj.NickName.Equals(RemoParam.RemoParamKeyword))
+        //            .Select(obj => remoSetupComp.OnPingDocument().FindObject(obj.InstanceGuid, false))
+        //            .ToList();
 
-                    if (isInTheList)
-                    {
-                        string nickName = item.NickName;
-                        bool isSetupButtno = nickName.Equals("RemoSetup");
+        //        remoSetupComp.OnPingDocument().RemoveObjects(deletionGuids, false);
+        //    }
 
-                        if (isSetupButtno) continue;
+        //    foreach (var item in allParams)
+        //    {
+        //        if (subscribe)
+        //        {
+        //            string typeString = item.GetType().FullName;
 
-                        GroupObjParam(remoSetupComp, item);
-                    }
-
-                }
-                switch (item.GetType().ToString())
-                {
-
-                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_Panel"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, List<IGH_DocumentObject> allParams, bool subscribe)
-        {
-            List<string> accaptableTypes = new List<string>() {
-            "Grasshopper.Kernel.Special.GH_NumberSlider",
-            "Grasshopper.Kernel.Special.GH_Panel",
-            "Grasshopper.Kernel.Special.GH_ColourSwatch",
-            "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
-            "Grasshopper.Kernel.Special.GH_BooleanToggle",
-            "Grasshopper.Kernel.Special.GH_ButtonObject"
-            };
-
-            foreach (var item in allParams)
-            {
-                if (subscribe)
-                {
-                    string typeString = item.GetType().FullName;
-
-                    string pause = "";
+        //            string pause = "";
 
 
-                    bool isInTheList = accaptableTypes.Contains(typeString);
+        //            bool isInTheList = accaptableTypes.Contains(typeString);
 
-                    if (isInTheList)
-                    {
-                        string nickName = item.NickName;
-                        bool isSetupButtno = nickName.Equals("RemoSetup");
+        //            if (isInTheList)
+        //            {
+        //                string nickName = item.NickName;
+        //                bool isSetupButtno = nickName.Equals("RemoSetup");
 
-                        if (isSetupButtno) continue;
+        //                if (isSetupButtno) continue;
 
-                        GroupObjParam(remoSetupComp, item);
-                    }
+        //                GroupObjParam(remoSetupComp, item);
+        //            }
 
-                }
-                switch (item.GetType().ToString())
-                {
+        //        }
+        //        switch (item.GetType().ToString())
+        //        {
 
-                    case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_Panel"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
-                        }
-                        break;
-                    case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
-                        if (subscribe)
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
-                            item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
-                        }
-                        else
-                        {
-                            item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
+        //            case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_Panel"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+        //                }
+        //                break;
+        //            default:
+        //                break;
+        //        }
+        //    }
+        //}
+
+        //public static void SubscribeAllParams(RemoSetupClientV3 remoSetupComp, List<IGH_DocumentObject> allParams, bool subscribe)
+        //{
+        //    List<string> accaptableTypes = new List<string>() {
+        //    "Grasshopper.Kernel.Special.GH_NumberSlider",
+        //    "Grasshopper.Kernel.Special.GH_Panel",
+        //    "Grasshopper.Kernel.Special.GH_ColourSwatch",
+        //    "Grasshopper.Kernel.Special.GH_MultiDimensionalSlider",
+        //    "Grasshopper.Kernel.Special.GH_BooleanToggle",
+        //    "Grasshopper.Kernel.Special.GH_ButtonObject"
+        //    };
+
+        //    foreach (var item in allParams)
+        //    {
+        //        if (subscribe)
+        //        {
+        //            string typeString = item.GetType().FullName;
+
+        //            string pause = "";
 
 
+        //            bool isInTheList = accaptableTypes.Contains(typeString);
 
+        //            if (isInTheList)
+        //            {
+        //                string nickName = item.NickName;
+        //                bool isSetupButtno = nickName.Equals("RemoSetup");
 
-        public void RemoParameterizeMDSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeMDSlider;
-            Grasshopper.Kernel.Special.GH_MultiDimensionalSlider param = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)sender;
+        //                if (isSetupButtno) continue;
 
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+        //                GroupObjParam(remoSetupComp, item);
+        //            }
 
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
-            {
-                RemoParamMDSlider remoParam = new RemoParamMDSlider(this.username, this.sessionID, param, false);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-        }
+        //        }
+        //        switch (item.GetType().ToString())
+        //        {
 
-        public void RemoParameterizeToggle(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeToggle;
-            Grasshopper.Kernel.Special.GH_BooleanToggle param = (Grasshopper.Kernel.Special.GH_BooleanToggle)sender;
-
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
-
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
-            {
-                RemoParamToggle remoParam = new RemoParamToggle(this.username, this.sessionID, param);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-        }
-
-        public void RemoParameterizeColor(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeColor;
-            Grasshopper.Kernel.Special.GH_ColourSwatch param = (Grasshopper.Kernel.Special.GH_ColourSwatch)sender;
-
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
-
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected)
-            {
-                RemoParamColor remoParam = new RemoParamColor(this.username, this.sessionID, param);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-        }
-
-        public void RemoParameterizePanel(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePanel;
-            Grasshopper.Kernel.Special.GH_Panel param = (Grasshopper.Kernel.Special.GH_Panel)sender;
-
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
-
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
-            {
-                RemoParamPanel remoParam = new RemoParamPanel(this.username, this.sessionID, param);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-        }
-
-        public void RemoParameterizeButton(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeButton;
-            Grasshopper.Kernel.Special.GH_ButtonObject param = (Grasshopper.Kernel.Special.GH_ButtonObject)sender;
-
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
-
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
-            {
-
-                RemoParamButton remoParam = new RemoParamButton(this.username, this.sessionID, param);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-        }
-
-        public void RemoParameterizePointParam(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            //try
-            //{
-            if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePointParam;
-            Grasshopper.Kernel.Parameters.Param_Point param = (Grasshopper.Kernel.Parameters.Param_Point)sender;
-
-            IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
-
-            if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
-            {
-                GH_LooseChunk chunk = new GH_LooseChunk(null);
-                param.WriteFull(chunk);
-                RemoParamPoint3d remoParam = new RemoParamPoint3d(this.username, param);
-                string json = RemoCommand.SerializeToJson(remoParam);
-                if (this.enable) this.client.Send(json);
-            }
-
-            //}
-            //catch
-            //{
-            //    Console.WriteLine("sync problem");
-            //}
-
-        }
+        //            case ("Grasshopper.Kernel.Special.GH_NumberSlider"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeSlider;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeSlider;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_Panel"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizePanel;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizePanel;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_ColourSwatch"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeColor;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeColor;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_MultiDimensionalSlider"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeMDSlider;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeMDSlider;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_BooleanToggle"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeToggle;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeToggle;
+        //                }
+        //                break;
+        //            case ("Grasshopper.Kernel.Special.GH_ButtonObject"):
+        //                if (subscribe)
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+        //                    item.SolutionExpired += remoSetupComp.RemoParameterizeButton;
+        //                }
+        //                else
+        //                {
+        //                    item.SolutionExpired -= remoSetupComp.RemoParameterizeButton;
+        //                }
+        //                break;
+        //            default:
+        //                break;
+        //        }
+        //    }
+        //}
 
 
 
-        public void RemoParameterizeSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
-        {
-            try
-            {
-                if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeSlider;
-                Grasshopper.Kernel.Special.GH_NumberSlider param = (Grasshopper.Kernel.Special.GH_NumberSlider)sender;
 
-                IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+        //public void RemoParameterizeMDSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeMDSlider;
+        //    Grasshopper.Kernel.Special.GH_MultiDimensionalSlider param = (Grasshopper.Kernel.Special.GH_MultiDimensionalSlider)sender;
 
-                if (status.tabKeyIsDown && status.isRemoParamGrouped)
-                {
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
 
-                    RemoParamSlider remoParamSlider = new RemoParamSlider(this.username, this.sessionID, param);
-                    string json = RemoCommand.SerializeToJson(remoParamSlider);
-                    if (this.enable) this.client.Send(json);
-                }
-            }
-            catch
-            {
-                Console.WriteLine("sync problem");
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+        //    {
+        //        RemoParamMDSlider remoParam = new RemoParamMDSlider(this.username, this.sessionID, param, false);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+        //}
 
-            }
+        //public void RemoParameterizeToggle(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeToggle;
+        //    Grasshopper.Kernel.Special.GH_BooleanToggle param = (Grasshopper.Kernel.Special.GH_BooleanToggle)sender;
 
-        }
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
 
-        public static void GroupObjParam(RemoSetupClientV3 remoSetupComp, IGH_DocumentObject obj)
-        {
-            remoSetupComp.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                GH_Group group = new GH_Group();
-                group.CreateAttributes();
-                group.AddObject(obj.InstanceGuid);
-                group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
-                group.NickName = RemoParam.RemoParamKeyword;
-                remoSetupComp.OnPingDocument().AddObject(group, false);
-            });
-        }
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+        //    {
+        //        RemoParamToggle remoParam = new RemoParamToggle(this.username, this.sessionID, param);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+        //}
 
-        public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
-        {
+        //public void RemoParameterizeColor(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeColor;
+        //    Grasshopper.Kernel.Special.GH_ColourSwatch param = (Grasshopper.Kernel.Special.GH_ColourSwatch)sender;
 
-            GH_Group group = new GH_Group();
-            group.CreateAttributes();
-            group.AddObject(remoParamComp.InstanceGuid);
-            group.AddObject(remoParamData.InstanceGuid);
-            Random rand = new Random();
-            int hue1 = rand.Next(100, 255);
-            int hue2 = rand.Next(100, 255);
-            int hue3 = rand.Next(100, 255);
-            group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
-            group.Border = GH_GroupBorder.Blob;
-            group.NickName = "";
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
 
-            remoParamComp.groupGuid = group.InstanceGuid;
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected)
+        //    {
+        //        RemoParamColor remoParam = new RemoParamColor(this.username, this.sessionID, param);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+        //}
 
-            this.OnPingDocument().AddObject(group, false);
-        }
+        //public void RemoParameterizePanel(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePanel;
+        //    Grasshopper.Kernel.Special.GH_Panel param = (Grasshopper.Kernel.Special.GH_Panel)sender;
+
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
+        //    {
+        //        RemoParamPanel remoParam = new RemoParamPanel(this.username, this.sessionID, param);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+        //}
+
+        //public void RemoParameterizeButton(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeButton;
+        //    Grasshopper.Kernel.Special.GH_ButtonObject param = (Grasshopper.Kernel.Special.GH_ButtonObject)sender;
+
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.mouseHoverOnExpiredParam)
+        //    {
+
+        //        RemoParamButton remoParam = new RemoParamButton(this.username, this.sessionID, param);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+        //}
+
+        //public void RemoParameterizePointParam(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    //try
+        //    //{
+        //    if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizePointParam;
+        //    Grasshopper.Kernel.Parameters.Param_Point param = (Grasshopper.Kernel.Parameters.Param_Point)sender;
+
+        //    IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+        //    if (status.tabKeyIsDown && status.isRemoParamGrouped && status.isSelected && status.noInput)
+        //    {
+        //        GH_LooseChunk chunk = new GH_LooseChunk(null);
+        //        param.WriteFull(chunk);
+        //        RemoParamPoint3d remoParam = new RemoParamPoint3d(this.username, param);
+        //        string json = RemoCommand.SerializeToJson(remoParam);
+        //        if (this.enable) this.client.Send(json);
+        //    }
+
+        //    //}
+        //    //catch
+        //    //{
+        //    //    Console.WriteLine("sync problem");
+        //    //}
+
+        //}
+
+
+
+        //public void RemoParameterizeSlider(IGH_DocumentObject sender, GH_SolutionExpiredEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (sender == null || sender.OnPingDocument() == null) sender.SolutionExpired -= RemoParameterizeSlider;
+        //        Grasshopper.Kernel.Special.GH_NumberSlider param = (Grasshopper.Kernel.Special.GH_NumberSlider)sender;
+
+        //        IGH_ParamConditionStatus status = FindIGH_ParamStatus(param);
+
+        //        if (status.tabKeyIsDown && status.isRemoParamGrouped)
+        //        {
+
+        //            RemoParamSlider remoParamSlider = new RemoParamSlider(this.username, this.sessionID, param);
+        //            string json = RemoCommand.SerializeToJson(remoParamSlider);
+        //            if (this.enable) this.client.Send(json);
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        Console.WriteLine("sync problem");
+
+        //    }
+
+        //}
+
+        //public static void GroupObjParam(RemoSetupClientV3 remoSetupComp, IGH_DocumentObject obj)
+        //{
+        //    remoSetupComp.OnPingDocument().ScheduleSolution(1, doc =>
+        //    {
+        //        GH_Group group = new GH_Group();
+        //        group.CreateAttributes();
+        //        group.AddObject(obj.InstanceGuid);
+        //        group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+        //        group.NickName = RemoParam.RemoParamKeyword;
+        //        remoSetupComp.OnPingDocument().AddObject(group, false);
+        //    });
+        //}
+
+        //public void GroupRemoParamDataComponents(RemoParam remoParamComp, RemoParamData remoParamData)
+        //{
+
+        //    GH_Group group = new GH_Group();
+        //    group.CreateAttributes();
+        //    group.AddObject(remoParamComp.InstanceGuid);
+        //    group.AddObject(remoParamData.InstanceGuid);
+        //    Random rand = new Random();
+        //    int hue1 = rand.Next(100, 255);
+        //    int hue2 = rand.Next(100, 255);
+        //    int hue3 = rand.Next(100, 255);
+        //    group.Colour = System.Drawing.Color.FromArgb(50, hue1, hue2, hue3);
+        //    group.Border = GH_GroupBorder.Blob;
+        //    group.NickName = "";
+
+        //    remoParamComp.groupGuid = group.InstanceGuid;
+
+        //    this.OnPingDocument().AddObject(group, false);
+        //}
 
         public Color FromHSVA(double hue, double saturation, double value, double alpha)
         {
@@ -1084,22 +1117,22 @@ namespace RemoSharp.Distributors
             return Color.FromArgb((int)alpha, (int)red, (int)green, (int)blue);
         }
 
-        public void GroupObjParam(IGH_DocumentObject obj, string extraText)
-        {
-            this.OnPingDocument().ScheduleSolution(1, doc =>
-            {
-                GH_Group group = new GH_Group();
-                group.CreateAttributes();
-                group.AddObject(obj.InstanceGuid);
-                group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
-                group.NickName = RemoParam.RemoParamKeyword + extraText;
+        //public void GroupObjParam(IGH_DocumentObject obj, string extraText)
+        //{
+        //    this.OnPingDocument().ScheduleSolution(1, doc =>
+        //    {
+        //        GH_Group group = new GH_Group();
+        //        group.CreateAttributes();
+        //        group.AddObject(obj.InstanceGuid);
+        //        group.Colour = System.Drawing.Color.FromArgb(0, 0, 0, 0);
+        //        group.NickName = RemoParam.RemoParamKeyword + extraText;
 
 
-                this.OnPingDocument().AddObject(group, false);
+        //        this.OnPingDocument().AddObject(group, false);
 
-            });
+        //    });
 
-        }
+        //}
 
         public class IGH_ParamConditionStatus
         {
@@ -1124,45 +1157,45 @@ namespace RemoSharp.Distributors
 
         }
 
-        IGH_ParamConditionStatus FindIGH_ParamStatus(IGH_Param param)
-        {
-            bool isSelected = param.Attributes.Selected;
-            bool noInput = param.SourceCount < 1;
+        //IGH_ParamConditionStatus FindIGH_ParamStatus(IGH_Param param)
+        //{
+        //    bool isSelected = param.Attributes.Selected;
+        //    bool noInput = param.SourceCount < 1;
 
-            bool tabKeyIsDown = this.remoParamModeActive;
+        //    bool tabKeyIsDown = this.remoParamModeActive;
 
-            bool paramIsNotPointComp = param is Grasshopper.Kernel.Parameters.Param_Point;
+        //    bool paramIsNotPointComp = param is Grasshopper.Kernel.Parameters.Param_Point;
 
-            bool isIn_gh_group = false;
-            bool mouseHoverOnExpiredParam = false;
-            if (tabKeyIsDown)
-            {
+        //    bool isIn_gh_group = false;
+        //    bool mouseHoverOnExpiredParam = false;
+        //    if (tabKeyIsDown)
+        //    {
 
-                var gh_groups = this.OnPingDocument().Objects.AsParallel().AsUnordered()
-                    .Where(obj => obj is Grasshopper.Kernel.Special.GH_Group && obj.NickName.Contains(RemoParam.RemoParamKeyword))
-                    .Select(obj => (GH_Group)obj);
-                foreach (var item in gh_groups)
-                {
-                    if (item.ObjectIDs.Contains(param.InstanceGuid))
-                    {
-                        isIn_gh_group = true;
-                        break;
-                    }
-                }
-                if (isIn_gh_group && !paramIsNotPointComp)
-                {
-                    var hoverObj = Grasshopper.Instances.ActiveCanvas.Document.FindObject(this.mouseLocation, 2);
-                    if (hoverObj != null)
-                    {
-                        mouseHoverOnExpiredParam = hoverObj.InstanceGuid == param.InstanceGuid;
-                    }
-                }
+        //        var gh_groups = this.OnPingDocument().Objects.AsParallel().AsUnordered()
+        //            .Where(obj => obj is Grasshopper.Kernel.Special.GH_Group && obj.NickName.Contains(RemoParam.RemoParamKeyword))
+        //            .Select(obj => (GH_Group)obj);
+        //        foreach (var item in gh_groups)
+        //        {
+        //            if (item.ObjectIDs.Contains(param.InstanceGuid))
+        //            {
+        //                isIn_gh_group = true;
+        //                break;
+        //            }
+        //        }
+        //        if (isIn_gh_group && !paramIsNotPointComp)
+        //        {
+        //            var hoverObj = Grasshopper.Instances.ActiveCanvas.Document.FindObject(this.mouseLocation, 2);
+        //            if (hoverObj != null)
+        //            {
+        //                mouseHoverOnExpiredParam = hoverObj.InstanceGuid == param.InstanceGuid;
+        //            }
+        //        }
 
-            }
+        //    }
 
-            IGH_ParamConditionStatus status = new IGH_ParamConditionStatus(isSelected, noInput, tabKeyIsDown, isIn_gh_group, mouseHoverOnExpiredParam, paramIsNotPointComp);
-            return status;
-        }
+        //    IGH_ParamConditionStatus status = new IGH_ParamConditionStatus(isSelected, noInput, tabKeyIsDown, isIn_gh_group, mouseHoverOnExpiredParam, paramIsNotPointComp);
+        //    return status;
+        //}
 
         private void ActiveCanvas_MouseMove(object sender, MouseEventArgs e)
         {
@@ -1202,6 +1235,7 @@ namespace RemoSharp.Distributors
                 if (client.IsAlive)
                 {
                     this.Message = "Connected";
+                    Grasshopper.Instances.ActiveCanvas.Invalidate();
                 }
                 else
                 {
@@ -1273,6 +1307,30 @@ namespace RemoSharp.Distributors
             }
             GH_CanvasMouseEvent mouseEvent = new GH_CanvasMouseEvent(canvas.Viewport, e);
             this.upPnt = new float[] { mouseEvent.CanvasLocation.X, mouseEvent.CanvasLocation.Y };
+
+            if (lastCommand != null)
+            {
+                if (lastCommand.commandType == CommandType.RemoParameter)
+                {
+                    // a timer to wait for 150 milliseconds and then send the command
+                    // the timer is disposed after being elapsed
+
+                    System.Timers.Timer rpmTimer = new System.Timers.Timer(400);
+                    rpmTimer.AutoReset = false;
+                    rpmTimer.Elapsed += (s, ev) =>
+                    {
+                        var comp = this.OnPingDocument().FindObject(this.lastRpmGuid, false);
+                        RemoParameter remoParam = new RemoParameter(this.username, this.sessionID, comp);
+                        SendCommands(this, remoParam, commandRepeat, enable);
+                        this.lastCommand = null;
+                        this.lastRpmGuid = Guid.Empty;
+                        rpmTimer.Dispose();
+                    };
+                    rpmTimer.Start();
+
+
+                }
+            }
 
             if (interaction is Grasshopper.GUI.Canvas.Interaction.GH_WireInteraction)
             {
@@ -1705,7 +1763,7 @@ namespace RemoSharp.Distributors
 
             if (currentValue)
             {
-                if (this.client != null) 
+                if (this.client != null)
                 {
                     client.Close();
                     this.enableSwitch.CurrentValue = false;
@@ -1787,8 +1845,8 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize the Selected Components.",
                         });
                     }
-                    
-                    
+
+
 
                     if (!items.ContainsKey("SyncAnnotations"))
                     {
@@ -1927,7 +1985,7 @@ namespace RemoSharp.Distributors
                             ToolTipText = "Syncronize the Selected Components.",
                         });
                     }
-                    
+
                     if (!items.ContainsKey("SyncAnnotations"))
                     {
                         items.Add(new ToolStripButton("SyncAnnotations", (Image)Properties.Resources.Annotate.ToBitmap(), onClick: (s, e) => SyncAnnotations_OnValueChanged(s, e))
@@ -2037,22 +2095,16 @@ namespace RemoSharp.Distributors
                 if (remoSetupComp.subscribedObjs.Contains(item))
                 {
                     item.SolutionExpired -= SendRemoParameterCommand;
-                    item.ObjectChanged -= Item_ObjectChanged;
-                    item.AttributesChanged -= Item_AttributesChanged;
-                    item.DisplayExpired -= Item_DisplayExpired;
-                    item.PreviewExpired -= Markup_PreviewExpired;
                     remoSetupComp.subscribedObjs.Remove(item);
                 }
                 else
                 {
                     item.SolutionExpired += SendRemoParameterCommand;
-                    item.ObjectChanged += Item_ObjectChanged;
-                    item.AttributesChanged += Item_AttributesChanged;
-                    item.DisplayExpired += Item_DisplayExpired;
-                    item.PreviewExpired += Markup_PreviewExpired;
                     remoSetupComp.subscribedObjs.Add(item);
                 }
             }
+
+            Grasshopper.Instances.ActiveCanvas.Invalidate();
         }
 
         private void Item_SolutionExpired(IGH_DocumentObject sender, EventArgs e)
@@ -2089,7 +2141,8 @@ namespace RemoSharp.Distributors
             }
 
             RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
-
+            this.lastCommand = remoParameter;
+            this.lastRpmGuid = sender.InstanceGuid;
             SendCommands(remoSetupComp, remoParameter, 1, enable);
         }
 
@@ -2160,22 +2213,24 @@ namespace RemoSharp.Distributors
         {
             var thisDoc = this.OnPingDocument();
             if (thisDoc == null) return;
-
+             
             RemoSetupClientV3 remoSetupComp = (RemoSetupClientV3)thisDoc.Objects.Where(obj => obj is RemoSetupClientV3).FirstOrDefault();
             if (remoSetupComp == null) return;
 
             if (sender is GH_ButtonObject)
             {
                 RemoParamButton remoParamButton = new RemoParamButton(remoSetupComp.username, this.sessionID, (GH_ButtonObject)sender);
+                
                 SendCommands(remoSetupComp, remoParamButton, 1, enable);
                 return;
             }
 
             RemoParameter remoParameter = new RemoParameter(remoSetupComp.username, remoSetupComp.sessionID, sender);
-
+            this.lastCommand = remoParameter;
+            this.lastRpmGuid = sender.InstanceGuid;
             SendCommands(remoSetupComp, remoParameter, 1, enable);
 
-        }
+        } 
 
         GraphicsPath DrawFilletedRectangle(RectangleF rectangle, float radius)
         {

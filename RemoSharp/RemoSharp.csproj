@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Distributors\NonComponetRemoSetupV3.cs" />
+    <Compile Include="Distributors\NonComponetCommandExecutor.cs" />
     <Compile Include="Distributors\RemoSetupClientV3.cs" />
     <Compile Include="RemoGeom\ComplexGeomParaser.cs" />
     <Compile Include="RemoGeom\complexRemoGeomStreamer.cs" />
@@ -43,7 +43,6 @@
     <None Include="installer.nsi" />
     <None Include="ScriptBackup\RemoParam.cs_backup" />
     <Compile Include="RemoGeom\WriteToFile.cs" />
-    <Compile Include="RemoParams\RemoParamData.cs" />
     <Compile Include="RemoParams\RemoParamUtilities.cs" />
     <Compile Include="Utilities\LoginDialouge.cs">
       <SubType>Form</SubType>
@@ -68,10 +67,6 @@
     <Compile Include="Utilities\SingleTrueFilter.cs" />
     <Compile Include="Utilities\UniqueValues.cs" />
     <Compile Include="WebSocketClient\WebSocketClient.cs" />
-    <Compile Include="Canvas-Cam Sync\BroadcastCanvasScreenXML.cs" />
-    <Compile Include="Canvas-Cam Sync\BroadcastCamera.cs" />
-    <Compile Include="Canvas-Cam Sync\ClientCanvasBounds.cs" />
-    <Compile Include="Canvas-Cam Sync\SyncGHviewport.cs" />
     <Compile Include="Distributors\CommandExecutor.cs" />
     <Compile Include="GeometryStreamIPSet.cs">
       <SubType>Form</SubType>
@@ -79,23 +74,17 @@
     <Compile Include="GeometryStreamIPSet.Designer.cs">
       <DependentUpon>GeometryStreamIPSet.cs</DependentUpon>
     </Compile>
-    <Compile Include="RemoCSharp\EavesDrop.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="RemoCSharp\ServerAddress.cs" />
     <Compile Include="Distributors\RemoCompTarget.cs" />
     <Compile Include="RemoGeom\RemoGeomJsonStructure.cs" />
     <Compile Include="RemoGeom\RemoGeomParser.cs" />
     <Compile Include="RemoGeom\RemoGeomStreamer.cs" />
-    <Compile Include="RemoParams\RemoParam.cs" />
     <Compile Include="RemoSharpInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Canvas-Cam Sync\SyncCamera.cs" />
-    <Compile Include="RemoCSharp\WS_Server_Samples.cs" />
-    <Compile Include="Canvas-Cam Sync\SyncCanvas.cs" />
     <Compile Include="TabProperties.cs" />
     <Compile Include="RemoParams\RemoCommand.cs" />
     <Compile Include="Utilities\GHL.cs" />
@@ -321,6 +310,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="images\RequestSync.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Tag.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\ComplexGeomStream.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\ComplexGeomParse.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="images\Unique.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
