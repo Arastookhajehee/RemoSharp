@@ -2,6 +2,8 @@
 
 ![RemoSharp](/Overal%20Diagram.jpg)
 
+### Please visit https://www.remosharp.com to download, and try RemoSharp.
+
 ## Description
 
 RemoSharp is a Grasshopper plugin for real-time (RT) and non-real-time (NRT) collaborative computational design and fabrication.
