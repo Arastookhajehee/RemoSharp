@@ -2,6 +2,12 @@
 
 ![RemoSharp](/Overal%20Diagram.jpg)
 
+> [!WARNING]
+> **Archiving this Repo and the New Rewrite**
+>
+> This repository is being archived and will no longer be actively maintained.  
+> A new version of the tool has already been developed, and I will make the new repository public soon.
+
 ### Please visit https://www.remosharp.com to download, and try RemoSharp.
 
 ## Description
